@@ -49,3 +49,4 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sample.db
 
 # Windows IMAH
 # find_package(Qt5 REQUIRED COMPONENTS Widgets Sql)
+# test 2

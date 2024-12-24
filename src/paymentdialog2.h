@@ -1,17 +1,27 @@
 #ifndef PaymentDialog2H
 #define PaymentDialog2H
 
-#include "paymentdialog.h"
+#include <QDialog>
 
-class PaymentDialog2 : public PaymentDialog
+namespace Ui {
+    class PaymentDialog;
+}
+
+class PaymentDialog2 : public QDialog
 {
     Q_OBJECT
   public:
-    PaymentDialog2(QAbstractItemModel *mod, QWidget* =nullptr);
+    PaymentDialog2(QWidget * =nullptr);
+    ~PaymentDialog2();
+    void setPayment(qint64);
 
-  protected slots:
-    void on_pushButton_clicked() Q_DECL_OVERRIDE;
-    void on_pushButton2_clicked() Q_DECL_OVERRIDE;
+  private slots:
+    void on_pushButton2_clicked();
+    void on_doubleSpinBox2_valueChanged(qreal);
+
+  private:
+    Ui::PaymentDialog *ui;
+    qint64 inv_id;
 };
 
 #endif //PaymentDialog2H

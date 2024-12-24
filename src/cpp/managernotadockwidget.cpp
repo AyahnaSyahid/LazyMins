@@ -5,6 +5,7 @@
 #include "userpermissions.h"
 #include "tabelrepayment.h"
 #include "notifier.h"
+#include "paymentdialog2.h"
 
 #include <QSqlQuery>
 #include <QDialog>
@@ -171,8 +172,10 @@ void ManagerNotaDockWidget::on_tableView_customContextMenuRequested(const QPoint
     auto vp = UserPermissions::hasPermission(PermissionItem("Viewer"));
     auto mip = UserPermissions::hasPermission(PermissionItem("ManageInvoices"));
     QMenu ctm(this);
-    auto vie = ctm.addAction("Lihat");
-    auto edt = ctm.addAction("Edit");
+    auto vie = ctm.addAction("Lihat Pembayaran");
+    auto edt = ctm.addAction("Edit Nota");
+    auto sep = ctm.addSeparator();
+    auto del = ctm.addAction("Hapus");
     
     vie->setEnabled(vp);
     edt->setEnabled(mip);
@@ -190,7 +193,10 @@ void ManagerNotaDockWidget::on_tableView_customContextMenuRequested(const QPoint
         dialog->adjustSize();
         dialog->open();
     } else if ( sel == edt) {
-        
+        auto dia = new PaymentDialog2(this);
+        dia->setAttribute(Qt::WA_DeleteOnClose);
+        dia->setPayment(nid);
+        dia->open();
     }
 }
 

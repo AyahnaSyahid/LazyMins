@@ -174,7 +174,7 @@ void ManagerNotaDockWidget::on_tableView_customContextMenuRequested(const QPoint
     auto vie = ctm.addAction("Lihat");
     auto edt = ctm.addAction("Edit");
     
-    vie->setEnabled(hp);
+    vie->setEnabled(vp);
     edt->setEnabled(mip);
     
     auto sel = ctm.exec(gp);

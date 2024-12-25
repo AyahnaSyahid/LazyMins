@@ -4,7 +4,7 @@
 #include <QDialog>
 
 namespace Ui {
-    class PaymentDialog;
+    class PaymentEditDialog;
 }
 
 class PaymentDialog2 : public QDialog
@@ -16,11 +16,11 @@ class PaymentDialog2 : public QDialog
     void setPayment(qint64);
 
   private slots:
-    void on_pushButton2_clicked();
-    void on_doubleSpinBox2_valueChanged(qreal);
+    void on_pushButton_clicked();
+    void on_doubleSpinBox_valueChanged(qreal);
 
   private:
-    Ui::PaymentDialog *ui;
+    Ui::PaymentEditDialog *ui;
     qint64 inv_id;
 };
 

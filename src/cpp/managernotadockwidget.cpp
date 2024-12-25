@@ -57,7 +57,7 @@ SELECT inv.invoice_id AS INVID,
        inv.total_amount AS Nilai,
        inv.total_paid AS Terbayar,
        inv.discount_amount AS Diskon,
-       inv.total_amount - COALESCE(inv.total_paid + inv.discount_amount, 0) AS Sisa,
+       inv.total_amount - COALESCE(inv.total_paid + inv.discount_amount, inv.discount_amount) AS Sisa,
        inv.due_date AS [Jadwal Tagihan]
   FROM invoices inv
        JOIN

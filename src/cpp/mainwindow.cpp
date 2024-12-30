@@ -164,7 +164,7 @@ void MainWindow::on_actionManager_triggered()
     if(!ma) {
         auto ma = new ManagerAkun(this);
         ma->setAttribute(Qt::WA_DeleteOnClose);
-        ma->setWindowModality(Qt::NonModal);
+        // ma->setWindowModality(Qt::NonModal);
         ma->show();
     } else {
         ma->raise();

@@ -6,6 +6,7 @@
 #include "resetpassword.h"
 #include "passwordverification.h"
 #include "loginnotifier.h"
+#include "permissioneditor.h"
 #include "helper.h"
 #include <QSqlQueryModel>
 #include <QSortFilterProxyModel>
@@ -137,6 +138,10 @@ void ManagerAkun::on_tableView_customContextMenuRequested(const QPoint& pos)
         QMenu menu;
         auto act1 = menu.addAction("Edit Bio");
         auto act2 = menu.addAction("Reset Password");
+        menu.addSeparator();
+        auto act4 = menu.addAction("Ubah Izin");
+        menu.addSeparator();
+        auto act3 = menu.addAction("Daftarkan Akun");
         auto sel = menu.exec(gpos);
         if(sel == act1) {
             editUserBio(iUser);
@@ -151,6 +156,13 @@ void ManagerAkun::on_tableView_customContextMenuRequested(const QPoint& pos)
             connect(rp, &ResetPassword::accepted, this, 
                 []{ MessageHelper::information(nullptr, "Berhasil", "Password berhasil diubah"); } );
             rp->open();
+        } else if (sel == act3) {
+            // Buat User
+
+        } else if (sel == act4) {
+            auto pe = new PermissionEditor(iUser);
+            pe->setAttribute(Qt::WA_DeleteOnClose);
+            pe->show();
         }
     }
 }

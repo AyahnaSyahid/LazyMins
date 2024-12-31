@@ -29,7 +29,7 @@ public slots:
     }
 
 signals:
-    tableChanged(const QString& s="");
+    void tableChanged(const QString& s="");
 
 private:
     static QMutex mutex;

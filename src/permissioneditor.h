@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QListWidget>
 
+class QListWidgetItem;
 class PermissionEditor : public QWidget {
     Q_OBJECT
 
@@ -12,8 +13,7 @@ public:
     ~PermissionEditor();
 
 public slots:
-    bool commit();
-    
+    void onItemChanged(QListWidgetItem *);
 private:
     qint64 uid;
     QListWidget* listWidget;

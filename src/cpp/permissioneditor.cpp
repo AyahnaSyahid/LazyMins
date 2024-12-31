@@ -1,9 +1,12 @@
 #include "permissioneditor.h"
 #include "userpermissions.h"
+#include "helper.h"
 #include <QListWidget>
 #include <QVBoxLayout>
 #include <QListWidgetItem>
 #include <QSqlQuery>
+#include <QtDebug>
+
 
 int ID_ROLE = 2210;
 int DB_STAT = 2211;
@@ -16,8 +19,10 @@ PermissionEditor::PermissionEditor(qint64 _uid, QWidget *parent)
     while(q.next()) {
         listWidget->addItem(q.value(1).toString());
         QListWidgetItem* cur = listWidget->item(listWidget->count() -1);
-        cur->setData(ID_ROLE, q.value(0).toLongLong());
+        cur->setData(ID_ROLE, q.value(0));
         cur->setFlags(cur->flags() | Qt::ItemIsUserCheckable);
+        if(q.value(1).toString() == "GRANT_ALL")
+            cur->setFlags(cur->flags()^Qt::ItemIsUserCheckable);
         auto checked = UserPermissions::hasPermission(UserItem(uid), PermissionItem(q.value(0).toLongLong()));
         cur->setData(DB_STAT, checked);
         cur->setCheckState(checked ? Qt::Checked : Qt::Unchecked);
@@ -28,27 +33,16 @@ PermissionEditor::PermissionEditor(qint64 _uid, QWidget *parent)
     auto l = new QVBoxLayout(this);
     setLayout(l);
     l->addWidget(listWidget);
+    connect(listWidget, &QListWidget::itemChanged, this, &PermissionEditor::onItemChanged);
 }
 
 PermissionEditor::~PermissionEditor() {
     delete listWidget;
 }
 
-bool PermissionEditor::commit() {
-    // get active perms
-    QList<qint64> activePerms;
-    for(int ix =0 ; ix < listWidget->count(); ++ix) {
-        auto item = listWidget->item(ix);
-        if(item->checkState() == Qt::Checked) {
-            activePerms << item->data(ID_ROLE).toLongLong();
-        }
+void PermissionEditor::onItemChanged(QListWidgetItem* wi) {
+    bool ok = UserPermissions::setPermission(UserItem(uid), PermissionItem(wi->data(ID_ROLE).toLongLong()), wi->checkState());
+    if(!ok) {
+        MessageHelper::information(this, "Gagal", "Perubahan izin tidak dizinkan");
     }
-    // check if there is a role with identical active perms
-    QStringList stl;
-    for(auto ap = activePerms.begin(); ap != activePerms.end(); ++ap) {
-        stl << QString::number(*ap);
-    }
-    QSqlQuery q;
-    q.prepere(QString("SELECT role_id WHERE 
-    ")
 }

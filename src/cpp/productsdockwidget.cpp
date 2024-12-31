@@ -65,9 +65,7 @@ ProductsDockWidget::ProductsDockWidget(QWidget* parent)
     
     connect(ui->comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ProductsDockWidget::refreshModel);
     connect(ui->lineEdit, &QLineEdit::textChanged, this, &ProductsDockWidget::refreshModel);
-    connect(dbNot, DatabaseNotifier::tableChanged, [this](QString tname) {
-        if(tname == "products" || tname == "orders") refreshModel();
-    }); 
+    connect(dbNot, &DatabaseNotifier::tableChanged, this, &ProductsDockWidget::refreshModel); 
     refreshModel();
 }
 

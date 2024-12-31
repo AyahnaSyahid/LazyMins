@@ -158,11 +158,14 @@ void ManagerAkun::on_tableView_customContextMenuRequested(const QPoint& pos)
             rp->open();
         } else if (sel == act3) {
             // Buat User
-
+            
         } else if (sel == act4) {
-            auto pe = new PermissionEditor(iUser);
-            pe->setAttribute(Qt::WA_DeleteOnClose);
-            pe->show();
+            auto d = new QDialog(this);
+            auto pe = new PermissionEditor(iUser, d);
+            d->setLayout(pe->layout());
+            d->setWindowTitle(QString("Atur Perizinan : %1").arg(UserItem(iUser).username));
+            d->setAttribute(Qt::WA_DeleteOnClose);
+            d->show();
         }
     }
 }

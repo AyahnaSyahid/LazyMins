@@ -4,7 +4,7 @@
 #include <QSqlError>
 #include <QtDebug>
 InvoicePaymentsItem::InvoicePaymentsItem(qint64 ip)
-  :  payment_id(-1), DatabaseItem()
+  :  payment_id(ip), DatabaseItem()
 {
     q.prepare("SELECT * FROM invoice_payments WHERE payment_id = ?");
     q.addBindValue(payment_id);
@@ -36,12 +36,13 @@ bool InvoicePaymentsItem::save()
     if(payment_id < 0) {
         // new
         q.prepare("INSERT INTO invoice_payments (payment_date, invoice_id, amount, "
-                  "method, created_by, created_date ) "
-                  "VALUES (?, ?, ?, ?, ?, ?)");
+                  "method, note, created_by, created_date ) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
         q.addBindValue(payment_date.toUTC());
         q.addBindValue(invoice_id);
         q.addBindValue(amount);
         q.addBindValue(method);
+        q.addBindValue(note);
         q.addBindValue(created_by);
         q.addBindValue(created_date.toUTC());
         if(!q.exec()){
@@ -63,15 +64,16 @@ bool InvoicePaymentsItem::save()
     } else {
         q.prepare("UPDATE invoice_payments SET ("
                 "invoice_id, amount, payment_date, "
-                "created_date, created_by, method, "
+                "created_date, created_by, method, note, "
                 "modified_by, modified_date) "
-                  "= (?, ?, ?, ?, ?, ?, ?, ?) WHERE payment_id = ?");
+                  "= (?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE payment_id = ?");
         q.addBindValue(invoice_id < 0 ? QVariant() : invoice_id);
         q.addBindValue(amount);
         q.addBindValue(payment_date.toUTC());
         q.addBindValue(created_date.toUTC());
         q.addBindValue(created_by);
         q.addBindValue(method);
+        q.addBindValue(note.isEmpty() ? QVariant() : note);
         q.addBindValue(modified_by);
         q.addBindValue(modified_date.isValid() ? modified_date.toUTC() : QVariant());
         q.addBindValue(payment_id);

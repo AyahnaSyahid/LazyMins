@@ -40,18 +40,6 @@ TabelRepayment::TabelRepayment(QWidget* parent)
     ui->tableView->setModel(proxy);
     setProperty("currentNotaId", -1);
     connect(dbNot, &DatabaseNotifier::tableChanged, this, &TabelRepayment::initRepayModel);
-    // ui->tableView->hideColumn(0);
-    // ui->tableView->hideColumn(1);
-    // ui->tableView->hideColumn(5);
-    // auto lh = new LihatHari;
-    // connect(this, SIGNAL(destroyed()), lh, SLOT(deleteLater()));
-    // ui->tableView->setItemDelegateForColumn(4, lh);
-    // ui->tableView->horizontalHeader()->moveSection(4, 2);
-    // ui->tableView->resizeColumnsToContents();
-    // for(auto bt : findChildren<QPushButton*>()) {
-        // bt->setDefault(false);
-        // bt->setAutoDefault(false);
-    // }
 }
 
 TabelRepayment::~TabelRepayment()
@@ -61,14 +49,10 @@ TabelRepayment::~TabelRepayment()
 
 void TabelRepayment::on_tableView_doubleClicked(const QModelIndex& mi)
 {
-    // if(!mi.isValid()) return;
-    // auto repMod = qobject_cast<RepaymentModel*>(model());
-    // auto before = repMod->record(mi.row());
-    // EditRepaymentDialog erd(before, this);
-    // if(erd.exec() == QDialog::Accepted){
-        // repMod->select();
-        // setNota(ns._id);
-    // }
+    auto erd = new EditRepaymentDialog(mi.siblingAtColumn(0).data(Qt::EditRole).toLongLong(), this);
+    qDebug() << mi.siblingAtColumn(0).data(Qt::EditRole).toLongLong();
+    erd->setAttribute(Qt::WA_DeleteOnClose);
+    erd->show();
 }
 
 void TabelRepayment::setNota(qint64 i)
@@ -113,15 +97,6 @@ void TabelRepayment::on_pushButton_clicked() //Tambah
 void TabelRepayment::on_pushButton2_clicked() // Cashback
 {
     // CashbackDialog cb(this);
-    // cb.setValue(-ns.rest);
-    // if(cb.exec() == QDialog::Accepted) {
-        // bool ok = RepaymentModel::insertRepayment(ns._id, -cb.value(), false);
-        // if(!ok) {
-            // MessageHelper::warning(this, "Kesalahan", "Data tidak berhasil di input");
-            // return;
-        // }
-    // }
-    // setNota(ns._id);
 }
 
 // Print Nota
@@ -165,6 +140,7 @@ void TabelRepayment::onAcceptedRepayment() {
 
 Adapter::Adapter(QObject* parent) : QSortFilterProxyModel(parent) {}
 Adapter::~Adapter(){}
+
 QVariant Adapter::data(const QModelIndex& mi, int role) const {
     auto def = QSortFilterProxyModel::data(mi, role);
     if (role == Qt::TextAlignmentRole) {

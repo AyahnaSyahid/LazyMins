@@ -1,17 +1,15 @@
 #include "editrepaymentdialog.h"
-#include "../ui/ui_editrepaymentdialog.h"
+#include "ui_editrepaymentdialog.h"
 #include "helper.h"
-
+#include "invoicepaymentsitem.h"
+#include "notifier.h"
+#include <QDateTime>
 #include <QPushButton>
-#include <QModelIndex>
-#include <QSqlError>
-#include <QSqlRecord>
-#include <QSqlQuery>
 #include <QtDebug>
 
 
-EditRepaymentDialog::EditRepaymentDialog(const QSqlRecord& rec, QWidget* parent)
-  : ui(new Ui::EditRepaymentDialog), r(rec), QDialog(parent)
+EditRepaymentDialog::EditRepaymentDialog(qint64 payid, QWidget* parent)
+  : ui(new Ui::EditRepaymentDialog), QDialog(parent)
 {
     ui->setupUi(this);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText("Ubah");
@@ -21,17 +19,20 @@ EditRepaymentDialog::EditRepaymentDialog(const QSqlRecord& rec, QWidget* parent)
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setAutoDefault(false);
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setDefault(false);
     setFixedSize(size());
-    int t = rec.value("cash").toInt();
-    if(t) {
-        ui->label->setText("Cash");
-        ui->checkBox->setChecked(false);
+    setProperty("currentPayId", payid);
+    InvoicePaymentsItem ipi(payid);
+    if(ipi.method == "cash") {
+        ui->labelMetode->setText("Cash");
+        ui->comboBox->setCurrentIndex(0);
     } else {
-        t = rec.value("trf").toInt();
-        ui->label->setText("Transfer");
-        ui->checkBox->setChecked(true);
+        ui->labelMetode->setText("Transfer");
+        ui->comboBox->setCurrentIndex(1);
     }
-    ui->label_2->setText(locale().toCurrencyString(t, QString("Rp. ")));
-    ui->spinBox->setValue(t);
+    ui->labelTanggal->setText(locale().toString(ipi.payment_date, "dddd, d MMM yyyy"));
+    ui->labelTerbayar->setText(locale().toCurrencyString(ipi.amount, QString("Rp. ")));
+    ui->spinBox->setValue(ipi.amount);
+    ui->dateEdit->setDate(ipi.payment_date.date());
+    ui->plainTextEdit->setPlainText(ipi.note);
 }
 
 EditRepaymentDialog::~EditRepaymentDialog()
@@ -41,15 +42,17 @@ EditRepaymentDialog::~EditRepaymentDialog()
 
 void EditRepaymentDialog::on_buttonBox_accepted()
 {
-    QSqlQuery q;
-    q.prepare("UPDATE repayment SET (cash, trf, mtime) = (?, ?, ?) WHERE id = ?");
-    q.addBindValue(ui->checkBox->isChecked() ? 0 : ui->spinBox->value());
-    q.addBindValue(ui->checkBox->isChecked() ? ui->spinBox->value() : 0);
-    q.addBindValue(StringHelper::currentDateTimeString());
-    q.addBindValue(r.value("id"));
-    q.exec();
-    if(q.lastError().isValid()) {
-        qDebug() << q.lastError().text();
+    InvoicePaymentsItem ipi(property("currentPayId").toLongLong());
+    if(ipi.payment_date.date() != ui->dateEdit->date()) {
+        ipi.payment_date = QDateTime(ui->dateEdit->date());
     }
+    ipi.note = ui->plainTextEdit->toPlainText();
+    ipi.amount = ui->spinBox->value();
+    ipi.method = ui->comboBox->currentIndex() == 0 ? "cash" : "transfer";
+    if (!ipi.save()) {
+        MessageHelper::information(this, "Gagal", "Tidak dapat menyimpan perubahan");
+        return;
+    }
+    dbNot->emitChanged("invoice_payments");
     accept();
 }

@@ -10,18 +10,15 @@ namespace Ui {
 
 class EditRepaymentDialog : public QDialog
 {
-    Q_OBJECT
-    
+    Q_OBJECT    
   public:
-    EditRepaymentDialog(const QSqlRecord& rec, QWidget* =nullptr);
+    EditRepaymentDialog(qint64, QWidget* =nullptr);
     ~EditRepaymentDialog();
-    inline const QSqlRecord& record() const { return r; }
-    
+
   public slots:
     void on_buttonBox_accepted();
 
   private:
-    QSqlRecord r;
     Ui::EditRepaymentDialog* ui;
 };
 

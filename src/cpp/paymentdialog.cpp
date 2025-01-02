@@ -23,7 +23,7 @@ qreal totalHarga(QAbstractItemModel* mod)
     for(int i=0; i < mod->rowCount(); ++i) {
         QVariant val = mod->index(i, 0).data();
         if(val.isValid()) {
-            qDebug() << i << val;
+            // qDebug() << i << val;
             OrderItem oi(val.toLongLong());
             if(oi.order_id > 0)
                 tHarga += oi.total_price;
@@ -108,7 +108,6 @@ void PaymentDialog::on_pushButton_clicked()
 
 void PaymentDialog::on_pushButton2_clicked()
 { // Bayar
-    qDebug() << "Simpan Clicked";
     on_pushButton_clicked();
 }
 

@@ -99,7 +99,17 @@ QString ExpensesDockWidgetContents::whereQuery() const {
         where << QString("strftime('%m', datetime(expense_date)) = '%1'").arg(
             modelBulanan->index(cbix, 0).data(Qt::EditRole).toInt(), 2, 10, QChar('0'));
     }
-    where << QString("strftime('%Y', datetime(expense_date)) = '%1'").arg(thtx);
+    if(!thtx.isEmpty()) {
+        where << QString("strftime('%Y', datetime(expense_date)) = '%1'").arg(thtx);
+    }
+    if(!where.count()) {
+        return "1";
+    }
+    
+    if(where.count() == 1) {
+        return where[0];
+    }
+    
     return where.join(" AND ");
 }
 
@@ -126,7 +136,6 @@ void ExpensesDockWidgetContents::refreshModel() {
     ui->lastButton->setDisabled(onLastPage);
     
     ui->navPaging->setVisible(maxPage > 1);
-    
     qobject_cast<QSqlQueryModel*>(modelExpenses)->setQuery(qq);
 }
 

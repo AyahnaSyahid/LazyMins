@@ -102,7 +102,7 @@ void TabelRepayment::on_pushButton2_clicked() // Cashback
 // Print Nota
 void TabelRepayment::on_pushButton3_clicked() 
 {
-    
+    MessageHelper::information(this, "Test", "Print Dialog");
 }
 
 void TabelRepayment::initRepayModel() {

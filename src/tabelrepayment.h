@@ -23,6 +23,7 @@ class TabelRepayment : public QWidget
     void on_pushButton3_clicked();
     void initRepayModel();
     void onAcceptedRepayment();
+    void reInitNota();
     
   private:
     Ui::TabelRepayment* ui;

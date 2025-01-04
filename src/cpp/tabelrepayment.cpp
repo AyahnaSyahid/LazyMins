@@ -52,7 +52,9 @@ void TabelRepayment::on_tableView_doubleClicked(const QModelIndex& mi)
     auto erd = new EditRepaymentDialog(mi.siblingAtColumn(0).data(Qt::EditRole).toLongLong(), this);
     qDebug() << mi.siblingAtColumn(0).data(Qt::EditRole).toLongLong();
     erd->setAttribute(Qt::WA_DeleteOnClose);
+    erd->connect(erd, &QDialog::accepted, this, &TabelRepayment::reInitNota);
     erd->show();
+    
 }
 
 void TabelRepayment::setNota(qint64 i)
@@ -82,6 +84,10 @@ void TabelRepayment::setNota(qint64 i)
         ui->pushButton->show();
     }
     initRepayModel();
+}
+
+void TabelRepayment::reInitNota() {
+    setNota(property("currentNotaId").toLongLong());
 }
 
 void TabelRepayment::on_pushButton_clicked() //Tambah

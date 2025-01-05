@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
       app.exit(1);
       return 1;
   }
+
   MainWindow mainWindow;
   mainWindow.show();
 

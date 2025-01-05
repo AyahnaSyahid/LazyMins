@@ -49,6 +49,7 @@ void EditRepaymentDialog::on_buttonBox_accepted()
     ipi.note = ui->plainTextEdit->toPlainText();
     ipi.amount = ui->spinBox->value();
     ipi.method = ui->comboBox->currentIndex() == 0 ? "cash" : "transfer";
+    ipi.modified_by = logNot->currentUser().user_id;
     if (!ipi.save()) {
         MessageHelper::information(this, "Gagal", "Tidak dapat menyimpan perubahan");
         return;

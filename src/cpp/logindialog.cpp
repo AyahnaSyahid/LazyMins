@@ -57,20 +57,29 @@ void LoginDialog::accept()
     }
 }
 
+
 qint64 LoginDialog::blockingLoginDialog(int ma) {
-    qint64& user_id = GlobalNamespace::logged_user_id;
+
     int attempt = 0;
+    qDebug() << __FILE__ << "@" << __LINE__ ;
+    qDebug() << "DEV MODE ON";
+
+    // misal rek di deploy comment 1 baris di handap meh aya login dialog
+    logNot->setLoggedUser(1);
+    return 1;
+
+    qint64& user_id = GlobalNamespace::logged_user_id;
+
     while(user_id < 0 & attempt < ma) {
         if(attempt)
             MessageHelper::warning(nullptr, "Akses dicekal", "Anda harus masuk dulu");
         auto *ld = new LoginDialog;
-        // ld->setAttribute(Qt::WA_DeleteOnClose);
-        // ld->connect(ld, &QObject::destroyed, []{qDebug() << "LoginDialog destroyed"; });
         ld->exec();
         attempt++;
         if(attempt == ma)
             MessageHelper::warning(nullptr, "Akses dicekal", "Demi keamanan aplikasi akan segera ditutup\n"
                                                              "jika ini adalah kesalahan hubungi Administrator");
     }
+
     return user_id;
 }

@@ -30,10 +30,10 @@ InvoicePaymentsItem::~InvoicePaymentsItem(){}
 
 bool InvoicePaymentsItem::save()
 {
-    if(invoice_id < 0) {
+    if(invoice_id < 1) {
         return false;
     }
-    if(payment_id < 0) {
+    if(payment_id < 1) {
         // new
         q.prepare("INSERT INTO invoice_payments (payment_date, invoice_id, amount, "
                   "method, note, created_by, created_date ) "
@@ -62,16 +62,16 @@ bool InvoicePaymentsItem::save()
             return true;
         }
     } else {
-        q.prepare("UPDATE invoice_payments SET ("
+        q.prepare("UPDATE invoice_payments SET ( "
                 "invoice_id, amount, payment_date, "
-                "created_date, created_by, method, note, "
+                "method, note, "
                 "modified_by, modified_date) "
-                  "= (?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE payment_id = ?");
-        q.addBindValue(invoice_id < 0 ? QVariant() : invoice_id);
+                  "= ( ?, ?, ?, ?, ?, ?, ?) WHERE payment_id = ?;");
+        qDebug() << "Invoice ID:" << invoice_id;
+        qDebug() << "Payment id:" << payment_id;
+        q.addBindValue(invoice_id);
         q.addBindValue(amount);
         q.addBindValue(payment_date.toUTC());
-        q.addBindValue(created_date.toUTC());
-        q.addBindValue(created_by);
         q.addBindValue(method);
         q.addBindValue(note.isEmpty() ? QVariant() : note);
         q.addBindValue(modified_by);

@@ -82,7 +82,7 @@ void ExpenseModule::installDocker(QMainWindow* mw) {
         menuView->addAction(act);
         act->setProperty("enableWithPerm", "Viewer");
     }
-    expDock->hide();
+    // expDock->hide();
 }
 
 void ExpenseModule::onWriteExpenseNote() {

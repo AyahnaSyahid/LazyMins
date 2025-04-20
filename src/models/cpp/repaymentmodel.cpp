@@ -2,6 +2,7 @@
 #include "helper.h"
 #include <QSqlQuery>
 #include <QtDebug>
+#include <QLocale>
 
 RepaymentModel::RepaymentModel(QObject* parent)
   : allowEdit(false), QSqlTableModel(parent)

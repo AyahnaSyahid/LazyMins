@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.18)
 project(LazyAdmin)
 set(CMAKE_LANGUAGES CXX)
 
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -12,12 +14,12 @@ set(_APP_NAME_ LazyAdmin)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # LINUX
-find_package(Qt5 REQUIRED COMPONENTS Widgets Sql PATHS /home/holis/Qt5.12.11/5.12.11/gcc_64/lib/cmake)
+# find_package(Qt5 REQUIRED COMPONENTS Widgets)
 
 # Windows A3
-#set(Qt5_DIR C:/Qt/5.12.12/mingw73_64/lib/cmake/Qt5)
+#set(Qt6_DIR C:/Qt/5.12.12/mingw73_64/lib/cmake/Qt6)
 # Windows IRWAN
-# set(Qt5_DIR D:/HyStack/QtFrameworks/5.12.12/mingw73_64/lib/cmake/Qt5)
+# set(Qt6_DIR D:/HyStack/QtFrameworks/5.12.12/mingw73_64/lib/cmake/Qt6)
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Network)
 
@@ -48,5 +50,5 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sample.db
 # add_subdirectory(test)
 
 # Windows IMAH
-# find_package(Qt5 REQUIRED COMPONENTS Widgets Sql)
+# find_package(Qt6 REQUIRED COMPONENTS Widgets Sql)
 # test 2

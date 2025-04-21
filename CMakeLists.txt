@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(LazyAdmin)
 set(CMAKE_LANGUAGES CXX)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -12,7 +12,8 @@ set(_APP_NAME_ LazyAdmin)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # LINUX
-find_package(Qt5 REQUIRED COMPONENTS Widgets Sql PATHS /home/holis/Qt5.12.11/5.12.11/gcc_64/lib/cmake)
+# find_package(Qt5 REQUIRED COMPONENTS Widgets Sql PATHS /home/holis/Qt5.12.11/5.12.11/gcc_64/lib/cmake)
+# find_package(Qt5 REQUIRED COMPONENTS Widgets Sql PATHS /home/holis/Qt5.15.16/lib/cmake)
 
 # Windows A3
 #set(Qt5_DIR C:/Qt/5.12.12/mingw73_64/lib/cmake/Qt5)
@@ -29,12 +30,12 @@ file(GLOB DATABASE src/database/*.h src/database/*.cpp)
 
 set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
-add_executable(LazyAdmin ${HDRS} ${SRCS} ${UIS} ${MODELS} ${DATABASE} ui/lazymins.qrc ui/res.rc)
+add_executable(LazyAdmin ${HDRS} ${SRCS} ${UIS} ${MODELS} ${DATABASE} ui/lazymins.qrc)
 # add_executable(LazyAdmin WIN32 ${HDRS} ${SRCS} ${UIS} ${MODELS} src/ui/lazymins.qrc)
 
 target_include_directories(LazyAdmin PUBLIC src ui src/models src/database/)
 target_link_libraries(LazyAdmin PUBLIC Qt5::Widgets Qt5::Sql Qt5::Network)
-
+target_sources(LazyAdmin PRIVATE ui/res.rc)
 # add dummy 
 target_compile_definitions(LazyAdmin PRIVATE DEV_MODE_ON)
 

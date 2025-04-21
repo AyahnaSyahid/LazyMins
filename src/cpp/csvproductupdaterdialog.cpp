@@ -104,7 +104,7 @@ void CSVProductUpdaterDialog::on_actionDeleteSelected_triggered()
                 mil << i.siblingAtColumn(0);
             }
         }
-        qSort(mil.begin(), mil.end(), [](QModelIndex a, QModelIndex b){return a.row() > b.row();});
+        std::sort(mil.begin(), mil.end(), [](QModelIndex a, QModelIndex b){return a.row() > b.row();});
         for(auto mi : mil) {
             ui->tableView->model()->removeRow(mi.row());
         }

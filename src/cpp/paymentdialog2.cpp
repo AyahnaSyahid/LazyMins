@@ -50,7 +50,7 @@ void PaymentDialog2::on_pushButton_clicked()
     } else {
         ii.discount_amount = new_disc;
         ii.physical_iid = new_phy;
-        ii.invoice_date = QDateTime(new_date);
+        ii.invoice_date = QDateTime(new_date.startOfDay());
         if(ii.save()) {
             ii.updateTotal();
             ii.updatePaid();

@@ -44,7 +44,7 @@ void EditRepaymentDialog::on_buttonBox_accepted()
 {
     InvoicePaymentsItem ipi(property("currentPayId").toLongLong());
     if(ipi.payment_date.date() != ui->dateEdit->date()) {
-        ipi.payment_date = QDateTime(ui->dateEdit->date());
+        ipi.payment_date = QDateTime(ui->dateEdit->date().startOfDay());
     }
     ipi.note = ui->plainTextEdit->toPlainText();
     ipi.amount = ui->spinBox->value();

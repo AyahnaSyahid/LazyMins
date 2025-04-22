@@ -73,7 +73,7 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2,1">
      <item>
-      <widget class="QGroupBox" name="groupBox">
+      <widget class="QGroupBox" name="infoBox">
        <property name="title">
         <string>Info Konsumen</string>
        </property>
@@ -143,7 +143,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QGroupBox" name="groupBox_2">
+      <widget class="QGroupBox" name="invoiceBox">
        <property name="title">
         <string>Invoice</string>
        </property>

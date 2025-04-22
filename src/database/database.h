@@ -9,8 +9,6 @@ public:
     Database(QObject * = nullptr);
     ~Database();
 
-
-
 };
 
 #endif

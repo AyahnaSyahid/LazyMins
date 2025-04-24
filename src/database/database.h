@@ -8,7 +8,8 @@ class Database : public QObject
 public:
     Database(QObject * = nullptr);
     ~Database();
-
+    
+    
 };
 
 #endif

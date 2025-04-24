@@ -10,7 +10,8 @@ find_package(Qt5 COMPONENTS Widgets Sql Network)
 add_executable(LazyMins src/main.cpp
                         src/ui/adminwindow.cpp
                         src/ui/adminwindow.h
-                        src/ui/files/adminwindow.ui )
+                        src/ui/files/adminwindow.ui
+                        resources/resources.qrc )
 
 target_include_directories(LazyMins PUBLIC src/ui)
 target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)

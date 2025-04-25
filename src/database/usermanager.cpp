@@ -22,13 +22,14 @@ UserManager::~UserManager()
     logout();
 }
 
-bool login(const QString& acc, const QString& pw) {}
+bool UserManager::login(const QString& acc, const QString& pw) {}
 
-bool createUser(const QString& acc,
-                const QString& pw, 
-                const QString& disp,
-                QString* err,
-                int* out_id)
+bool UserManager::createUser(
+    const QString& acc,
+    const QString& pw, 
+    const QString& disp,
+    QString* err,
+    int* out_id )
 {
     if(out_id) out_id = 0;
     
@@ -63,7 +64,16 @@ bool createUser(const QString& acc,
         
 }
 
-void logout()
+QByteArray UserManager::generateHash(const QString& name_pw) {
+    QCryptographicHash hash(QCryptographicHash::SHA_256);
+    hash.addData(name_pw.toUtf8());
+    int i = HASH_ITERATION_COUNT;
+    while(i--) {
+        hash.addData()
+    }
+}
+
+void UserManager::logout()
 {
     // direct update last_active
     QSqlQuery q(QString("UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE user_id = %1").arg(_c_id));

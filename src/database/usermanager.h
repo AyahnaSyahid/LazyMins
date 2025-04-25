@@ -18,6 +18,8 @@ public:
                     int* out_id=nullptr);
 
     const int& currentUser() const { return _c_id ; }
+    QByteArray generateHash(const QString& s);
+    QString generateSalt(unsigned int length=0);
 
 public slots:
     void logout();

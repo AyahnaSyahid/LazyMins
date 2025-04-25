@@ -1,9 +1,19 @@
 #include "usermanager.h"
 #include <QSqlQuery>
 #include <QCryptographicHash>
+#include <QDateTime>
+#include <QByteArray>
 
 #ifndef HASH_ITERATION_COUNT
 #define HASH_ITERATION_COUNT 98975
+#endif
+
+#ifndef RANDCHAR_CHOICES
+#define RANDCHAR_CHOICES "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+#endif
+
+#ifndef SALT_CHAR_LENGTH
+#define SALT_CHAR_LENGTH 8
 #endif
 
 UserManager::UserManager(QObject* parent) : QObject(parent), _c_id(0) {}
@@ -28,11 +38,29 @@ bool createUser(const QString& acc,
     q.exec();
     if(q.next()) {
         if(err) {
-            err = "User already exists, try another account_name";
+            err = tr("Nama akun telah digunakan, coba dengan nama lain");
         }
         return false;
     }
-    
+    if(pw.isEmpty()) {
+        if(err) {
+            err = tr("Password kosong, demi keamanan mohon tambahkan password");
+        }
+        return false;
+    }
+    QString randStrings;
+    QString charChoices(RANDCHAR_CHOICES);
+    for(int i=0; i<SALT_CHAR_LENGTH; ++i) {
+        int ix = QRandomGenerator::sistem()->bounded(charChoices.count());
+        randStrings.append(charChoices.at(ix));
+    }
+    QString nameAndPw = QString("%1::%2").arg(acc, pw);
+    QByteArray hash = QCryptographicHash::hash(nameAndPw.toUtf8());
+    int iteration = HASH_ITERATION_COUNT;
+    while(iteration--) {
+        hash.addData(randStrings.toUtf8());
+    }
+        
 }
 
 void logout()

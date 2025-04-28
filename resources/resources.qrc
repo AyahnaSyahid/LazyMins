@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="database">
+  <qresource prefix="db">
     <file alias="base.db3">database/base.db3</file>
   </qresource>
 </RCC>

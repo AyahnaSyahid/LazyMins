@@ -2,6 +2,8 @@
 #define UserManager_H
 
 #include <QObject>
+#include <QCryptographicHash>
+#include <QByteArray>
 
 class UserManager : public QObject {
     Q_OBJECT
@@ -18,8 +20,13 @@ public:
                     int* out_id=nullptr);
 
     const int& currentUser() const { return _c_id ; }
-    QByteArray generateHash(const QString& s);
-    QString generateSalt(unsigned int length=0);
+
+
+// STATIC
+
+    static bool nameExists(const QString& name);
+    static QByteArray generateHash(const QString& pw, const QString& salt);
+    static QString generateSalt(int length=0);
 
 public slots:
     void logout();
@@ -30,7 +37,7 @@ private:
 signals:
     void userLoggedIn(int);
     void userCreated(int);
-    void userLoggedOut()
+    void userLoggedOut();
 
 };
 

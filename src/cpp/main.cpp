@@ -61,15 +61,15 @@ int main(int argc, char** argv) {
       app.exit(1);
       return 1;
   }
-  qDebug() << "Test FLOOR, CEIL";
-  QSqlQuery q("SELECT FLOOR(3.99) AS [floor(3.99)], CEIL(5.0001) AS [ceil(5.0001)]");
-  if(q.next()) {
-    auto rec = q.record();
-    for(int c=0; c<rec.count(); ++c)
-        qDebug() << rec.fieldName(c) << " = " << q.value(c);
-  } else {
-    qDebug() << "Error occured :" << q.lastError().text();
-  }
+  // qDebug() << "Test FLOOR, CEIL";
+  // QSqlQuery q("SELECT FLOOR(3.99) AS [floor(3.99)], CEIL(5.0001) AS [ceil(5.0001)]");
+  // if(q.next()) {
+    // auto rec = q.record();
+    // for(int c=0; c<rec.count(); ++c)
+        // qDebug() << rec.fieldName(c) << " = " << q.value(c);
+  // } else {
+    // qDebug() << "Error occured :" << q.lastError().text();
+  // }
   MainWindow mainWindow;
   mainWindow.show();
 

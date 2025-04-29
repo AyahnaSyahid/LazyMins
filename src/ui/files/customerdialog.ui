@@ -1,18 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>AddCustomerDialog</class>
+ <widget class="QDialog" name="AddCustomerDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>302</width>
-    <height>300</height>
+    <width>256</width>
+    <height>121</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog Konsumen</string>
+   <string>Tambah data konsumen</string>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="namaLabel">
+       <property name="text">
+        <string>Nama</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="namaLineEdit"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="alamatLabel">
+       <property name="text">
+        <string>Alamat</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="alamatLineEdit"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="nomorTelpLabel">
+       <property name="text">
+        <string>Nomor Telp.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="nomorTelpLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item alignment="Qt::AlignRight">
+    <widget class="QPushButton" name="pushButton">
+     <property name="text">
+      <string>Simpan</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

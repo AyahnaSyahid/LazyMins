@@ -21,7 +21,6 @@ public:
 
     const int& currentUser() const { return _c_id ; }
 
-
 // STATIC
 
     static bool nameExists(const QString& name);

@@ -10,7 +10,7 @@ namespace Ui {
 class UserManager;
 class LoginForm : public QDialog {
     Q_OBJECT
-
+    int passFailCount;
 public:
     explicit LoginForm(UserManager* man, QWidget* = nullptr);
     ~LoginForm();

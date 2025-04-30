@@ -9,11 +9,13 @@ void warning(const char* p, QWidget *w) {
 }
 
 LoginForm::LoginForm(UserManager *ll, QWidget *parent)
-: uman(ll), ui(new Ui::LoginForm), QDialog(parent) {
+: uman(ll), ui(new Ui::LoginForm), passFailCount(0), QDialog(parent) {
     ui->setupUi(this);
 }
 
-LoginForm::~LoginForm() {}
+LoginForm::~LoginForm() {
+    delete ui;
+}
 
 void LoginForm::setAccountName(const QString& n) {
     ui->lineEdit->setText(n);
@@ -26,16 +28,16 @@ void LoginForm::on_pushButton_clicked() {
         return warning("Nama Akun harus diisi !", this);
     }
     
-    if(username.count() < 5) {
-        return warning("Nama Akun terlalu pendek, Minimal 5 huruf", this);
+    if(username.count() < 4) {
+        return warning("Nama Akun terlalu pendek, Minimal 4 huruf", this);
     }
     
     if(password.isEmpty()) {
         return warning("Anda belum meng-input Kata Sandi !", this);
     }
     
-    if(password.count() < 5) {
-        return warning("Kata Sandi terlalu pendek, Minimal 6 huruf", this);
+    if(password.count() < 4) {
+        return warning("Kata Sandi terlalu pendek, Minimal 4 huruf", this);
     }
     
     if( !uman->nameExists(username.trimmed()) ) {
@@ -43,8 +45,14 @@ void LoginForm::on_pushButton_clicked() {
     }
     
     if( ! uman->login(username.trimmed(), password.trimmed()) ) {
-        return warning("Nama Akun atau Kata Sandi tidak cocok.", this);
-    }
-    
+        if(passFailCount < 3) {
+            passFailCount++;
+            return warning("Nama Akun atau Kata Sandi tidak cocok.", this);
+        }
+        hide();
+        warning("Anda telah gagal masuk sebanyak 3 kali, Aplikasi akan ditutup", this);
+        reject();
+    } else {
     accept();
+    }
 }

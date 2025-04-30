@@ -19,10 +19,7 @@
 
 UserManager::UserManager(QObject* parent) : QObject(parent), _c_id(0)
 {
-    QSqlQuery q("SELECT salt FROM users WHERE account_name = 'admin'");
-    if(!q.next()) {
-        createUser("admin", "admin", "Admin");
-    }
+    
 }
 
 UserManager::~UserManager()

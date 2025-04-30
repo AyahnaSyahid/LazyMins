@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QString dbPath = QCoreApplication::applicationDirPath() + "/" + "testBase.db3";
     qDebug() << dbPath;
-    QFile::copy(":/database/base.db3", dbPath);
+    QFile::copy(":/db/base.db3", dbPath);
     QFile f(dbPath);
     bool ok = f.setPermissions(QFile::ReadOther | QFile::ExeOther | QFile::WriteOther);
     qDebug() << "Permission Sets ? " << ok;

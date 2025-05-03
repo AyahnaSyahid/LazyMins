@@ -17,16 +17,16 @@ public:
     QSqlRecord record() const;
     const QSqlError& lastError() const { return _lastError; }
     const QString& tableName() const { return _tableName; }
-
+    
 public slots:
-    virtual bool add(const QVariantMap&);
+    virtual bool insert(const QVariantMap&);
     virtual bool erase(const QVariantMap&);
     virtual bool update(const QVariantMap&, const QVariantMap&);
 
 signals:
     void inserted(const QVariant lastId);
     void erased(const QVariant erasedId);
-    void updated(const QVariant updatedId);
+    void updated(int c);
 };
 
 #endif

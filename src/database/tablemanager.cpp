@@ -87,7 +87,7 @@ bool TableManager::erase(const QVariantMap& param) {
     QString eraseString("DELETE FROM %1 WHERE (%2) = (%3)");
     QStringList ph;
     for(int i=0; i<param.count(); ++i)
-        ph << "?";
+    ph << "?";
     QSqlQuery q;
     q.prepare(eraseString.arg(tableName(), param.keys().join(", "), ph.join(", ")));
     auto pValues = param.values();

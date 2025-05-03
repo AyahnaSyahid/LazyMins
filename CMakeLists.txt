@@ -26,10 +26,9 @@ target_include_directories(LazyMins PUBLIC src/ui src/database)
 target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
 
 # test_hash
-add_executable(hashTest src/test_hash.cpp
-                         src/database/usermanager.h
-                         src/database/usermanager.cpp
-                         resources/resources.qrc )
+add_executable(testTableManager src/testTableManager.cpp
+                                src/database/tablemanager.h
+                                src/database/tablemanager.cpp
+                                resources/resources.qrc )
 
-target_link_libraries(hashTest PRIVATE Qt5::Core Qt5::Sql)
-
+target_link_libraries(testTableManager PRIVATE Qt5::Core Qt5::Sql)

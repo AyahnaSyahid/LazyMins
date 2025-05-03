@@ -18,20 +18,23 @@ bool TableManager::insert(const QVariantMap& param) {
     for(int n=0; n<param.count(); ++n)
         qMark << "?";
 
-    QVariantList values = params.values();
+    QVariantList values = param.values();
     
     queryString = queryString.arg(_tableName, columnList, qMark.join(", "));
     q.prepare(queryString);
     for(auto v = values.cbegin(); v != values.cend(); ++v)
         q.addBindValue(*v);
+
     bool ex_ok = q.exec();
 
     if( ! ex_ok ) {
         _lastError = q.lastError();
+        emit error(_lastError);
         return false;
     }
     
     emit inserted(q.lastInsertId());
+    return true;
 }
 
 bool TableManager::update(const QVariantMap& which, const QVariantMap& value) {
@@ -56,10 +59,10 @@ bool TableManager::update(const QVariantMap& which, const QVariantMap& value) {
     QString prepareQuery = updateString.arg(tableName(), setColumns, setPlh.join(", "), whichColumns, whichPlh.join(", "));
     QSqlQuery q;
     q.prepare(prepareQuery);
-    for(auto vv = setValueList.cbegin(); vv != setValueList.cend()) {
+    for(auto vv = setValueList.cbegin(); vv != setValueList.cend(); ++vv) {
         q.addBindValue(*vv);
     }
-    for(auto vv = whichValueList.cbegin(); vv != whichValueList.cend()) {
+    for(auto vv = whichValueList.cbegin(); vv != whichValueList.cend(); ++vv) {
         q.addBindValue(*vv);
     }
 
@@ -71,6 +74,7 @@ bool TableManager::update(const QVariantMap& which, const QVariantMap& value) {
     
     if(q.lastError().isValid()) {
         _lastError = q.lastError();
+        emit error(_lastError);
     }
     return false;
 }
@@ -88,14 +92,16 @@ bool TableManager::erase(const QVariantMap& param) {
     q.prepare(eraseString.arg(tableName(), param.keys().join(", "), ph.join(", ")));
     auto pValues = param.values();
     for(auto vv=pValues.cbegin(); vv!=pValues.cend(); ++vv)
-        addBindValue(*vv);
+        q.addBindValue(*vv);
     bool ex_ok = q.exec();
     if(ex_ok) {
         emit updated(q.numRowsAffected());
         return true;
     }
-    if(q.lastError().isValid())
+    if(q.lastError().isValid()) {
         _lastError = q.lastError();
+        emit error(_lastError);
+    }
     return false;
 }
 

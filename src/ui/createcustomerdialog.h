@@ -19,7 +19,7 @@ private slots:
     void on_pushButton_clicked();
     void reset_input();
 
-private:
+protected:
     Ui::CreateCustomerDialog* ui;
 
 signals:

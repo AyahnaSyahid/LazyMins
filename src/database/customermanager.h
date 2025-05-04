@@ -4,15 +4,23 @@
 #include "tablemanager.h"
 
 class QDialog;
-class CustomersManager : public TableManager {
+class CustomerManager : public TableManager {
     Q_OBJECT
 
 public:
-    CustomersManager(QObject *parent);
-    ~CustomersManager();
+    CustomerManager(QObject* =nullptr);
+    ~CustomerManager();
     
     QDialog* createDialog(QWidget* =nullptr);
-    QDialog* editDialog(QWidget* =nullptr);
+    QDialog* editDialog(int cid, QWidget* =nullptr);
+
+public slots:
+    void createCustomer();
+    void editCustomer(int a);
+
+signals:
+    void newCustomer();
+    void editedCustomer();
 
 };
 

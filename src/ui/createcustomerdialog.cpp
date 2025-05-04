@@ -3,10 +3,12 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QMessageBox>
+#include <QPushButton>
 
 CreateCustomerDialog::CreateCustomerDialog(QWidget* parent)
 : ui(new Ui::CreateCustomerDialog), QDialog(parent) {
     ui->setupUi(this);
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 CreateCustomerDialog::~CreateCustomerDialog() {
@@ -17,22 +19,26 @@ void CreateCustomerDialog::on_pushButton_clicked() {
     hide();
     QString nama = ui->namaLineEdit->text(),
             alm  = ui->alamatLineEdit->text(),
-            telp = ui->nomorTeleponLineEdit->text();
+            telp = ui->nomorTelpLineEdit->text();
 
     if(nama.isEmpty() || alm.isEmpty() || telp.isEmpty()) {
-        QMessageBox::information(nullptr, tr("Kesalahan input"), tr("Anda diwajibkan mengisi semua Field"));
+        QMessageBox::information(this, tr("Kesalahan input"), tr("Anda diwajibkan mengisi semua Field"));
+        show();
         return ;
     }
     if(nama.trimmed().count() < 3) {
-        QMessageBox::information(nullptr, tr("Kesalahan input"), tr("Nama Akun terlalu pendek, Minimal 3 Huruf"));
+        QMessageBox::information(this, tr("Kesalahan input"), tr("Nama Akun terlalu pendek, Minimal 3 Huruf"));
+        show();
         return ;
     }
-    if(alamat.trimmed().count() < 5) {
-        QMessageBox::information(nullptr, tr("Kesalahan input"), tr("Alamat terlalu pendek, Minimal 5 Huruf"));
+    if(alm.trimmed().count() < 5) {
+        QMessageBox::information(this, tr("Kesalahan input"), tr("Alamat terlalu pendek, Minimal 5 Huruf"));
+        show();
         return ;
     }
     if(telp.trimmed().count() < 6) {
-        QMessageBox::information(nullptr, tr("Kesalahan input"), tr("Alamat terlalu pendek, Minimal 6 Huruf"));
+        QMessageBox::information(this, tr("Kesalahan input"), tr("Alamat terlalu pendek, Minimal 6 Huruf"));
+        show();
         return ;
     }
     
@@ -45,26 +51,32 @@ void CreateCustomerDialog::on_pushButton_clicked() {
         auto err = q.lastError();
         if(err.isValid()) {
             if(err.text().contains("Unique_ID_Customer", Qt::CaseInsensitive)) {
-                QMessageBox::information(nullptr, tr("Duplikasi"), tr("Konsumen dengan nama, alamat dan nomor telepon ini telah tersimpan dalam database"));
+                QMessageBox::information(this, tr("Duplikasi"), tr("Konsumen dengan nama, alamat dan nomor telepon ini telah tersimpan dalam database"));
             } else {
-                QMessageBox::information(nullptr, tr("Error"), err.text());
+                QMessageBox::information(this, tr("Error"), err.text());
             }
         }
-        QMessageBox::information(nullptr, tr("Error"), tr("Gagal mengeksekusi query"));
+        QMessageBox::information(this, tr("Error"), tr("Gagal mengeksekusi query"));
         q.exec("ROLLBACK");
+        show();
         return;
     }
     q.exec("COMMIT;");
-    auto q = QMessageBox::question(nullptr, tr("Buat lagi?"), tr("Lanjutkan menambahkan data konsumen?"));
-    if(q == QMessageBox::Yes){
+    QMessageBox queBox = QMessageBox(QMessageBox::Question, tr("Buat lagi?"), tr("Lanjutkan menambahkan data konsumen?"), QMessageBox::Yes | QMessageBox::No, this);
+    queBox.button(QMessageBox::Yes)->setText("Ya");
+    queBox.button(QMessageBox::No)->setText("Tidak");
+    
+    auto que = queBox.exec();
+    if(que == QMessageBox::Yes){
         reset_input();
+        show();
+        return;
     }
+    accept();
 };
 
 void CreateCustomerDialog::reset_input() {
-    hide();
     ui->namaLineEdit->clear();
     ui->alamatLineEdit->clear();
-    ui->nomorTeleponLineEdit->clear();
-    show();
+    ui->nomorTelpLineEdit->clear();
 }

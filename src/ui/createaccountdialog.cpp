@@ -4,7 +4,7 @@
 
 
 CreateAccountDialog::CreateAccountDialog(QWidget* parent) :
-ui(new CreateAccountDialog), QDialog(parent) {
+ui(new Ui::CreateAccountDialog), QDialog(parent) {
     ui->setupUi(this);
 }
 
@@ -33,7 +33,7 @@ void CreateAccountDialog::on_saveButton_clicked() {
     if(aDisp.isEmpty()) {
         QMessageBox box(QMessageBox::Question,
                     tr("Konfirmasi"), 
-                    tr("Anda tidak memberikan Nama Display, Nama Akun akan dipilih secara Default ?")
+                    tr("Anda tidak memberikan Nama Display, Nama Akun akan dipilih secara Default ?"),
                     QMessageBox::Yes | QMessageBox::No);
         auto yes = box.button(QMessageBox::Yes);
         auto no = box.button(QMessageBox::No);

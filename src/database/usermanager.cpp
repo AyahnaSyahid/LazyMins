@@ -18,9 +18,7 @@
 #endif
 
 UserManager::UserManager(QObject* parent) : QObject(parent), _c_id(0)
-{
-    
-}
+{}
 
 UserManager::~UserManager()
 {

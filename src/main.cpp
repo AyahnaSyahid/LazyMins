@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     if(!uman.nameExists("root")) {
         uman.createUser("root", "holis", "Na Ha La Ka Ma Ra Da");
     }
-    
+
     QMainWindow mainWindow;
     auto menuBar = mainWindow.menuBar();
     
@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     cm.connect(&cm, &CustomerManager::newCustomer, &md, &QSqlTableModel::select);
     cm.connect(&cm, &CustomerManager::editedCustomer, &md, &QSqlTableModel::select);
     
-    auto customerMenu = menuBar->addMenu("CustomerMenu");
+    auto customerMenu = menuBar->addMenu("Customer Menu");
     auto actaddcustomer = customerMenu->addAction(mainWindow.tr("Daftarkan Konsumen"));
     
     cm.connect(actaddcustomer, &QAction::triggered, &cm, &CustomerManager::createCustomer);

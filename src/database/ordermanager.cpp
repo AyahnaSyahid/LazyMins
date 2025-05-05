@@ -1,13 +1,27 @@
 #include "ordermanager.h"
-#include <QDialog>
+#include "createorderdialog.h"
+#include "editorderdialog.h"
+
 
 OrderManager::OrderManager(QObject* parent) : TableManager("orders", parent) {}
 OrderManager::~OrderManager() {}
 
 QDialog* OrderManager::createDialog(QWidget* parent) {
-    return new QDialog(parent);
+    CreateOrderDialog* cod = new CreateOrderDialog(parent);
+    connect(cod, &CreateOrderDialog::accepted, this, &OrderManager::created);
+    return cod;
 }
 
-QDialog* OrderManager::editDialog(QWidget* parent) {
-    return new QDialog(parent);
+QDialog* OrderManager::editDialog(int oid, QWidget* parent) {
+    EditOrderDialog* eod = new EditOrderDialog(oid, parent);
+    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::modified);
+    return eod;
+}
+
+void OrderManager::createOrder() {
+    
+}
+
+void OrderManager::editOrder(int oid) {
+    
 }

@@ -1,16 +1,19 @@
 #include <QApplication>
 #include <QMainWindow>
-#include "adminwindow.h"
+
 #include "usermanager.h"
 #include "database.h"
 #include "loginform.h"
-#include "customermanager.h"
 
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
 #include <QSqlTableModel>
 #include <QTableView>
+#include <QVBoxLayout>
+
+void setupMain(QMainWindow *, QObject *);
+class InsertDialog;
 
 int main(int argc, char** argv)
 {
@@ -23,28 +26,78 @@ int main(int argc, char** argv)
     }
 
     QMainWindow mainWindow;
-    auto menuBar = mainWindow.menuBar();
     
-    CustomerManager cm;
-    QTableView tv;
-    QSqlTableModel md;
-    md.setTable("customers");
-    tv.setModel(&md);
-    md.select();
-    
-    cm.connect(&cm, &CustomerManager::newCustomer, &md, &QSqlTableModel::select);
-    cm.connect(&cm, &CustomerManager::editedCustomer, &md, &QSqlTableModel::select);
-    
-    auto customerMenu = menuBar->addMenu("Customer Menu");
-    auto actaddcustomer = customerMenu->addAction(mainWindow.tr("Daftarkan Konsumen"));
-    
-    cm.connect(actaddcustomer, &QAction::triggered, &cm, &CustomerManager::createCustomer);
+    setupMain(&mainWindow, &database);
     
     LoginForm lf(&uman);
     lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
-    lf.connect(&lf, &QDialog::accepted, &tv, &QTableView::show);
     lf.open();
     
-    
     return app.exec();
+}
+
+#include "ordermanager.h"
+#include "customermanager.h"
+#include "productmanager.h"
+#include "dynamicdialog.h"
+#include <QTimer>
+
+void setupMain(QMainWindow *mw, QObject *parent) {
+    
+    ProductManager* pm = new ProductManager(parent);
+    CustomerManager* cm = new CustomerManager(parent);
+    OrderManager* om = new OrderManager(parent);
+    
+    mw->setMinimumWidth(960);
+    mw->setMinimumHeight(600);
+    
+    auto menuBar = mw->menuBar();
+    
+    QSqlTableModel* pTable = new QSqlTableModel(parent);
+    QSqlTableModel* oTable = new QSqlTableModel(parent);
+    QSqlTableModel* cTable = new QSqlTableModel(parent);
+    pTable->setTable("products");
+    cTable->setTable("customers");
+    oTable->setTable("orders");
+    pTable->select();
+    oTable->select();
+    cTable->select();
+    
+    InsertDialog* aid = new InsertDialog(oTable, mw);
+    aid->setAttribute(Qt::WA_DeleteOnClose);
+    aid->connect(aid, &InsertDialog::modified, oTable, &QSqlTableModel::select);
+    QTimer::singleShot(5, aid, &QDialog::open);
+    
+    om->connect(om, &OrderManager::created, oTable, &QSqlTableModel::select);
+    om->connect(om, &OrderManager::modified, oTable, &QSqlTableModel::select);
+    pm->connect(pm, &ProductManager::created, pTable, &QSqlTableModel::select);
+    pm->connect(pm, &ProductManager::modified, pTable, &QSqlTableModel::select);
+    cm->connect(cm, &CustomerManager::created, cTable, &QSqlTableModel::select);
+    cm->connect(cm, &CustomerManager::modified, cTable, &QSqlTableModel::select);
+    
+    QTableView *pTV = new QTableView(mw), *cTV = new QTableView(mw), *oTV = new QTableView(mw);
+    pTV->setModel(pTable);
+    oTV->setModel(oTable);
+    cTV->setModel(cTable);
+    
+    QWidget *cw = new QWidget(mw);
+    
+    QVBoxLayout* l = new QVBoxLayout;
+    l->addWidget(cTV);
+    l->addWidget(pTV);
+    l->addWidget(oTV);
+    
+    cw->setLayout(l);
+    
+    mw->setCentralWidget(cw);
+    
+    auto omenu = menuBar->addMenu(mw->tr("Order"));
+    QAction *act = omenu->addAction("Catat Order");
+    act->connect(act, &QAction::triggered, om, &OrderManager::createOrder);
+    omenu = menuBar->addMenu(mw->tr("Konsumen"));
+    act = omenu->addAction("Daftarkan Konsumen");
+    act->connect(act, &QAction::triggered, cm, &CustomerManager::createCustomer);
+    omenu = menuBar->addMenu(mw->tr("Produk"));
+    act = omenu->addAction("Daftarkan Produk");
+    act->connect(act, &QAction::triggered, pm, &ProductManager::createProduct);
 }

@@ -10,7 +10,7 @@ Database::Database(QObject* parent) : QObject(parent)
 {
     QDir appDir = qApp->applicationDirPath();
     QString baseTarget = appDir.absoluteFilePath("data/database.sqlite3");
-    if(! QFileInfo::exists(baseTarget) ) {
+    if(!QFileInfo::exists(baseTarget) ) {
         appDir.mkpath("data");
         auto copy_ok = QFile::copy(":/db/base.db3", baseTarget);
         QFile f(baseTarget);

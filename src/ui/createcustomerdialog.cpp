@@ -69,6 +69,7 @@ void CreateCustomerDialog::on_pushButton_clicked() {
     auto que = queBox.exec();
     if(que == QMessageBox::Yes){
         reset_input();
+        emit accepted();
         show();
         return;
     }

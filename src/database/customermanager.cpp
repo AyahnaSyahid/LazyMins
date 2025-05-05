@@ -9,13 +9,13 @@ CustomerManager::~CustomerManager(){}
 
 QDialog* CustomerManager::createDialog(QWidget* parent) {
     CreateCustomerDialog *ccd = new CreateCustomerDialog(parent);
-    connect(ccd, &QDialog::accepted, this, &CustomerManager::newCustomer);
+    connect(ccd, &QDialog::accepted, this, &CustomerManager::created);
     return ccd;
 }
 
 QDialog* CustomerManager::editDialog(int cid, QWidget* parent) {
     EditCustomerDialog *ecd = new EditCustomerDialog(cid, parent);
-    connect(ecd, &QDialog::accepted, this, &CustomerManager::editedCustomer);
+    connect(ecd, &QDialog::accepted, this, &CustomerManager::modified);
     return ecd;
 }
 

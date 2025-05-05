@@ -13,15 +13,15 @@ public:
     ~OrderManager();
 
     QDialog* createDialog(QWidget* =nullptr);
-    QDialog* editDialog(QWidget* =nullptr);
+    QDialog* editDialog(int oid, QWidget* =nullptr);
 
 public slots:
     void createOrder();
     void editOrder(int oid);
 
-signal:
-    void newOrder();
-    void editedOrder();
+signals:
+    void created();
+    void modified();
 };
 
 #endif

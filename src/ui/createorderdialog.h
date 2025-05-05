@@ -9,11 +9,12 @@ namespace Ui {
 
 class CreateOrderDialog : public QDialog {
     Q_OBJECT
+
 public:
     explicit CreateOrderDialog(QWidget* = nullptr);
     ~CreateOrderDialog();
 
-private:
+protected:
     Ui::CreateOrderDialog* ui;
 };
 

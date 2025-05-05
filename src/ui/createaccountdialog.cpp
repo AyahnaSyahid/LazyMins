@@ -6,6 +6,7 @@
 CreateAccountDialog::CreateAccountDialog(QWidget* parent) :
 ui(new Ui::CreateAccountDialog), QDialog(parent) {
     ui->setupUi(this);
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 CreateAccountDialog::~CreateAccountDialog() {

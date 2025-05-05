@@ -19,8 +19,8 @@ public slots:
     void editCustomer(int a);
 
 signals:
-    void newCustomer();
-    void editedCustomer();
+    void created();
+    void modified();
 
 };
 

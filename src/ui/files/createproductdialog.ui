@@ -22,7 +22,11 @@
     </widget>
    </item>
    <item row="0" column="1">
+<<<<<<< HEAD
     <widget class="QLineEdit" name="codeField"/>
+=======
+    <widget class="QLineEdit" name="lineEdit"/>
+>>>>>>> refs/remotes/origin/new-start
    </item>
    <item row="1" column="0">
     <widget class="QLabel" name="label_2">
@@ -32,7 +36,11 @@
     </widget>
    </item>
    <item row="1" column="1">
+<<<<<<< HEAD
     <widget class="QPlainTextEdit" name="descriptionField">
+=======
+    <widget class="QPlainTextEdit" name="plainTextEdit">
+>>>>>>> refs/remotes/origin/new-start
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -45,6 +53,7 @@
     </widget>
    </item>
    <item row="5" column="1">
+<<<<<<< HEAD
     <widget class="QLineEdit" name="materialField"/>
    </item>
    <item row="6" column="1">
@@ -52,6 +61,15 @@
    </item>
    <item row="4" column="1">
     <widget class="QComboBox" name="areaBox">
+=======
+    <widget class="QLineEdit" name="lineEdit_2"/>
+   </item>
+   <item row="6" column="1">
+    <widget class="QLineEdit" name="lineEdit_3"/>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="comboBox">
+>>>>>>> refs/remotes/origin/new-start
      <property name="maximumSize">
       <size>
        <width>80</width>
@@ -81,7 +99,11 @@
     </widget>
    </item>
    <item row="3" column="1">
+<<<<<<< HEAD
     <widget class="QSpinBox" name="spinPrice">
+=======
+    <widget class="QSpinBox" name="spinBox">
+>>>>>>> refs/remotes/origin/new-start
      <property name="maximumSize">
       <size>
        <width>150</width>

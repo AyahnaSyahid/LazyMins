@@ -4,7 +4,10 @@
 CreateProductDialog::CreateProductDialog(QWidget* parent) :
 ui(new Ui::CreateProductDialog), QDialog(parent) {
     ui->setupUi(this);
+<<<<<<< HEAD
     setAttribute(Qt::WA_DeleteOnClose);
+=======
+>>>>>>> refs/remotes/origin/new-start
 }
 
 CreateProductDialog::~CreateProductDialog() {

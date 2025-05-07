@@ -12,7 +12,7 @@ find_package(Qt5 COMPONENTS Widgets Sql Network)
 file(GLOB UI_SOURCES src/ui/files/*.ui src/ui/*.cpp src/ui/*.h)
 file(GLOB DB_SOURCES src/database/*.h src/database/*.cpp)
 
-add_executable(LazyMins WIN32 src/main.cpp
+add_executable(LazyMins src/main.cpp
                         ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 
@@ -26,4 +26,6 @@ add_executable(hashTest src/test_hash.cpp
                          resources/resources.qrc )
 
 target_link_libraries(hashTest PRIVATE Qt5::Core Qt5::Sql)
+
+# add_subdirectory(test_folder/DynamicDialog)
 

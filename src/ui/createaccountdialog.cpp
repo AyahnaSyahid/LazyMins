@@ -1,6 +1,10 @@
 #include "createaccountdialog.h"
 #include "files/ui_createaccountdialog.h"
+#include "usermanager.h"
 #include <QMessageBox>
+#include <QSqlTableModel>
+#include <QSqlRecord>
+#include <QSqlError>
 
 
 CreateAccountDialog::CreateAccountDialog(QWidget* parent) :
@@ -36,16 +40,17 @@ void CreateAccountDialog::on_saveButton_clicked() {
                     tr("Konfirmasi"), 
                     tr("Anda tidak memberikan Nama Display, Nama Akun akan dipilih secara Default ?"),
                     QMessageBox::Yes | QMessageBox::No);
-        auto yes = box.button(QMessageBox::Yes);
-        auto no = box.button(QMessageBox::No);
-        yes->setText(tr("Ya"));
-        no->setText(tr("Tidak"));
-        auto ans = box.exec();
-        if(ans != QMessageBox::Yes) {
+        box.setButtonText(QMessageBox::Yes, "Ya");
+        box.setButtonText(QMessageBox::No, "Tidak");
+        ui->displayEdit->setText(aName);            
+        if(box.exec(); != QMessageBox::Yes) {
             ui->displayEdit->selectAll();
             return;
         }
-        // Save to database Here
-        accept();
     }
+    QSqlTableModel model;
+    model.setTable("users");
+    
+    auto rec = model.record();
+    accept();
 }

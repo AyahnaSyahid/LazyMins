@@ -13,7 +13,6 @@
 #include <QVBoxLayout>
 
 void setupMain(QMainWindow *, QObject *);
-class InsertDialog;
 
 int main(int argc, char** argv)
 {
@@ -39,8 +38,6 @@ int main(int argc, char** argv)
 #include "ordermanager.h"
 #include "customermanager.h"
 #include "productmanager.h"
-#include "dynamicdialog.h"
-#include <QTimer>
 
 void setupMain(QMainWindow *mw, QObject *parent) {
     
@@ -62,11 +59,6 @@ void setupMain(QMainWindow *mw, QObject *parent) {
     pTable->select();
     oTable->select();
     cTable->select();
-    
-    InsertDialog* aid = new InsertDialog(oTable, mw);
-    aid->setAttribute(Qt::WA_DeleteOnClose);
-    aid->connect(aid, &InsertDialog::modified, oTable, &QSqlTableModel::select);
-    QTimer::singleShot(5, aid, &QDialog::open);
     
     om->connect(om, &OrderManager::created, oTable, &QSqlTableModel::select);
     om->connect(om, &OrderManager::modified, oTable, &QSqlTableModel::select);

@@ -43,7 +43,7 @@ void CreateAccountDialog::on_saveButton_clicked() {
         box.setButtonText(QMessageBox::Yes, "Ya");
         box.setButtonText(QMessageBox::No, "Tidak");
         ui->displayEdit->setText(aName);            
-        if(box.exec(); != QMessageBox::Yes) {
+        if(box.exec() != QMessageBox::Yes) {
             ui->displayEdit->selectAll();
             return;
         }

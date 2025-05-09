@@ -11,12 +11,15 @@
 #include <QSqlTableModel>
 #include <QTableView>
 #include <QVBoxLayout>
+#include <QLocale>
 
 void setupMain(QMainWindow *, QObject *);
 
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
+    QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
+    QLocale::setDefault(loc);
     Database database;
     UserManager uman;
 

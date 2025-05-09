@@ -75,9 +75,6 @@ void CreateProductDialog::on_pushButton_clicked() {
     rec.setGenerated("updated_utc", false);
     rec.setGenerated("created_utc", false);
     
-    qDebug() << rec;
-    qDebug() << "Kenapa tidak terprint?";
-    
     bool insertOk = model.insertRecord(-1, rec);
    
    if(! insertOk) {

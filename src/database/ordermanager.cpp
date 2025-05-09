@@ -1,6 +1,7 @@
 #include "ordermanager.h"
 #include "createorderdialog.h"
 #include "editorderdialog.h"
+#include "createorderdialog.h"
 
 
 OrderManager::OrderManager(QObject* parent) : TableManager("orders", parent) {}
@@ -19,7 +20,8 @@ QDialog* OrderManager::editDialog(int oid, QWidget* parent) {
 }
 
 void OrderManager::createOrder() {
-    
+    auto cod = createDialog();
+    cod->open();
 }
 
 void OrderManager::editOrder(int oid) {

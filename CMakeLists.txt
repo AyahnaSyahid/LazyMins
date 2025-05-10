@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 project(LazyMins)
 
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -24,6 +25,9 @@ add_executable(hashTest src/test_hash.cpp
                          src/database/usermanager.h
                          src/database/usermanager.cpp
                          resources/resources.qrc )
+
+# app configuration
+target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3")
 
 target_link_libraries(hashTest PRIVATE Qt5::Core Qt5::Sql)
 

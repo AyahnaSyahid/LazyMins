@@ -3,6 +3,7 @@
 
 #include <QSqlQueryModel>
 #include <QSqlRelation>
+#include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
 #include <QModelIndex>
@@ -15,8 +16,9 @@
 QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
 
 QString _iquery( R"--(
-SELECT order_date AS Tanggal,
-           products.name AS Nama,
+    SELECT order_date AS Tanggal,
+           products.name AS Produk,
+           orders.name AS Nama,
            CASE use_area WHEN 1 THEN width ELSE '-' END AS Panjang,
            CASE use_area WHEN 1 THEN height ELSE '-' END AS Tinggi,
            quantity AS Qty,
@@ -44,16 +46,21 @@ QVariant CreateOrderModel::data(const QModelIndex& ix, int role) const {
             case 0:
             case 1:
                 return int(Qt::AlignCenter);
-            default:
-                return QIdentityProxyModel::data(ix, role);
+            case 3:
+            case 4:
+                return int(Qt::AlignRight | Qt::AlignVCenter);
+            case 5:
+            case 6:
+            case 7:
+                return int(Qt::AlignVCenter | Qt::AlignRight);
         }
     } else if(role == Qt::DisplayRole) {
         double val = sourceModel()->index(ix.row(), ix.column()).data(role).toDouble();
         switch(ix.column()) {
-            case 4:
             case 5:
             case 6:
-                return loc.toString(val, 'g', 12);
+            case 7:
+                return loc.toString(val, 'g', 16);
         }
     }
     return sourceModel()->data(ix, role);
@@ -61,4 +68,10 @@ QVariant CreateOrderModel::data(const QModelIndex& ix, int role) const {
 
 void CreateOrderModel::setCustomerId(int _i) {
     relModel->setQuery(_iquery.arg(_i));
+    emit reloaded();
+}
+
+void CreateOrderModel::reload() {
+    relModel->setQuery(relModel->query().lastQuery());
+    emit reloaded();
 }

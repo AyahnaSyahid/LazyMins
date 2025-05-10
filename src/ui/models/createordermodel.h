@@ -16,6 +16,10 @@ public:
 
 public slots:
     void setCustomerId(int);
+    void reload();
+
+signals:
+    void reloaded();
 
 private:
     QSqlQueryModel* relModel;

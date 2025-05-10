@@ -75,6 +75,7 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     CreateOrderModel *orderModel = new CreateOrderModel(this);
     orderModel->setObjectName("orderModel");
     ui->unpaidTableView->setModel(orderModel);
+    connect(orderModel, &CreateOrderModel::reloaded, ui->unpaidTableView, &QTableView::resizeColumnsToContents);
 }
 
 CreateOrderDialog::~CreateOrderDialog() {
@@ -104,13 +105,13 @@ void CreateOrderDialog::onCustomerChanged(int ix) {
     ui->buttonContainer->setEnabled(ix > -1);
     ui->createPaymentButton->setEnabled(ix > -1);
     if(ix < 0) {
-        ui->customerInfo->setText("--info--");
+        ui->customerInfo->setPlainText("--info--");
         return;
     }
 
     QSqlTableModel* customerModel = findChild<QSqlTableModel*>("customerModel");
     auto rc = customerModel->record(ix);
-    ui->customerInfo->setText(QString("%1\n%2").arg(rc.value("address").toString(), rc.value("phone").toString()));
+    ui->customerInfo->setPlainText(QString("%1\n%2").arg(rc.value("address").toString(), rc.value("phone").toString()));
     CreateOrderModel* orderModel = findChild<CreateOrderModel*>("orderModel");
     if(orderModel) 
         orderModel->setCustomerId(rc.value("customer_id").toInt());
@@ -185,6 +186,7 @@ void CreateOrderDialog::on_draftButton_clicked() {
     rec.setValue("width", ui->spinWidth->value());
     rec.setValue("height", ui->spinHeight->value());
     rec.setValue("quantity", ui->spinQty->value());
+    rec.setValue("width", ui->spinWidth->value());
     rec.setValue("production_cost", rPro.value("cost"));
     rec.setValue("unit_price", ui->spinPrice->value());
     rec.setGenerated("created_utc", false);
@@ -200,37 +202,14 @@ void CreateOrderDialog::queryStatus(const QSqlError& err, const QSqlRecord& rec)
         QMessageBox::information(this, "Gagal", QString("Error :%1").arg(err.text()));
         return;
     }
-    auto model = qobject_cast<QSqlQueryModel*>(ui->unpaidTableView->model());
-    model->setQuery(model->query().lastQuery());
+    ui->resetButton->click();
+    ui->productBox->setFocus(Qt::MouseFocusReason);
+    CreateOrderModel* orderModel = findChild<CreateOrderModel*>("orderModel");
+    if(orderModel)
+        orderModel->reload();
 }
 
 void CreateOrderDialog::updateOrdersModel() {
-    auto model = qobject_cast<QSqlQueryModel*>(ui->unpaidTableView->model());
-    if(ui->customerBox->currentIndex() < 0) {
-        model->setQuery("SELECT order_date AS Tanggal, "
-                        "products.name as Produk, orders.name AS Nama, "
-                        "width AS Panjang, height AS Tinggi FROM orders WHERE 1 = 0");
-        return;
-    }
-    
-    auto customerModel = findChild<QSqlTableModel*>("customerModel");
-    int cid = customerModel->record(ui->customerBox->currentIndex()).value("customer_id").toInt();
-    QString query(R"--(
-SELECT order_date AS Tanggal,
-       products.name AS Produk,
-       orders.name AS Nama,
-       quantity AS Qty,
-       width AS Panjang,
-       height AS Tinggi
-  FROM orders
-       JOIN
-       products USING( product_id)
- WHERE customer_id = %1 AND 
-       status = 'OK' AND 
-       invoice_id IS NULL;)--");
-       
-    model->setQuery(query.arg(cid));
-    if(model->lastError().isValid())
-        qDebug() << model->lastError().text();
-    ui->productBox->setCurrentIndex(-1);
+    auto model = qobject_cast<CreateOrderModel*>(ui->unpaidTableView->model());
+    model->reload();
 }

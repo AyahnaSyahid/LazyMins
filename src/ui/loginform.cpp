@@ -33,6 +33,7 @@ void LoginForm::on_pushButton_clicked() {
     }
     
     if(password.isEmpty()) {
+        ui->lineEdit_2->setFocus(Qt::MouseFocusReason);
         return warning("Anda belum meng-input Kata Sandi !", this);
     }
     

@@ -3,6 +3,9 @@
 #include "editorderdialog.h"
 #include "createorderdialog.h"
 
+#include <QSqlTableModel>
+#include <QSqlRecord>
+#include <QSqlError>
 
 OrderManager::OrderManager(QObject* parent) : TableManager("orders", parent) {}
 OrderManager::~OrderManager() {}
@@ -10,6 +13,8 @@ OrderManager::~OrderManager() {}
 QDialog* OrderManager::createDialog(QWidget* parent) {
     CreateOrderDialog* cod = new CreateOrderDialog(parent);
     connect(cod, &CreateOrderDialog::accepted, this, &OrderManager::created);
+    connect(cod, &CreateOrderDialog::queryInsert, this, &OrderManager::insertRecord);
+    cod->connect(this, &OrderManager::insertStatus, cod, &CreateOrderDialog::queryStatus);
     return cod;
 }
 
@@ -26,4 +31,14 @@ void OrderManager::createOrder() {
 
 void OrderManager::editOrder(int oid) {
     
+}
+
+void OrderManager::insertRecord(const QSqlRecord& rc) {
+    QSqlTableModel model;
+    model.setTable(tableName());
+    model.insertRecord(-1, rc);
+    emit insertStatus(model.lastError(), rc);
+    if(!model.lastError().isValid()) {
+        emit created();
+    }
 }

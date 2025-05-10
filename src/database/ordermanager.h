@@ -1,8 +1,11 @@
+
 #ifndef OrderManager_H
 #define OrderManager_H
 
 #include "tablemanager.h"
 
+class QSqlRecord;
+class QSqlError;
 class QDialog;
 class OrderManager : public TableManager
 {
@@ -18,8 +21,10 @@ public:
 public slots:
     void createOrder();
     void editOrder(int oid);
+    void insertRecord(const QSqlRecord&);
 
 signals:
+    void insertStatus(const QSqlError&, const QSqlRecord&);
     void created();
     void modified();
 };

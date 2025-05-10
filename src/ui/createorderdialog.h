@@ -5,6 +5,8 @@
 
 
 class QDate;
+class QSqlRecord;
+class QSqlError;
 namespace Ui {
     class CreateOrderDialog;
 }
@@ -18,6 +20,7 @@ public:
 
 public slots:
     void setCurrentOrderDate(const QDate&);
+    void queryStatus(const QSqlError&, const QSqlRecord&);
 
 private slots:
     void on_pickDate_clicked();
@@ -25,7 +28,12 @@ private slots:
     void changeProduct(int);
     void updateSubTotal();
     void on_resetButton_clicked();
-    
+    void on_draftButton_clicked();
+    void updateOrdersModel();
+
+signals:
+    void queryInsert(const QSqlRecord& rec);
+
 protected:
     Ui::CreateOrderDialog* ui;
 };

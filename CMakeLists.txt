@@ -9,7 +9,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(Qt5 COMPONENTS Widgets Sql Network)
 
-file(GLOB UI_SOURCES src/ui/files/*.ui src/ui/*.cpp src/ui/*.h)
+file(GLOB UI_SOURCES src/ui/files/*.ui src/ui/*.cpp src/ui/*.h src/ui/models/*.h src/ui/models/*.cpp)
 file(GLOB DB_SOURCES src/database/*.h src/database/*.cpp)
 
 add_executable(LazyMins src/main.cpp

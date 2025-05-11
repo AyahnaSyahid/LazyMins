@@ -1,6 +1,8 @@
 #include "createorderdialog.h"
 #include "files/ui_createorderdialog.h"
 #include "models/createordermodel.h"
+#include "createcustomerdialog.h"
+#include "createproductdialog.h"
 
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
@@ -9,11 +11,15 @@
 #include <QSqlError>
 #include <QDate>
 #include <QCalendarWidget>
+#include <QMenu>
+#include <QAction>
 #include <QDialog>
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QMessageBox>
 #include <QSpinBox>
+#include <QCompleter>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 
 #include <QtMath>
@@ -36,8 +42,12 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     ui->customerBox->setModelColumn(1);
     ui->customerBox->setCurrentIndex(-1);
     auto cv = ui->customerBox->view();
+    if(ui->customerBox->completer())
+        ui->customerBox->completer()->setCompletionMode(QCompleter::PopupCompletion);
     connect(ui->customerBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CreateOrderDialog::onCustomerChanged);
     connect(ui->customerBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CreateOrderDialog::updateOrdersModel);
+    ui->customerBox->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &CreateOrderDialog::customerCreated, customerModel, &QSqlTableModel::select);
 
     QSqlTableModel* productModel = new QSqlTableModel(this);
     productModel->setObjectName("productModel");
@@ -46,13 +56,14 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     ui->productBox->setModel(productModel);
     ui->productBox->setModelColumn(1);
     ui->productBox->setCurrentIndex(-1);
+    if(ui->productBox->completer())
+        ui->productBox->completer()->setCompletionMode(QCompleter::PopupCompletion);
     QTableView* productBoxView = new QTableView(ui->productBox);
     ui->productBox->setView(productBoxView);
     productBoxView->verticalHeader()->setMinimumSectionSize(23);
     productBoxView->verticalHeader()->setDefaultSectionSize(23);
     productBoxView->verticalHeader()->hide();
     productBoxView->horizontalHeader()->setStretchLastSection(true);
-    productBoxView->resizeColumnsToContents();
     productBoxView->horizontalHeader()->hide();
     productBoxView->hideColumn(0);
     productBoxView->hideColumn(3);
@@ -65,13 +76,16 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     productBoxView->setSelectionBehavior(QTableView::SelectRows);
     productBoxView->setVerticalScrollMode(QTableView::ScrollPerPixel);
     productBoxView->setHorizontalScrollMode(QTableView::ScrollPerPixel);
+    productBoxView->resizeColumnsToContents();
     productBoxView->setMinimumWidth(productBoxView->horizontalHeader()->length());
+    ui->productBox->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->productBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CreateOrderDialog::changeProduct);
     connect(ui->spinWidth, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinHeight, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinQty, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinPrice, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
-
+    connect(this, &CreateOrderDialog::productCreated, productModel, &QSqlTableModel::select);
+    
     CreateOrderModel *orderModel = new CreateOrderModel(this);
     orderModel->setObjectName("orderModel");
     ui->unpaidTableView->setModel(orderModel);
@@ -143,15 +157,20 @@ void CreateOrderDialog::updateSubTotal() {
            height = ui->spinHeight->value();
     int qty   = ui->spinQty->value(),
         price = ui->spinPrice->value();
-    
     ui->lSubT->setText(locale().toString(qCeil(width * height * qty * price/ 500) * 500));
 }
 
 void CreateOrderDialog::on_resetButton_clicked() {
     ui->customerBox->setCurrentIndex(-1);
     ui->productBox->setCurrentIndex(-1);
+    findChild<CreateOrderModel*>("orderModel")->setCustomerId(-1);
 }
 
+void CreateOrderDialog::on_createPaymentButton_clicked() {
+    auto up = ui->unpaidTableView;
+    if(up->selectionModel)
+    
+}
 void CreateOrderDialog::on_draftButton_clicked() {
     if(ui->customerBox->currentIndex() < 0) {
         QMessageBox::information(this, tr("Kesalahan Input"), tr("Anda belum menentukan Konsumen"));
@@ -202,14 +221,43 @@ void CreateOrderDialog::queryStatus(const QSqlError& err, const QSqlRecord& rec)
         QMessageBox::information(this, "Gagal", QString("Error :%1").arg(err.text()));
         return;
     }
-    ui->resetButton->click();
+    ui->nameEdit->clear();
+    ui->productBox->setCurrentIndex(-1);
     ui->productBox->setFocus(Qt::MouseFocusReason);
     CreateOrderModel* orderModel = findChild<CreateOrderModel*>("orderModel");
-    if(orderModel)
-        orderModel->reload();
+    ui->lDate->setText(QDate::currentDate().toString("dd/MM/yyyy"));
+    orderModel->setCustomerId(rec.value("customer_id").toInt());
 }
 
 void CreateOrderDialog::updateOrdersModel() {
     auto model = qobject_cast<CreateOrderModel*>(ui->unpaidTableView->model());
     model->reload();
+}
+
+void CreateOrderDialog::on_customerBox_customContextMenuRequested(const QPoint& pp) {
+    QMenu context(this);
+    auto newCustomer = context.addAction(tr("Konsumen Baru"));
+    newCustomer->connect(newCustomer, &QAction::triggered, this, &CreateOrderDialog::createCustomer);
+    context.exec(ui->customerBox->mapToGlobal(pp));
+}
+
+void CreateOrderDialog::on_productBox_customContextMenuRequested(const QPoint& pp) {
+    QMenu context(this);
+    auto newProduct = context.addAction(tr("Produk Baru"));
+    newProduct->connect(newProduct, &QAction::triggered, this, &CreateOrderDialog::createProduct);
+    context.exec(ui->productBox->mapToGlobal(pp));
+}
+
+void CreateOrderDialog::createCustomer() {
+    CreateCustomerDialog* ccd = new CreateCustomerDialog(this);
+    ccd->setAttribute(Qt::WA_DeleteOnClose);
+    ccd->connect(ccd, &QDialog::accepted, this, &CreateOrderDialog::customerCreated);
+    ccd->open();
+}
+
+void CreateOrderDialog::createProduct() {
+    CreateProductDialog* cpd= new CreateProductDialog(this);
+    cpd->setAttribute(Qt::WA_DeleteOnClose);
+    cpd->connect(cpd, &QDialog::accepted, this, &CreateOrderDialog::productCreated);
+    cpd->open();
 }

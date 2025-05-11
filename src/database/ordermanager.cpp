@@ -12,15 +12,18 @@ OrderManager::~OrderManager() {}
 
 QDialog* OrderManager::createDialog(QWidget* parent) {
     CreateOrderDialog* cod = new CreateOrderDialog(parent);
-    connect(cod, &CreateOrderDialog::accepted, this, &OrderManager::created);
+    connect(cod, &CreateOrderDialog::accepted, this, &OrderManager::orderCreated);
     connect(cod, &CreateOrderDialog::queryInsert, this, &OrderManager::insertRecord);
+    // tujuan connect menggunakan cod supaya tidak error saat cod dihapus
     cod->connect(this, &OrderManager::insertStatus, cod, &CreateOrderDialog::queryStatus);
+    cod->connect(cod, &CreateOrderDialog::customerCreated, this, &OrderManager::customerCreated);
+    cod->connect(cod, &CreateOrderDialog::productCreated, this, &OrderManager::productCreated);
     return cod;
 }
 
 QDialog* OrderManager::editDialog(int oid, QWidget* parent) {
     EditOrderDialog* eod = new EditOrderDialog(oid, parent);
-    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::modified);
+    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::orderModified);
     return eod;
 }
 
@@ -30,7 +33,8 @@ void OrderManager::createOrder() {
 }
 
 void OrderManager::editOrder(int oid) {
-    
+    auto eod = editDialog(oid, nullptr);
+    eod->open();
 }
 
 void OrderManager::insertRecord(const QSqlRecord& rc) {
@@ -39,6 +43,6 @@ void OrderManager::insertRecord(const QSqlRecord& rc) {
     model.insertRecord(-1, rc);
     emit insertStatus(model.lastError(), rc);
     if(!model.lastError().isValid()) {
-        emit created();
+        emit orderCreated();
     }
 }

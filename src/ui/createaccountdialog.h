@@ -19,6 +19,7 @@ public slots:
 
 private:
     Ui::CreateAccountDialog* ui;
+
 };
 
 #endif

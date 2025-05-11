@@ -63,8 +63,10 @@ void setupMain(QMainWindow *mw, QObject *parent) {
     oTable->select();
     cTable->select();
     
-    om->connect(om, &OrderManager::created, oTable, &QSqlTableModel::select);
-    om->connect(om, &OrderManager::modified, oTable, &QSqlTableModel::select);
+    om->connect(om, &OrderManager::orderCreated, oTable, &QSqlTableModel::select);
+    om->connect(om, &OrderManager::orderModified, oTable, &QSqlTableModel::select);
+    om->connect(om, &OrderManager::productCreated, pTable, &QSqlTableModel::select);
+    om->connect(om, &OrderManager::customerCreated, cTable, &QSqlTableModel::select);
     pm->connect(pm, &ProductManager::created, pTable, &QSqlTableModel::select);
     pm->connect(pm, &ProductManager::modified, pTable, &QSqlTableModel::select);
     cm->connect(cm, &CustomerManager::created, cTable, &QSqlTableModel::select);

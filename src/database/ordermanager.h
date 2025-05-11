@@ -25,8 +25,10 @@ public slots:
 
 signals:
     void insertStatus(const QSqlError&, const QSqlRecord&);
-    void created();
-    void modified();
+    void orderCreated();
+    void orderModified();
+    void customerCreated();
+    void productCreated();
 };
 
 #endif

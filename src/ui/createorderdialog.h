@@ -24,15 +24,21 @@ public slots:
 
 private slots:
     void on_pickDate_clicked();
-    void onCustomerChanged(int);
-    void changeProduct(int);
-    void updateSubTotal();
     void on_resetButton_clicked();
     void on_draftButton_clicked();
+    void on_customerBox_customContextMenuRequested(const QPoint&);
+    void on_productBox_customContextMenuRequested(const QPoint&);
+    void updateSubTotal();
     void updateOrdersModel();
+    void createProduct();
+    void createCustomer();
+    void changeProduct(int);
+    void onCustomerChanged(int);
 
 signals:
     void queryInsert(const QSqlRecord& rec);
+    void customerCreated();
+    void productCreated();
 
 protected:
     Ui::CreateOrderDialog* ui;

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>864</width>
-    <height>518</height>
+    <height>523</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -125,7 +125,7 @@
               <string>--info--</string>
              </property>
              <property name="textInteractionFlags">
-              <set>Qt::NoTextInteraction</set>
+              <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
              </property>
              <property name="backgroundVisible">
               <bool>true</bool>
@@ -595,7 +595,7 @@
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>Lakukan Pembayaran</string>
+          <string>Buat Nota</string>
          </property>
         </widget>
        </item>

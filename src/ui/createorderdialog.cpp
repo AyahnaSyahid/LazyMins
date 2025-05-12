@@ -3,9 +3,11 @@
 #include "models/createordermodel.h"
 #include "createcustomerdialog.h"
 #include "createproductdialog.h"
+#include "editorderdialog.h"
 
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
+#include <QItemSelectionModel>
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QSqlError>
@@ -21,6 +23,7 @@
 #include <QCompleter>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QRect>
 
 #include <QtMath>
 
@@ -89,7 +92,12 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     CreateOrderModel *orderModel = new CreateOrderModel(this);
     orderModel->setObjectName("orderModel");
     ui->unpaidTableView->setModel(orderModel);
+    ui->unpaidTableView->hideColumn(0);
     connect(orderModel, &CreateOrderModel::reloaded, ui->unpaidTableView, &QTableView::resizeColumnsToContents);
+    connect(orderModel, &CreateOrderModel::reloaded, this, &CreateOrderDialog::updateLSum);
+    connect(ui->unpaidTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CreateOrderDialog::updateLSum);
+    
+    ui->unpaidTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 CreateOrderDialog::~CreateOrderDialog() {
@@ -157,20 +165,21 @@ void CreateOrderDialog::updateSubTotal() {
            height = ui->spinHeight->value();
     int qty   = ui->spinQty->value(),
         price = ui->spinPrice->value();
-    ui->lSubT->setText(locale().toString(qCeil(width * height * qty * price/ 500) * 500));
+    ui->lSubT->setText(locale().toString((qCeil(width * height * qty * price/ 500) * 500) - ui->spinDiscount->value()));
 }
 
 void CreateOrderDialog::on_resetButton_clicked() {
     ui->customerBox->setCurrentIndex(-1);
     ui->productBox->setCurrentIndex(-1);
     findChild<CreateOrderModel*>("orderModel")->setCustomerId(-1);
+    ui->lDate->setText(QDate::currentDate().toString("dd/MM/yyyy"));
 }
 
+// Implement Required
 void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto up = ui->unpaidTableView;
-    if(up->selectionModel)
-    
 }
+
 void CreateOrderDialog::on_draftButton_clicked() {
     if(ui->customerBox->currentIndex() < 0) {
         QMessageBox::information(this, tr("Kesalahan Input"), tr("Anda belum menentukan Konsumen"));
@@ -196,6 +205,7 @@ void CreateOrderDialog::on_draftButton_clicked() {
     auto rCus = customerModel->record(ui->customerBox->currentIndex());
 
     QSqlRecord rec = model.record();
+    rec.setGenerated("order_id", false);
     rec.setValue("order_date", QDate::fromString(ui->lDate->text(), "dd/MM/yyyy").toString("yyyy-MM-dd"));
     rec.setValue("user_id", 1);
     rec.setValue("customer_id", rCus.value("customer_id"));
@@ -208,6 +218,7 @@ void CreateOrderDialog::on_draftButton_clicked() {
     rec.setValue("width", ui->spinWidth->value());
     rec.setValue("production_cost", rPro.value("cost"));
     rec.setValue("unit_price", ui->spinPrice->value());
+    rec.setValue("discount", ui->spinDiscount->value());
     rec.setGenerated("created_utc", false);
     rec.setGenerated("updated_utc", false);
     rec.setValue("status", "OK");
@@ -248,6 +259,15 @@ void CreateOrderDialog::on_productBox_customContextMenuRequested(const QPoint& p
     context.exec(ui->productBox->mapToGlobal(pp));
 }
 
+void CreateOrderDialog::on_unpaidTableView_doubleClicked(const QModelIndex& x) {
+    setProperty("orderEditId", x.siblingAtColumn(0).data(Qt::EditRole).toLongLong());
+    QMenu context(this);
+    auto r = ui->unpaidTableView->visualRect(x);
+    auto act = context.addAction("Edit");
+    act->connect(act, &QAction::triggered, this, &CreateOrderDialog::editOrder);
+    context.exec(ui->unpaidTableView->viewport()->mapToGlobal(r.bottomLeft()));
+}
+
 void CreateOrderDialog::createCustomer() {
     CreateCustomerDialog* ccd = new CreateCustomerDialog(this);
     ccd->setAttribute(Qt::WA_DeleteOnClose);
@@ -261,3 +281,22 @@ void CreateOrderDialog::createProduct() {
     cpd->connect(cpd, &QDialog::accepted, this, &CreateOrderDialog::productCreated);
     cpd->open();
 }
+
+void CreateOrderDialog::updateLSum() {
+    QString ts("Total : %1 (Semua), %2 (Terpilih)");
+    auto model = findChild<CreateOrderModel*>("orderModel");
+    ui->lSum->setText(ts.arg(locale().toString(model->sum()), locale().toString(model->sum(ui->unpaidTableView->selectionModel()->selectedRows()))));
+}
+
+void CreateOrderDialog::editOrder() {
+    auto order_id = property("orderEditId").toLongLong();
+    if(order_id < 1) {
+        QMessageBox::information(this, tr("Internal Error"), tr("Tidak dapat mengubah order_id < 1"));
+        return;
+    }
+    EditOrderDialog* eod = new EditOrderDialog(order_id, this);
+    eod->setAttribute(Qt::WA_DeleteOnClose);
+    eod->adjustSize();
+    eod->open();
+}
+

@@ -17,6 +17,7 @@ public:
 
     QDialog* createDialog(QWidget* =nullptr);
     QDialog* editDialog(int oid, QWidget* =nullptr);
+    QDialog* editDialog(const QSqlRecord& , QWidget* =nullptr);
 
 public slots:
     void createOrder();

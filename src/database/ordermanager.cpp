@@ -5,6 +5,7 @@
 
 #include <QSqlTableModel>
 #include <QSqlRecord>
+#include <QSqlQuery>
 #include <QSqlError>
 
 OrderManager::OrderManager(QObject* parent) : TableManager("orders", parent) {}
@@ -22,7 +23,17 @@ QDialog* OrderManager::createDialog(QWidget* parent) {
 }
 
 QDialog* OrderManager::editDialog(int oid, QWidget* parent) {
-    EditOrderDialog* eod = new EditOrderDialog(oid, parent);
+    QSqlQuery q;
+    q.prepare("SELECT * FROM orders WHERE order_id = ?");
+    q.addBindValue(oid);
+    q.exec() && q.next();
+    EditOrderDialog* eod = new EditOrderDialog(q.record(), parent);
+    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::orderModified);
+    return eod;
+}
+
+QDialog* OrderManager::editDialog(const QSqlRecord& rc, QWidget* parent) {
+    EditOrderDialog* eod = new EditOrderDialog(rc, parent);
     connect(eod, &EditOrderDialog::accepted, this, &OrderManager::orderModified);
     return eod;
 }

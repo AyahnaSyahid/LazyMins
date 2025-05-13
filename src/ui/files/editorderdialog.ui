@@ -308,6 +308,9 @@
         <property name="buttonSymbols">
          <enum>QAbstractSpinBox::NoButtons</enum>
         </property>
+        <property name="showGroupSeparator" stdset="0">
+         <bool>true</bool>
+        </property>
         <property name="maximum">
          <number>999999</number>
         </property>
@@ -322,7 +325,7 @@
    <item>
     <widget class="QWidget" name="buttonContainer" native="true">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
@@ -371,6 +374,7 @@
   <tabstop>spinHeight</tabstop>
   <tabstop>spinQty</tabstop>
   <tabstop>spinPrice</tabstop>
+  <tabstop>spinDiscount</tabstop>
   <tabstop>cancelButton</tabstop>
   <tabstop>saveButton</tabstop>
  </tabstops>

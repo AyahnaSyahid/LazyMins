@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>864</width>
-    <height>523</height>
+    <width>895</width>
+    <height>542</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -599,6 +599,9 @@
         <attribute name="horizontalHeaderMinimumSectionSize">
          <number>25</number>
         </attribute>
+        <attribute name="horizontalHeaderDefaultSectionSize">
+         <number>40</number>
+        </attribute>
         <attribute name="horizontalHeaderStretchLastSection">
          <bool>true</bool>
         </attribute>
@@ -657,6 +660,7 @@
  </widget>
  <tabstops>
   <tabstop>customerBox</tabstop>
+  <tabstop>customerInfo</tabstop>
   <tabstop>pickDate</tabstop>
   <tabstop>productBox</tabstop>
   <tabstop>nameEdit</tabstop>
@@ -664,9 +668,11 @@
   <tabstop>spinHeight</tabstop>
   <tabstop>spinQty</tabstop>
   <tabstop>spinPrice</tabstop>
+  <tabstop>spinDiscount</tabstop>
   <tabstop>resetButton</tabstop>
   <tabstop>draftButton</tabstop>
   <tabstop>unpaidTableView</tabstop>
+  <tabstop>createPaymentButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

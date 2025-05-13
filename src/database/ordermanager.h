@@ -23,9 +23,11 @@ public slots:
     void createOrder();
     void editOrder(int oid);
     void insertRecord(const QSqlRecord&);
+    void updateRecord(const QSqlRecord&);
 
 signals:
     void insertStatus(const QSqlError&, const QSqlRecord&);
+    void updateStatus(const QSqlError&, const QSqlRecord&);
     void orderCreated();
     void orderModified();
     void customerCreated();

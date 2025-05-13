@@ -3,6 +3,7 @@
 #include "models/createordermodel.h"
 #include "createcustomerdialog.h"
 #include "createproductdialog.h"
+#include "createinvoicedialog.h"
 #include "editorderdialog.h"
 
 #include <QSqlQueryModel>
@@ -87,6 +88,7 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(ui->spinHeight, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinQty, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinPrice, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
+    connect(ui->spinDiscount, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(this, &CreateOrderDialog::productCreated, productModel, &QSqlTableModel::select);
     
     CreateOrderModel *orderModel = new CreateOrderModel(this);
@@ -96,7 +98,7 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(orderModel, &CreateOrderModel::reloaded, ui->unpaidTableView, &QTableView::resizeColumnsToContents);
     connect(orderModel, &CreateOrderModel::reloaded, this, &CreateOrderDialog::updateLSum);
     connect(ui->unpaidTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CreateOrderDialog::updateLSum);
-    
+    qDebug() << qobject_cast<QSqlQueryModel*>(orderModel->sourceModel())->lastError();
     ui->unpaidTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
@@ -177,7 +179,11 @@ void CreateOrderDialog::on_resetButton_clicked() {
 
 // Implement Required
 void CreateOrderDialog::on_createPaymentButton_clicked() {
-    auto up = ui->unpaidTableView;
+    auto sm = ui->unpaidTableView->selectionModel();
+    // mari permudah dengan memberikan referensi ke dialog invoice
+    CreateInvoiceDialog* cid = new CreateInvoiceDialog(sm, this);
+    cid->setAttribute(Qt::WA_DeleteOnClose);
+    cid->open();
 }
 
 void CreateOrderDialog::on_draftButton_clicked() {
@@ -226,7 +232,7 @@ void CreateOrderDialog::on_draftButton_clicked() {
     emit queryInsert(rec);
 }
 
-void CreateOrderDialog::queryStatus(const QSqlError& err, const QSqlRecord& rec) {
+void CreateOrderDialog::insertStatus(const QSqlError& err, const QSqlRecord& rec) {
     setEnabled(true);
     if(err.isValid()) {
         QMessageBox::information(this, "Gagal", QString("Error :%1").arg(err.text()));
@@ -294,7 +300,12 @@ void CreateOrderDialog::editOrder() {
         QMessageBox::information(this, tr("Internal Error"), tr("Tidak dapat mengubah order_id < 1"));
         return;
     }
-    EditOrderDialog* eod = new EditOrderDialog(order_id, this);
+    EditOrderDialog* eod = EditOrderDialog::fromId(order_id, this);
+    eod->connect(eod, &QDialog::accepted, this, &CreateOrderDialog::orderModified);
+    auto orderModel = findChild<CreateOrderModel*>("orderModel");
+    eod->connect(eod, &QDialog::accepted, orderModel, &CreateOrderModel::reload);
+    eod->connect(eod, &EditOrderDialog::queryUpdate, this, &CreateOrderDialog::queryUpdate);
+    eod->connect(this, &CreateOrderDialog::updateStatus, eod, &EditOrderDialog::updateStatus);
     eod->setAttribute(Qt::WA_DeleteOnClose);
     eod->adjustSize();
     eod->open();

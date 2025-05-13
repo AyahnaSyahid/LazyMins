@@ -20,7 +20,7 @@ public:
 
 public slots:
     void setCurrentOrderDate(const QDate&);
-    void queryStatus(const QSqlError&, const QSqlRecord&);
+    void insertStatus(const QSqlError&, const QSqlRecord&);
     void editOrder();
 
 private slots:
@@ -41,9 +41,13 @@ private slots:
     void updateLSum();
 
 signals:
+    void updateStatus(const QSqlError&, const QSqlRecord&);
     void queryInsert(const QSqlRecord& rec);
+    void queryUpdate(const QSqlRecord& rec);
     void customerCreated();
     void productCreated();
+    void orderCreated();
+    void orderModified();
 
 protected:
     Ui::CreateOrderDialog* ui;

@@ -15,15 +15,17 @@ class EditOrderDialog : public QDialog {
 
 public:
     explicit EditOrderDialog(const QSqlRecord&, QWidget* =nullptr);
+    static EditOrderDialog* fromId(qint64 oid, QWidget* =nullptr);
     ~EditOrderDialog();
 
 public slots:
-    void queryStatus(const QSqlError&, const QSqlRecord&);
+    void updateStatus(const QSqlError&, const QSqlRecord&);
 
 private slots:
     void on_pickDate_clicked();
     void on_cancelButton_clicked();
     void on_saveButton_clicked();
+    void on_productBox_currentIndexChanged(int);
     void setCurrentOrderDate(const QDate&);
     void updateSubTotal();
 

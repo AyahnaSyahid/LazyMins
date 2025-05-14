@@ -10,6 +10,7 @@
 #include <QDate>
 
 #include <QtMath>
+#include <QtDebug>
 
 EditOrderDialog::EditOrderDialog(const QSqlRecord& rec, QWidget* parent) :
 _record(rec), ui(new Ui::EditOrderDialog), QDialog(parent) {

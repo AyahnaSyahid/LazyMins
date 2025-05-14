@@ -8,7 +8,7 @@ TableManager("invoices", parent) {
     QSqlTableModel* model = new QSqlTableModel(this);
     model->setObjectName("model");
     model->setTable(tableName());
-    model->setEditStrategy(model.OnManualSubmit);
+    model->setEditStrategy(model->OnManualSubmit);
     model->select();
 }
 
@@ -17,7 +17,7 @@ InvoiceManager::~InvoiceManager(){}
 void InvoiceManager::insertRecord(const QSqlRecord& rc) {
     auto model = findChild<QSqlTableModel*>("model");
     bool iok = model->insertRecord(-1, rc);
-    emit insertStatus(model->las)
+    emit insertStatus(model->lastError(), rc);
 }
 
 void InvoiceManager::updateRecord(const QSqlRecord& rc) {

@@ -3,6 +3,7 @@
 #include "models/createordermodel.h"
 #include "createcustomerdialog.h"
 #include "createproductdialog.h"
+#include "createinvoicedialog.h"
 #include "editorderdialog.h"
 
 #include <QSqlQueryModel>
@@ -26,7 +27,6 @@
 #include <QRect>
 
 #include <QtMath>
-
 #include <QtDebug>
 
 
@@ -97,7 +97,6 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(orderModel, &CreateOrderModel::reloaded, ui->unpaidTableView, &QTableView::resizeColumnsToContents);
     connect(orderModel, &CreateOrderModel::reloaded, this, &CreateOrderDialog::updateLSum);
     connect(ui->unpaidTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CreateOrderDialog::updateLSum);
-    
     ui->unpaidTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
@@ -179,8 +178,19 @@ void CreateOrderDialog::on_resetButton_clicked() {
 // Implement Required
 void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto sm = ui->unpaidTableView->selectionModel();
+    auto customerModel = qobject_cast<QSqlTableModel*>(ui->customerBox->model());
+    auto rc = customerModel->record(ui->customerBox->currentIndex());
     // mari permudah dengan memberikan referensi ke dialog invoice
-    
+    CreateInvoiceDialog* cid = new CreateInvoiceDialog(sm, this);
+    QLabel *nameLabel  = cid->findChild<QLabel*>("label_2"),
+           *phoneLabel = cid->findChild<QLabel*>("label_5"),
+           *addrLabel = cid->findChild<QLabel*>("label_6");
+    nameLabel->setText(rc.value("name").toString());
+    phoneLabel->setText(rc.value("phone").toString());
+    addrLabel->setText(rc.value("address").toString());
+    cid->setAttribute(Qt::WA_DeleteOnClose);
+    cid->adjustSize();
+    cid->open();
 }
 
 void CreateOrderDialog::on_draftButton_clicked() {
@@ -268,7 +278,7 @@ void CreateOrderDialog::on_unpaidTableView_doubleClicked(const QModelIndex& x) {
     auto r = ui->unpaidTableView->visualRect(x);
     auto act = context.addAction("Edit");
     act->connect(act, &QAction::triggered, this, &CreateOrderDialog::editOrder);
-    context.exec(ui->unpaidTableView->viewport()->mapToGlobal(r.bottomLeft()));
+    context.exec(ui->unpaidTableView->viewport()->mapToGlobal(r.topRight()));
 }
 
 void CreateOrderDialog::createCustomer() {

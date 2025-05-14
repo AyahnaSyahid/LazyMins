@@ -16,6 +16,13 @@ public:
     explicit CreateInvoiceDialog(QItemSelectionModel*, QWidget* = nullptr);
     ~CreateInvoiceDialog();
 
+public slots:
+    void calculateTotal();
+
+private slots:
+    void on_cancelButton_clicked();
+    void on_saveButton_clicked();
+
 private:
     QItemSelectionModel* sm;
     CreateOrderModel* om;

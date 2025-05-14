@@ -3,6 +3,7 @@
 #include "models/createordermodel.h"
 #include "createcustomerdialog.h"
 #include "createproductdialog.h"
+#include "createinvoicedialog.h"
 #include "editorderdialog.h"
 
 #include <QSqlQueryModel>
@@ -97,7 +98,7 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(orderModel, &CreateOrderModel::reloaded, ui->unpaidTableView, &QTableView::resizeColumnsToContents);
     connect(orderModel, &CreateOrderModel::reloaded, this, &CreateOrderDialog::updateLSum);
     connect(ui->unpaidTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CreateOrderDialog::updateLSum);
-    
+    qDebug() << qobject_cast<QSqlQueryModel*>(orderModel->sourceModel())->lastError();
     ui->unpaidTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
@@ -180,7 +181,10 @@ void CreateOrderDialog::on_resetButton_clicked() {
 void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto sm = ui->unpaidTableView->selectionModel();
     // mari permudah dengan memberikan referensi ke dialog invoice
-    
+    CreateInvoiceDialog* cid = new CreateInvoiceDialog(sm, this);
+    cid->setAttribute(Qt::WA_DeleteOnClose);
+    cid->open();
+>>>>>>> refs/remotes/origin/new-start
 }
 
 void CreateOrderDialog::on_draftButton_clicked() {

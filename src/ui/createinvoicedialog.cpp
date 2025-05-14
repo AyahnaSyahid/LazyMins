@@ -5,7 +5,7 @@
 #include <QItemSelectionModel>
 
 CreateInvoiceDialog::CreateInvoiceDialog(QItemSelectionModel* sel, QWidget* parent) :
-ui(new CreateInvoiceDialog), om(nullptr), sm(sel), QDialog(parent) {
+ui(new Ui::CreateInvoiceDialog), om(nullptr), sm(sel), QDialog(parent) {
     ui->setupUi(this);
     om = qobject_cast<CreateOrderModel*>(sel->model());
 }

@@ -1,9 +1,0 @@
-#ifndef CreateInvoiceDialog_H
-#define CreateInvoiceDialog_H
-
-#include <QDialog>
-
-namespace Ui {
-}
-
-#endif

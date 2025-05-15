@@ -10,10 +10,9 @@ class InvoiceManager : public TableManager {
     Q_OBJECT
 
 public:
-    explicit InvoiceManager(Database* =nullptr);
+    explicit InvoiceManager(Database*, QObject* =nullptr);
     ~InvoiceManager();
-
-
+    
 public slots:
     void insertRecord(const QSqlRecord&);
     void updateRecord(const QSqlRecord&);

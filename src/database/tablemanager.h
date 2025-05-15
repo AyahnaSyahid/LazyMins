@@ -6,19 +6,19 @@
 class Database;
 class QSqlRecord;
 class QSqlTableModel;
+
 class TableManager : public QObject {
     Q_OBJECT
     
 public:
-    TableManager(const QString& tableName, Database* = nullptr);
+    TableManager(const QString&, Database*, QObject* parent=nullptr);
     ~TableManager();
-    inline const QSqlTableModel* model() { return tableModel; }
+    const QSqlTableModel* model();
     QSqlRecord record() const;
 
 protected:
-    QSqlTableModel *tableModel;
     Database *db;
-
+    QSqlTableModel* _model;
 };
 
 #endif

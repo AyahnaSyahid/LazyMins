@@ -16,7 +16,7 @@ class CreateOrderDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit CreateOrderDialog(Database* db, QWidget* = nullptr);
+    explicit CreateOrderDialog(Database* db, QWidget* =nullptr);
     ~CreateOrderDialog();
 
 public slots:
@@ -29,7 +29,6 @@ private slots:
     void on_resetButton_clicked();
     void on_draftButton_clicked();
     void on_createPaymentButton_clicked();
-    
     void on_customerBox_customContextMenuRequested(const QPoint&);
     void on_productBox_customContextMenuRequested(const QPoint&);
     void on_unpaidTableView_doubleClicked(const QModelIndex&);
@@ -42,7 +41,6 @@ private slots:
     void updateLSum();
 
 signals:
-    void updateStatus(const QSqlError&, const QSqlRecord&);
     void queryInsert(const QSqlRecord& rec);
     void queryUpdate(const QSqlRecord& rec);
     void customerCreated();

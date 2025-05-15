@@ -7,6 +7,7 @@ namespace Ui {
     class CreateCustomerDialog;
 }
 
+class QSqlRecord;
 class CreateCustomerDialog : public QDialog
 {
     Q_OBJECT
@@ -23,7 +24,7 @@ protected:
     Ui::CreateCustomerDialog* ui;
 
 signals:
-    void newCustomer(const QVariant& lii);
+    void queryInsert(const QSqlRecord&)
 };
 
 #endif // AddCustomerDialog_H

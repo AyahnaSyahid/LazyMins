@@ -6,18 +6,15 @@
 #include <QtDebug>
 
 
-TableManager::TableManager(const QString& tn, Database* parent) : 
-db(parent), QObject(parent) {
-    tableModel = db->getTableModel(tn);
-    if(!tableModel) {
-        qDebug() << "Failed to find '" << tn << "' table";
-    } else {
-        tableModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    }
-}
+TableManager::TableManager(const QString& tn, Database* _db, QObject* parent) : 
+db(_db), _model(_db->getTableModel(tn)), QObject(parent) {}
 
 TableManager::~TableManager() {}
 
 QSqlRecord TableManager::record() const {
-    return tableModel->record();
+    return _model->record();
+}
+
+const QSqlTableModel* TableManager::model() {
+    return _model;
 }

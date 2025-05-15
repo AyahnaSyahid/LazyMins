@@ -4,15 +4,15 @@
 #include <QSqlRecord>
 #include <QSqlError>
 
-InvoiceManager::InvoiceManager(Database *parent) :
-TableManager("invoices", parent) {
-    auto pr = parent->getTableModel("products");
-    auto cs = parent->getTableModel("customers");
-    auto od = parent->getTableModel("orders");
+InvoiceManager::InvoiceManager(Database *_db, QObject* parent) :
+TableManager("invoices", _db, parent) {
+    auto pr = _db->getTableModel("products");
+    auto cs = _db->getTableModel("customers");
+    auto od = _db->getTableModel("orders");
     
-    connect(pr, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
-    connect(cs, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
-    connect(od, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
+    connect(pr, &QSqlTableModel::dataChanged, model(), &QSqlTableModel::select);
+    connect(cs, &QSqlTableModel::dataChanged, model(), &QSqlTableModel::select);
+    connect(od, &QSqlTableModel::dataChanged, model(), &QSqlTableModel::select);
 }
 
 InvoiceManager::~InvoiceManager(){}

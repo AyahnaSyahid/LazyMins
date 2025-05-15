@@ -8,7 +8,7 @@
 #include <QDir>
 #include <QtDebug>
 
-Database::Database(QObject* parent) : QObject(parent)
+Database::Database(QObject* parent) : tModels(), QObject(parent)
 {
     QDir appDir = qApp->applicationDirPath();
     QString baseTarget = appDir.absoluteFilePath("data/" APP_DATABASE_NAME);
@@ -26,9 +26,9 @@ Database::Database(QObject* parent) : QObject(parent)
     QSqlTableModel* model=nullptr;
     for(auto name = tables.cbegin(); name != tables.cend(); ++name) {
         model = new QSqlTableModel(this);
+        model->setEditStrategy(QSqlTableModel::OnManualSubmit);
         model->setTable(*name);
         model->select();
-        qDebug() << "loading" << *name << "=" << model;  
         tModels.insert(*name, model);
     }
 }
@@ -41,6 +41,5 @@ QSqlTableModel* Database::getTableModel(const QString& name) {
     if(tModels.contains(name)) {
         return tModels.value(name);
     }
-    qDebug() << "unable to find " << "name";
     return nullptr;
 }

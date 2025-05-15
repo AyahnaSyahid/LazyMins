@@ -2,9 +2,11 @@
 #include <QApplication>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QSqlTableModel>
 #include <QFileInfo>
 #include <QFile>
 #include <QDir>
+#include <QtDebug>
 
 Database::Database(QObject* parent) : QObject(parent)
 {
@@ -20,8 +22,25 @@ Database::Database(QObject* parent) : QObject(parent)
     base.setDatabaseName(baseTarget);
     base.open();
     base.exec("PRAGMA foreign_keys = ON");
+    auto tables = base.tables(QSql::Tables);
+    QSqlTableModel* model=nullptr;
+    for(auto name = tables.cbegin(); name != tables.cend(); ++name) {
+        model = new QSqlTableModel(this);
+        model->setTable(*name);
+        model->select();
+        qDebug() << "loading" << *name << "=" << model;  
+        tModels.insert(*name, model);
+    }
 }
 
 Database::~Database() {
     QSqlDatabase::database().close();
+}
+
+QSqlTableModel* Database::getTableModel(const QString& name) {
+    if(tModels.contains(name)) {
+        return tModels.value(name);
+    }
+    qDebug() << "unable to find " << "name";
+    return nullptr;
 }

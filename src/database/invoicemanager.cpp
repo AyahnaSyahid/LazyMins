@@ -1,31 +1,27 @@
 #include "invoicemanager.h"
+#include "database.h"
 #include <QSqlTableModel>
 #include <QSqlRecord>
 #include <QSqlError>
 
-InvoiceManager::InvoiceManager(QObject *parent) :
+InvoiceManager::InvoiceManager(Database *parent) :
 TableManager("invoices", parent) {
-    QSqlTableModel* model = new QSqlTableModel(this);
-    model->setObjectName("model");
-    model->setTable(tableName());
-    model->setEditStrategy(model->OnManualSubmit);
-    model->select();
+    auto pr = parent->getTableModel("products");
+    auto cs = parent->getTableModel("customers");
+    auto od = parent->getTableModel("orders");
+    
+    connect(pr, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
+    connect(cs, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
+    connect(od, &QSqlTableModel::dataChanged, tableModel, &QSqlTableModel::select);
 }
 
 InvoiceManager::~InvoiceManager(){}
 
 void InvoiceManager::insertRecord(const QSqlRecord& rc) {
-    auto model = findChild<QSqlTableModel*>("model");
-    bool iok = model->insertRecord(-1, rc);
-    emit insertStatus(model->lastError(), rc);
 }
 
 void InvoiceManager::updateRecord(const QSqlRecord& rc) {
-    auto model = findChild<QSqlTableModel*>("model");
-    
 }
 
 void InvoiceManager::removeRecord(const QSqlRecord& rc) {
-    auto model = findChild<QSqlTableModel*>("model");
-    
 }

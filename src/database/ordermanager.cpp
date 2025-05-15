@@ -2,75 +2,80 @@
 #include "createorderdialog.h"
 #include "editorderdialog.h"
 #include "createorderdialog.h"
+#include "database.h"
 
 #include <QSqlTableModel>
 #include <QSqlRecord>
 #include <QSqlQuery>
 #include <QSqlError>
 
-OrderManager::OrderManager(QObject* parent) : TableManager("orders", parent) {}
+OrderManager::OrderManager(Database* _db) :
+TableManager("orders", _db) {
+    auto customerModel = db->getTableModel("customers");
+    auto productModel = db->getTableModel("products");
+    connect(customerModel, &QAbstractItemModel::dataChanged, tableModel, &QSqlTableModel::select);
+    connect(productModel, &QAbstractItemModel::dataChanged, tableModel, &QSqlTableModel::select);
+}
+
 OrderManager::~OrderManager() {}
 
 QDialog* OrderManager::createDialog(QWidget* parent) {
-    CreateOrderDialog* cod = new CreateOrderDialog(parent);
-    connect(cod, &CreateOrderDialog::accepted, this, &OrderManager::orderCreated);
-    connect(cod, &CreateOrderDialog::queryInsert, this, &OrderManager::insertRecord);
-    connect(cod, &CreateOrderDialog::queryUpdate, this, &OrderManager::updateRecord);
-    // tujuan connect menggunakan cod supaya tidak error saat cod dihapus
-    cod->connect(this, &OrderManager::insertStatus, cod, &CreateOrderDialog::insertStatus);
-    cod->connect(this, &OrderManager::updateStatus, cod, &CreateOrderDialog::updateStatus);
-    cod->connect(cod, &CreateOrderDialog::customerCreated, this, &OrderManager::customerCreated);
-    cod->connect(cod, &CreateOrderDialog::productCreated, this, &OrderManager::productCreated);
-    cod->connect(cod, &CreateOrderDialog::orderModified, this, &OrderManager::orderModified);
+    CreateOrderDialog* cod = new CreateOrderDialog(db, parent);
+    cod->connect(cod, &CreateOrderDialog::queryInsert, this, &OrderManager::insertRecord);
+    // cod->connect(cod, &CreateOrderDialog::queryUpdate, this, &OrderManager::updateRecord);
+    cod->connect(this, &OrderManager::insertStatus, cod, &CreateOrderDialog::onInsertStatus);
     return cod;
 }
 
 QDialog* OrderManager::editDialog(int oid, QWidget* parent) {
-    QSqlQuery q;
-    q.prepare("SELECT * FROM orders WHERE order_id = ?");
-    q.addBindValue(oid);
-    q.exec() && q.next();
-    EditOrderDialog* eod = new EditOrderDialog(q.record(), parent);
-    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::orderModified);
-    return eod;
+    tableModel->setFilter(QString("order_id=%1").arg(oid));
+    auto rec = tableModel->record(0);
+    tableModel->setFilter("");
+    return editDialog(rec, parent);
 }
 
 QDialog* OrderManager::editDialog(const QSqlRecord& rc, QWidget* parent) {
-    EditOrderDialog* eod = new EditOrderDialog(rc, parent);
-    connect(eod, &EditOrderDialog::accepted, this, &OrderManager::orderModified);
-    return eod;
+    EditOrderDialog* eo = new EditOrderDialog(rc, db, parent);
+    // cod->connect(eo, &EditOrderDialog::queryInsert, this, &OrderManager::insertRecord);
+    eo->connect(eo, &EditOrderDialog::queryUpdate, this, &OrderManager::updateRecord);
+    eo->connect(this, &OrderManager::updateStatus, eo, &EditOrderDialog::onUpdateStatus);
+    return eo;
 }
 
 void OrderManager::createOrder() {
-    auto cod = createDialog();
-    cod->open();
+    auto d = createDialog();
+    d->setAttribute(Qt::WA_DeleteOnClose);
+    d->open();
 }
 
 void OrderManager::editOrder(int oid) {
-    auto eod = editDialog(oid, nullptr);
-    eod->open();
+    auto e = editDialog(oid);
+    e->setAttribute(Qt::WA_DeleteOnClose);
+    e->open();
 }
 
 void OrderManager::insertRecord(const QSqlRecord& rc) {
-    QSqlTableModel model;
-    model.setTable(tableName());
-    model.insertRecord(-1, rc);
-    emit insertStatus(model.lastError(), rc);
-    if(!model.lastError().isValid()) {
-        emit orderCreated();
+    if(tableModel->insertRecord(-1, rc)) {
+        if(!tableModel->submitAll()) {
+            tableModel->revertAll();
+        }
+        emit insertStatus(tableModel->lastError(), rc);
+        return;
     }
+    emit insertStatus(QSqlError("ApplicationError", "Unable to insert record", QSqlError::UnknownError), rc);    
 }
 
 void OrderManager::updateRecord(const QSqlRecord& rc) {
-    QSqlTableModel model;
-    model.setTable(tableName());
-    model.setFilter(QString("order_id = %1").arg(rc.value("order_id").toLongLong()));
-    model.select();
-    model.setEditStrategy(model.OnManualSubmit);
-    model.setRecord(0, rc);
-    model.submitAll();
-    if(!model.lastError().isValid()) {
-        emit orderModified();
+    qint64 oid = rc.value("order_id").toLongLong();
+    if(oid > 0) {
+        tableModel->setFilter(QString("order_id = %1").arg(oid));
+        if(tableModel->setRecord(0, rc)) {
+            if(!tableModel->submitAll()) {
+                tableModel->revertAll();
+            }
+            emit updateStatus(tableModel->lastError(), rc);
+            return;
+        }
     }
-    emit updateStatus(model.lastError(), rc);
+    emit updateStatus(QSqlError("ApplicationError", "Invalid order_id value", QSqlError::UnknownError), rc);
 }

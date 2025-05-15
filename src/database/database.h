@@ -6,13 +6,21 @@
 #endif
 
 #include <QObject>
+#include <QMap>
 
+class QSqlTableModel;
 class Database : public QObject
 {
     Q_OBJECT
+
 public:
     Database(QObject* = nullptr);
     ~Database();
+
+    QSqlTableModel* getTableModel(const QString&);
+
+private:
+    QMap<QString, QSqlTableModel*> tModels;
 };
 
 #endif

@@ -8,7 +8,7 @@ class CustomerManager : public TableManager {
     Q_OBJECT
 
 public:
-    CustomerManager(QObject* =nullptr);
+    CustomerManager(Database* =nullptr);
     ~CustomerManager();
     
     QDialog* createDialog(QWidget* =nullptr);

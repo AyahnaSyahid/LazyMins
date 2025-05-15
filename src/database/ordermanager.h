@@ -7,14 +7,14 @@
 class QSqlRecord;
 class QSqlError;
 class QDialog;
+class Database;
 class OrderManager : public TableManager
 {
     Q_OBJECT
 
 public:
-    OrderManager(QObject* = nullptr);
+    OrderManager(Database* = nullptr);
     ~OrderManager();
-
     QDialog* createDialog(QWidget* =nullptr);
     QDialog* editDialog(int oid, QWidget* =nullptr);
     QDialog* editDialog(const QSqlRecord& , QWidget* =nullptr);
@@ -32,6 +32,9 @@ signals:
     void orderModified();
     void customerCreated();
     void productCreated();
+
+private:
+    Database* db;
 };
 
 #endif

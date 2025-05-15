@@ -5,11 +5,12 @@
 
 class QSqlRecord;
 class QSqlError;
+class Database;
 class InvoiceManager : public TableManager {
     Q_OBJECT
 
 public:
-    explicit InvoiceManager(QObject* =nullptr);
+    explicit InvoiceManager(Database* =nullptr);
     ~InvoiceManager();
 
 

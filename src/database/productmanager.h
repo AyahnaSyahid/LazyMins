@@ -3,12 +3,13 @@
 
 #include "tablemanager.h"
 
+class Database;
 class QDialog;
 class ProductManager : public TableManager {
     Q_OBJECT
 
 public:
-    ProductManager(QObject* = nullptr);
+    ProductManager(Database* = nullptr);
     ~ProductManager();
     
     QDialog* createDialog(QWidget* =nullptr);

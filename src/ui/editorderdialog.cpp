@@ -1,4 +1,5 @@
 #include "editorderdialog.h"
+#include "database.h"
 #include "files/ui_editorderdialog.h"
 #include <QVBoxLayout>
 #include <QSqlTableModel>
@@ -12,8 +13,8 @@
 #include <QtMath>
 #include <QtDebug>
 
-EditOrderDialog::EditOrderDialog(const QSqlRecord& rec, QWidget* parent) :
-_record(rec), ui(new Ui::EditOrderDialog), QDialog(parent) {
+EditOrderDialog::EditOrderDialog(const QSqlRecord& rec, Database* _d, QWidget* parent) :
+_record(rec), ui(new Ui::EditOrderDialog), db(_d), QDialog(parent) {
     ui->setupUi(this);
     ui->lDate->setText(QDate::fromString(_record.value("order_date").toString(), "yyyy-MM-dd").toString("dd/MM/yyyy"));
     ui->spinWidth->setValue(_record.value("width").toDouble());
@@ -23,12 +24,9 @@ _record(rec), ui(new Ui::EditOrderDialog), QDialog(parent) {
     ui->spinPrice->setValue(_record.value("unit_price").toLongLong());
     ui->nameEdit->setText(_record.value("name").toString());
     
-    auto pmod = new QSqlTableModel(this);
-    pmod->setObjectName("productModel");
-    pmod->setTable("products");
+    auto pmod = db->getTableModel("products");
     ui->productBox->setModel(pmod);
     ui->productBox->setModelColumn(1);
-    pmod->select();
     
     QSqlQuery q;
     q.prepare("SELECT name, use_area FROM products WHERE product_id = ?");
@@ -42,16 +40,8 @@ _record(rec), ui(new Ui::EditOrderDialog), QDialog(parent) {
     connect(ui->spinQty, SIGNAL(valueChanged(int)), SLOT(updateSubTotal()));
     connect(ui->spinWidth, SIGNAL(valueChanged(double)), SLOT(updateSubTotal()));
     connect(ui->spinHeight, SIGNAL(valueChanged(double)), SLOT(updateSubTotal()));
-    
-    updateSubTotal();
-}
 
-EditOrderDialog* EditOrderDialog::fromId(qint64 l, QWidget* p) {
-    QSqlQuery q;
-    q.prepare("SELECT * FROM orders WHERE order_id = ?");
-    q.addBindValue(l);
-    q.exec() && q.next();
-    return new EditOrderDialog(q.record(), p);
+    updateSubTotal();
 }
 
 EditOrderDialog::~EditOrderDialog(){
@@ -72,12 +62,13 @@ void EditOrderDialog::on_saveButton_clicked(){
     rec.setValue("quantity", ui->spinQty->value());
     rec.setValue("unit_price", ui->spinPrice->value());
     rec.setValue("discount", ui->spinDiscount->value());
-    hide();
+    rec.setValue("updated_utc", "`CURRENT_TIMESTAMP`");
+    setDisabled(true);
     emit queryUpdate(rec);
 }
 
-void EditOrderDialog::updateStatus(const QSqlError& err, const QSqlRecord&) {
-    show();
+void EditOrderDialog::onUpdateStatus(const QSqlError& err, const QSqlRecord&) {
+    setEnabled(true);
     if(not err.isValid()) {
         accept();
         return;

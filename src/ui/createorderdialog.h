@@ -7,6 +7,7 @@
 class QDate;
 class QSqlRecord;
 class QSqlError;
+class Database;
 namespace Ui {
     class CreateOrderDialog;
 }
@@ -15,12 +16,12 @@ class CreateOrderDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit CreateOrderDialog(QWidget* = nullptr);
+    explicit CreateOrderDialog(Database* db, QWidget* = nullptr);
     ~CreateOrderDialog();
 
 public slots:
     void setCurrentOrderDate(const QDate&);
-    void insertStatus(const QSqlError&, const QSqlRecord&);
+    void onInsertStatus(const QSqlError&, const QSqlRecord&);
     void editOrder();
 
 private slots:
@@ -51,6 +52,7 @@ signals:
 
 protected:
     Ui::CreateOrderDialog* ui;
+    Database* db;
 };
 
 #endif // CreateOrderDialog_H

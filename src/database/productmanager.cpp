@@ -1,8 +1,9 @@
 #include "productmanager.h"
 #include "createproductdialog.h"
 #include "editproductdialog.h"
+#include "database.h"
 
-ProductManager::ProductManager(QObject* parent) : TableManager("products", parent) {}
+ProductManager::ProductManager(Database* parent) : TableManager("products", parent) {}
 ProductManager::~ProductManager(){}
 
 QDialog* ProductManager::createDialog(QWidget* parent) {

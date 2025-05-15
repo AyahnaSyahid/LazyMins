@@ -13,7 +13,7 @@
 #include <QVBoxLayout>
 #include <QLocale>
 
-void setupMain(QMainWindow *, QObject *);
+void setupMain(QMainWindow *, Database *);
 
 int main(int argc, char** argv)
 {
@@ -42,40 +42,21 @@ int main(int argc, char** argv)
 #include "customermanager.h"
 #include "productmanager.h"
 
-void setupMain(QMainWindow *mw, QObject *parent) {
+void setupMain(QMainWindow *mw, Database *base) {
     
-    ProductManager* pm = new ProductManager(parent);
-    CustomerManager* cm = new CustomerManager(parent);
-    OrderManager* om = new OrderManager(parent);
+    ProductManager* pm = new ProductManager(base);
+    CustomerManager* cm = new CustomerManager(base);
+    OrderManager* om = new OrderManager(base);
     
     mw->setMinimumWidth(960);
     mw->setMinimumHeight(600);
     
     auto menuBar = mw->menuBar();
     
-    QSqlTableModel* pTable = new QSqlTableModel(parent);
-    QSqlTableModel* oTable = new QSqlTableModel(parent);
-    QSqlTableModel* cTable = new QSqlTableModel(parent);
-    pTable->setTable("products");
-    cTable->setTable("customers");
-    oTable->setTable("orders");
-    pTable->select();
-    oTable->select();
-    cTable->select();
-    
-    om->connect(om, &OrderManager::orderCreated, oTable, &QSqlTableModel::select);
-    om->connect(om, &OrderManager::orderModified, oTable, &QSqlTableModel::select);
-    om->connect(om, &OrderManager::productCreated, pTable, &QSqlTableModel::select);
-    om->connect(om, &OrderManager::customerCreated, cTable, &QSqlTableModel::select);
-    pm->connect(pm, &ProductManager::created, pTable, &QSqlTableModel::select);
-    pm->connect(pm, &ProductManager::modified, pTable, &QSqlTableModel::select);
-    cm->connect(cm, &CustomerManager::created, cTable, &QSqlTableModel::select);
-    cm->connect(cm, &CustomerManager::modified, cTable, &QSqlTableModel::select);
-    
     QTableView *pTV = new QTableView(mw), *cTV = new QTableView(mw), *oTV = new QTableView(mw);
-    pTV->setModel(pTable);
-    oTV->setModel(oTable);
-    cTV->setModel(cTable);
+    pTV->setModel(base->getTableModel("products"));
+    oTV->setModel(base->getTableModel("orders"));
+    cTV->setModel(base->getTableModel("customers"));
     
     QWidget *cw = new QWidget(mw);
     

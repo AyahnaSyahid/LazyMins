@@ -1,10 +1,14 @@
 #include "customermanager.h"
 #include "createcustomerdialog.h"
 #include "editcustomerdialog.h"
-
+#include "database.h"
 #include <QDialog>
 
-CustomerManager::CustomerManager(QObject* parent) : TableManager("costumers", parent) {}
+CustomerManager::CustomerManager(Database* parent) :
+TableManager("customers", parent) {
+    
+}
+
 CustomerManager::~CustomerManager(){}
 
 QDialog* CustomerManager::createDialog(QWidget* parent) {

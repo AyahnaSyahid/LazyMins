@@ -5,6 +5,7 @@
 #include "createproductdialog.h"
 #include "createinvoicedialog.h"
 #include "editorderdialog.h"
+#include "database.h"
 
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
@@ -30,18 +31,14 @@
 #include <QtDebug>
 
 
-CreateOrderDialog::CreateOrderDialog(QWidget* parent) :
-ui(new Ui::CreateOrderDialog), QDialog(parent) {
+CreateOrderDialog::CreateOrderDialog(Database* _db, QWidget* parent) :
+db(_db), ui(new Ui::CreateOrderDialog), QDialog(parent) {
     ui->setupUi(this);
     setAttribute(Qt::WA_DeleteOnClose);
     ui->lDate->setText(QDate::currentDate().toString("dd/MM/yyyy"));
     ui->lDate->setToolTip(locale().toString(QDate::currentDate(),"dddd, dd MMMM"));
 
-    QSqlTableModel* customerModel = new QSqlTableModel(this);
-    customerModel->setObjectName("customerModel");
-    customerModel->setTable("customers");
-    customerModel->select();
-    ui->customerBox->setModel(customerModel);
+    ui->customerBox->setModel(db->getTableModel("customers"));
     ui->customerBox->setModelColumn(1);
     ui->customerBox->setCurrentIndex(-1);
     auto cv = ui->customerBox->view();
@@ -50,13 +47,8 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(ui->customerBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CreateOrderDialog::onCustomerChanged);
     connect(ui->customerBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CreateOrderDialog::updateOrdersModel);
     ui->customerBox->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(this, &CreateOrderDialog::customerCreated, customerModel, &QSqlTableModel::select);
 
-    QSqlTableModel* productModel = new QSqlTableModel(this);
-    productModel->setObjectName("productModel");
-    productModel->setTable("products");
-    productModel->select();
-    ui->productBox->setModel(productModel);
+    ui->productBox->setModel(db->getTableModel("products"));
     ui->productBox->setModelColumn(1);
     ui->productBox->setCurrentIndex(-1);
     if(ui->productBox->completer())
@@ -88,7 +80,6 @@ ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(ui->spinQty, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinPrice, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
     connect(ui->spinDiscount, QOverload<int>::of(&QSpinBox::valueChanged), this, &CreateOrderDialog::updateSubTotal);
-    connect(this, &CreateOrderDialog::productCreated, productModel, &QSqlTableModel::select);
     
     CreateOrderModel *orderModel = new CreateOrderModel(this);
     orderModel->setObjectName("orderModel");
@@ -131,10 +122,11 @@ void CreateOrderDialog::onCustomerChanged(int ix) {
         return;
     }
 
-    QSqlTableModel* customerModel = findChild<QSqlTableModel*>("customerModel");
+    QSqlTableModel* customerModel = db->getTableModel("customers");
     auto rc = customerModel->record(ix);
     ui->customerInfo->setPlainText(QString("%1\n%2").arg(rc.value("address").toString(), rc.value("phone").toString()));
     CreateOrderModel* orderModel = findChild<CreateOrderModel*>("orderModel");
+    
     if(orderModel) 
         orderModel->setCustomerId(rc.value("customer_id").toInt());
 }
@@ -148,7 +140,7 @@ void CreateOrderDialog::changeProduct(int ix) {
         ui->spinHeight->setValue(1);
         return;
     }
-    QSqlTableModel* productModel = findChild<QSqlTableModel*>("productModel");
+    QSqlTableModel* productModel = db->getTableModel("products");
     auto rc = productModel->record(ix);
     if(rc.isEmpty()) {
         QMessageBox::information(this, "Error", "Kesalahan, Produk yang dipilih tidak tersedia");
@@ -178,7 +170,7 @@ void CreateOrderDialog::on_resetButton_clicked() {
 // Implement Required
 void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto sm = ui->unpaidTableView->selectionModel();
-    auto customerModel = qobject_cast<QSqlTableModel*>(ui->customerBox->model());
+    auto customerModel = db->getTableModel("customers");
     auto rc = customerModel->record(ui->customerBox->currentIndex());
     // mari permudah dengan memberikan referensi ke dialog invoice
     CreateInvoiceDialog* cid = new CreateInvoiceDialog(sm, this);
@@ -209,15 +201,15 @@ void CreateOrderDialog::on_draftButton_clicked() {
         ui->nameEdit->setFocus(Qt::OtherFocusReason);
         return;
     }
-    QSqlTableModel model;
-    model.setTable("orders");
-    auto productModel = findChild<QSqlTableModel*>("productModel");
-    auto customerModel = findChild<QSqlTableModel*>("customerModel");
+    
+    
+    auto productModel = db->getTableModel("products");
+    auto customerModel = db->getTableModel("customers");
     
     auto rPro = productModel->record(ui->productBox->currentIndex());
     auto rCus = customerModel->record(ui->customerBox->currentIndex());
 
-    QSqlRecord rec = model.record();
+    QSqlRecord rec = db->getTableModel("orders")->record();
     rec.setGenerated("order_id", false);
     rec.setValue("order_date", QDate::fromString(ui->lDate->text(), "dd/MM/yyyy").toString("yyyy-MM-dd"));
     rec.setValue("user_id", 1);
@@ -239,7 +231,7 @@ void CreateOrderDialog::on_draftButton_clicked() {
     emit queryInsert(rec);
 }
 
-void CreateOrderDialog::insertStatus(const QSqlError& err, const QSqlRecord& rec) {
+void CreateOrderDialog::onInsertStatus(const QSqlError& err, const QSqlRecord& rec) {
     setEnabled(true);
     if(err.isValid()) {
         QMessageBox::information(this, "Gagal", QString("Error :%1").arg(err.text()));
@@ -248,6 +240,7 @@ void CreateOrderDialog::insertStatus(const QSqlError& err, const QSqlRecord& rec
     ui->nameEdit->clear();
     ui->productBox->setCurrentIndex(-1);
     ui->productBox->setFocus(Qt::MouseFocusReason);
+    ui->spinDiscount->setValue(0);
     CreateOrderModel* orderModel = findChild<CreateOrderModel*>("orderModel");
     ui->lDate->setText(QDate::currentDate().toString("dd/MM/yyyy"));
     orderModel->setCustomerId(rec.value("customer_id").toInt());
@@ -307,12 +300,15 @@ void CreateOrderDialog::editOrder() {
         QMessageBox::information(this, tr("Internal Error"), tr("Tidak dapat mengubah order_id < 1"));
         return;
     }
-    EditOrderDialog* eod = EditOrderDialog::fromId(order_id, this);
+    auto om = db->getTableModel("orders");
+    om->setFilter(QString("order_id=%1").arg(order_id));
+    auto rec = om->record(0);
+    om->setFilter("");
+    EditOrderDialog* eod = new EditOrderDialog(rec, db, this);
     eod->connect(eod, &QDialog::accepted, this, &CreateOrderDialog::orderModified);
     auto orderModel = findChild<CreateOrderModel*>("orderModel");
     eod->connect(eod, &QDialog::accepted, orderModel, &CreateOrderModel::reload);
-    eod->connect(eod, &EditOrderDialog::queryUpdate, this, &CreateOrderDialog::queryUpdate);
-    eod->connect(this, &CreateOrderDialog::updateStatus, eod, &EditOrderDialog::updateStatus);
+    eod->connect(this, &CreateOrderDialog::updateStatus, eod, &EditOrderDialog::onUpdateStatus);
     eod->setAttribute(Qt::WA_DeleteOnClose);
     eod->adjustSize();
     eod->open();

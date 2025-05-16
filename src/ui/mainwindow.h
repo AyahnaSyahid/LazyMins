@@ -16,15 +16,14 @@ public:
     ~MainWindow();
     
 private slots:
-    void on_actionCreateOrder_triggered();
-    void on_actionCreateCustomer_triggered();
-    void on_actionCreateProduct_triggered();
-    void on_actionCreateUser_triggered();
+    void on_actionAddOrder_triggered();
+    void on_actionAddCustomer_triggered();
+    void on_actionAddProduct_triggered();
+    void on_actionAddUser_triggered();
 
 private:
-    Database* base;
+    Database* db;
     Ui::MainWindow* ui;
-    
 };
 
 #endif

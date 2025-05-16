@@ -1,3 +1,4 @@
+#include "database.h"
 #include "createinvoicedialog.h"
 #include "files/ui_createinvoicedialog.h"
 #include "models/createordermodel.h"
@@ -7,12 +8,11 @@
 #include <QtDebug>
 #include <QStandardItemModel>
 
-CreateInvoiceDialog::CreateInvoiceDialog(QItemSelectionModel* sel, QWidget* parent) :
-ui(new Ui::CreateInvoiceDialog), om(nullptr), sm(sel), QDialog(parent) {
+CreateInvoiceDialog::CreateInvoiceDialog(QItemSelectionModel* sel, Database* _d, QWidget* parent) :
+db(_d), ui(new Ui::CreateInvoiceDialog), om(qobject_cast<CreateOrderModel*>(sel->model())), sm(sel), QDialog(parent) {
     ui->setupUi(this);
     ui->invoiceDate->setDate(QDate::currentDate());
-    
-    om = qobject_cast<CreateOrderModel*>(sm->model());
+
     auto stdModel = new QStandardItemModel(om->rowCount(), om->columnCount(), this);
     stdModel->setObjectName("stdModel");
     
@@ -75,4 +75,6 @@ void CreateInvoiceDialog::on_cancelButton_clicked() {
     reject();
 }
 
-void CreateInvoiceDialog::on_saveButton_clicked() {}
+void CreateInvoiceDialog::on_saveButton_clicked() {
+    
+}

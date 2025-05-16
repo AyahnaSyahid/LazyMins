@@ -7,10 +7,11 @@ namespace Ui {
     class CreateProductDialog;
 }
 
+class Database;
 class CreateProductDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit CreateProductDialog(QWidget* = nullptr);
+    explicit CreateProductDialog(Database*, QWidget* =nullptr);
     ~CreateProductDialog();
 
 protected slots:
@@ -18,6 +19,7 @@ protected slots:
 
 protected:
     Ui::CreateProductDialog* ui;
+    Database* db;
 };
 
 #endif

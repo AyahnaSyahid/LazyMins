@@ -1,16 +1,15 @@
 #include "createproductdialog.h"
 #include "files/ui_createproductdialog.h"
-
+#include "database.h"
 #include <QSqlTableModel>
 #include <QMessageBox>
 #include <QSqlRecord>
 #include <QSqlError>
 #include <QtDebug>
 
-CreateProductDialog::CreateProductDialog(QWidget* parent) :
-ui(new Ui::CreateProductDialog), QDialog(parent) {
+CreateProductDialog::CreateProductDialog(Database* _d, QWidget* parent) :
+db(_d), ui(new Ui::CreateProductDialog), QDialog(parent) {
     ui->setupUi(this);
-    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 CreateProductDialog::~CreateProductDialog() {
@@ -57,11 +56,8 @@ void CreateProductDialog::on_pushButton_clicked() {
         }
     }
     
-    QSqlTableModel model;
-    model.setTable("products");
-    // lebih cepat tanpa select terlebih dahulu
-    // model.select();
-    auto rec = model.record();
+    auto model = db->getTableModel("products");
+    auto rec = model->record();
     rec.setValue("name", codeField);
     rec.setValue("description", descField);
     rec.setValue("cost", cost);
@@ -75,28 +71,28 @@ void CreateProductDialog::on_pushButton_clicked() {
     rec.setGenerated("updated_utc", false);
     rec.setGenerated("created_utc", false);
     
-    bool insertOk = model.insertRecord(-1, rec);
-   
-   if(! insertOk) {
-        QMessageBox::information(this, tr("Operasi Gagal"), QString("Error : %1").arg(model.lastError().text()));
+    if(model->insertRecord(-1, rec)) {
+        if(model->submitAll()) {
+            QMessageBox question(QMessageBox::Question, tr("Masukkan data yang lainnya"),
+                tr("Lanjut memasukkan data produk lain ?"),
+                QMessageBox::Yes | QMessageBox::No, this);
+            question.setButtonText(QMessageBox::Yes, "Ya");
+            question.setButtonText(QMessageBox::No, "Tidak");
+            if(question.exec() == QMessageBox::No) {
+                accept();
+                return;
+            }
+            ui->codeField->clear();
+            ui->descriptionField->clear();
+            ui->categoryField->clear();
+            ui->materialField->clear();
+            ui->spinCost->setValue(1000);
+            ui->spinPrice->setValue(1000);
+            return ;
+        }
+        
+        QMessageBox::information(this, tr("Operasi Gagal"), QString("Error : %1").arg(model->lastError().text()));
         return;
     }
-   
-    QMessageBox question(QMessageBox::Question, tr("Masukkan data yang lainnya"),
-        tr("Lanjut memasukkan data produk lain ?"),
-        QMessageBox::Yes | QMessageBox::No, this);
-    question.setButtonText(QMessageBox::Yes, "Ya");
-    question.setButtonText(QMessageBox::No, "Tidak");
-    model.submitAll();
-    if(question.exec() == QMessageBox::No) {
-        accept();
-    } else {
-        ui->codeField->clear();
-        ui->descriptionField->clear();
-        ui->categoryField->clear();
-        ui->materialField->clear();
-        ui->spinCost->setValue(1000);
-        ui->spinPrice->setValue(1000);
-        emit accepted();
-    }
+    QMessageBox::information(this, tr("Operasi Gagal"), QString("Error : %1").arg("Tidak dapat menyimpan data kedalam database"));    
 }

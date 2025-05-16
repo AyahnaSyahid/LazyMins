@@ -21,32 +21,29 @@ public:
 
 public slots:
     void setCurrentOrderDate(const QDate&);
-    void onInsertStatus(const QSqlError&, const QSqlRecord&);
-    void editOrder();
+    // void onInsertStatus(const QSqlError&, const QSqlRecord&);
+    // void editOrder();
 
 private slots:
     void on_pickDate_clicked();
     void on_resetButton_clicked();
     void on_draftButton_clicked();
     void on_createPaymentButton_clicked();
+    void on_customerBox_currentIndexChanged(int);
     void on_customerBox_customContextMenuRequested(const QPoint&);
     void on_productBox_customContextMenuRequested(const QPoint&);
     void on_unpaidTableView_doubleClicked(const QModelIndex&);
     void updateSubTotal();
-    void updateOrdersModel();
     void createProduct();
     void createCustomer();
     void changeProduct(int);
-    void onCustomerChanged(int);
     void updateLSum();
+    void onInsertSuccess();
+    void resetProductIndex();
+    void resetCustomerIndex();
 
 signals:
-    void queryInsert(const QSqlRecord& rec);
-    void queryUpdate(const QSqlRecord& rec);
-    void customerCreated();
-    void productCreated();
-    void orderCreated();
-    void orderModified();
+    void insertSuccess();
 
 protected:
     Ui::CreateOrderDialog* ui;

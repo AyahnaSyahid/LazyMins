@@ -1,14 +1,15 @@
 #include "createcustomerdialog.h"
 #include "files/ui_createcustomerdialog.h"
-#include <QSqlQuery>
+#include "database.h"
+#include <QSqlTableModel>
+#include <QSqlRecord>
 #include <QSqlError>
 #include <QMessageBox>
 #include <QPushButton>
 
-CreateCustomerDialog::CreateCustomerDialog(QWidget* parent)
-: ui(new Ui::CreateCustomerDialog), QDialog(parent) {
+CreateCustomerDialog::CreateCustomerDialog(Database* _d, QWidget* parent)
+: db(_d), ui(new Ui::CreateCustomerDialog), QDialog(parent) {
     ui->setupUi(this);
-    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 CreateCustomerDialog::~CreateCustomerDialog() {
@@ -42,38 +43,25 @@ void CreateCustomerDialog::on_pushButton_clicked() {
         return ;
     }
     
-    QSqlQuery q("BEGIN TRANSACTION;");
-    q.prepare("INSERT INTO customers (name, address, phone) VALUES (?, ?, ?)");
-    q.addBindValue(nama);
-    q.addBindValue(alm);
-    q.addBindValue(telp);
-    if(!q.exec()) {
-        auto err = q.lastError();
-        if(err.isValid()) {
-            if(err.text().contains("Unique_ID_Customer", Qt::CaseInsensitive)) {
-                QMessageBox::information(this, tr("Duplikasi"), tr("Konsumen dengan nama, alamat dan nomor telepon ini telah tersimpan dalam database"));
-            } else {
-                QMessageBox::information(this, tr("Error"), err.text());
-            }
-        }
-        QMessageBox::information(this, tr("Error"), tr("Gagal mengeksekusi query"));
-        q.exec("ROLLBACK");
-        show();
-        return;
-    }
-    q.exec("COMMIT;");
-    QMessageBox queBox = QMessageBox(QMessageBox::Question, tr("Buat lagi?"), tr("Lanjutkan menambahkan data konsumen?"), QMessageBox::Yes | QMessageBox::No, this);
-    queBox.button(QMessageBox::Yes)->setText("Ya");
-    queBox.button(QMessageBox::No)->setText("Tidak");
+    auto model = db->getTableModel("customers");
+    auto rec = model->record();
     
-    auto que = queBox.exec();
-    if(que == QMessageBox::Yes){
-        reset_input();
-        emit accepted();
-        show();
-        return;
+    rec.setValue("name", nama);
+    rec.setValue("address", alm);
+    rec.setValue("phone", telp);
+    rec.setGenerated("created_utc", false);
+    rec.setGenerated("updated_utc", false);
+    
+    if(model->insertRecord(-1, rec)) {
+        if(!model->submitAll()) {
+            QMessageBox::information(this, "Gagal memasukkan data", QString("Error : %1").arg(model->lastError().text()));
+            model->revertAll();
+            return;
+        }
+        accept();
+    } else {
+        QMessageBox::information(this, "Gagal memasukkan data", QString("Error : %1").arg("Tidak diketahui"));
     }
-    accept();
 };
 
 void CreateCustomerDialog::reset_input() {

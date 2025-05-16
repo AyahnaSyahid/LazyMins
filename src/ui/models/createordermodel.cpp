@@ -8,6 +8,7 @@
 #include <QVariant>
 #include <QModelIndex>
 #include <QLocale>
+#include <QtDebug>
 
 #include <QtMath>
 
@@ -72,6 +73,7 @@ QVariant CreateOrderModel::data(const QModelIndex& ix, int role) const {
 }
 
 void CreateOrderModel::setCustomerId(int _i) {
+    // qDebug() << _iquery.arg(_i);
     relModel->setQuery(_iquery.arg(_i));
     emit reloaded();
 }

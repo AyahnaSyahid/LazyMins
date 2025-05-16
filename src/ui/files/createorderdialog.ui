@@ -56,7 +56,11 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
            <item>
-            <widget class="QComboBox" name="customerBox"/>
+            <widget class="QComboBox" name="customerBox">
+             <property name="modelColumn">
+              <number>1</number>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPlainTextEdit" name="customerInfo">

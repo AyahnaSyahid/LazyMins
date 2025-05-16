@@ -28,6 +28,7 @@ Database::Database(QObject* parent) : tModels(), QObject(parent)
         model = new QSqlTableModel(this);
         model->setEditStrategy(QSqlTableModel::OnManualSubmit);
         model->setTable(*name);
+        model->setObjectName(QString("%1_tableModel").arg(*name));
         model->select();
         tModels.insert(*name, model);
     }

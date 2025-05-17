@@ -13,6 +13,7 @@
 #include <QTableView>
 #include <QVBoxLayout>
 #include <QLocale>
+#include <QTimer>
 
 int main(int argc, char** argv)
 {
@@ -20,7 +21,8 @@ int main(int argc, char** argv)
     QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
     QLocale::setDefault(loc);
     Database database;
-    UserManager uman;
+    UserManager uman(&database);
+    uman.setObjectName("userManager");
 
     if(!uman.nameExists("root")) {
         uman.createUser("root", "holis", "Na Ha La Ka Ma Ra Da");
@@ -30,7 +32,7 @@ int main(int argc, char** argv)
     
     LoginForm lf(&uman);
     lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
-    lf.open();
+    QTimer::singleShot(0, &lf, &LoginForm::open);
     
     return app.exec();
 }

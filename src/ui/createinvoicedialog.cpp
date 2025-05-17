@@ -1,4 +1,5 @@
 #include "database.h"
+#include "usermanager.h"
 #include "createinvoicedialog.h"
 #include "files/ui_createinvoicedialog.h"
 #include "models/createordermodel.h"
@@ -9,7 +10,7 @@
 #include <QStandardItemModel>
 
 CreateInvoiceDialog::CreateInvoiceDialog(QItemSelectionModel* sel, Database* _d, QWidget* parent) :
-db(_d), ui(new Ui::CreateInvoiceDialog), om(qobject_cast<CreateOrderModel*>(sel->model())), sm(sel), QDialog(parent) {
+db(_d), ui(new Ui::CreateInvoiceDialog), orderIds(), om(qobject_cast<CreateOrderModel*>(sel->model())), sm(sel), QDialog(parent) {
     ui->setupUi(this);
     ui->invoiceDate->setDate(QDate::currentDate());
 
@@ -29,6 +30,7 @@ db(_d), ui(new Ui::CreateInvoiceDialog), om(qobject_cast<CreateOrderModel*>(sel-
                 stdModel->setData(six, omix.data(Qt::TextAlignmentRole), Qt::TextAlignmentRole);
                 stdModel->setData(six, omix.data(Qt::DisplayRole), Qt::DisplayRole);
             }
+            orderIds << (*r).siblingAtColumn(0).data(Qt::EditRole).toInt();
         }
     } else {
         for(int r =0; r < om->rowCount(); ++r) {
@@ -39,10 +41,12 @@ db(_d), ui(new Ui::CreateInvoiceDialog), om(qobject_cast<CreateOrderModel*>(sel-
                 stdModel->setData(six, omix.data(Qt::EditRole), Qt::EditRole);
                 stdModel->setData(six, omix.data(Qt::DisplayRole), Qt::DisplayRole);
             }
+            orderIds << om->index(r, 0).data(Qt::EditRole).toInt();
         }
     }
-    
+
     ui->orderItemView->setModel(stdModel);
+    ui->orderItemView->hideColumn(0);
     
     for(int c = 0; c < om->columnCount(); ++c) {
         // stdModel->setHeaderData(c, Qt::Horizontal, om->headerData(c, Qt::Horizontal, Qt::DisplayRole), Qt::DisplayRole);
@@ -51,6 +55,18 @@ db(_d), ui(new Ui::CreateInvoiceDialog), om(qobject_cast<CreateOrderModel*>(sel-
     calculateTotal();
     connect(stdModel, &QAbstractItemModel::dataChanged, this, &CreateInvoiceDialog::calculateTotal);
     connect(ui->spinDiscount, SIGNAL(valueChanged(int)), SLOT(calculateTotal()));
+    ui->lItemCount->setText(QString("Jumlah item : %1").arg(stdModel->rowCount()));
+    
+    UserManager* uman = db->findChild<UserManager*>("userManager");
+    ui->lUserDisplay->setText("Invalid UserID");
+    if(uman) {
+        const QSqlRecord rc = uman->currentUserRecord();
+        if(rc.isEmpty()) {
+            ui->lUserDisplay->setText("Invalid UserID");
+        } else {
+            ui->lUserDisplay->setText(rc.value("display_name").toString());
+        }
+    }
 }
 
 CreateInvoiceDialog::~CreateInvoiceDialog() {
@@ -76,5 +92,27 @@ void CreateInvoiceDialog::on_cancelButton_clicked() {
 }
 
 void CreateInvoiceDialog::on_saveButton_clicked() {
+    QString where("order_id IN (%1)");
+    QStringList oid_t;
+    for(auto nid=orderIds.cbegin(); nid != orderIds.cend(); ++nid) {
+        oid_t << QString::number(*nid);
+    }
+    where = where.arg(oid_t.join(", "));
+    
+    qDebug() << "WHERE STMT : " << where;
+    
+    QSqlQuery q("BEGIN;");
+    q.prepare("SELECT count(invoice_id) + 1 FROM invoices WHERE invoice_date = ?");
+    q.addBindValue(ui->invoiceDate->date().toString("yyyy-MM-dd"));
+    q.exec() && q.next();
+    
+    int invId = q.value(0).toInt();
+    
+    q.prepare("INSERT INTO invoices (invoice_id, invoice_date, customer_id, user_id, total_amount, notes) VALUES (?, ?, ?, ?, ?, ?);");
+    q.addBincValue()
+    
+}
+
+void CreateInvoiceDialog::on_payButton_clicked() {
     
 }

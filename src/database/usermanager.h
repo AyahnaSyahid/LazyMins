@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QCryptographicHash>
 #include <QByteArray>
+#include <QSqlRecord>
 
 class UserManager : public QObject {
     Q_OBJECT
@@ -20,9 +21,9 @@ public:
                     int* out_id=nullptr);
 
     const int& currentUser() const { return _c_id ; }
+    const QSqlRecord currentUserRecord() const;
 
 // STATIC
-
     static bool nameExists(const QString& name);
     static QByteArray generateHash(const QString& pw, const QString& salt);
     static QString generateSalt(int length=0);

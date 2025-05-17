@@ -13,9 +13,9 @@
   <property name="windowTitle">
    <string>Invoice</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0">
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0,0">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="2,1,1">
      <item>
       <widget class="QWidget" name="formWidget" native="true">
        <property name="minimumSize">
@@ -168,7 +168,7 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLabel" name="label_15">
+         <widget class="QLabel" name="lUserDisplay">
           <property name="font">
            <font>
             <weight>75</weight>
@@ -184,6 +184,9 @@
          <widget class="QLabel" name="label_7">
           <property name="text">
            <string>Tanggal :</string>
+          </property>
+          <property name="buddy">
+           <cstring>invoiceDate</cstring>
           </property>
          </widget>
         </item>
@@ -206,6 +209,9 @@
           </property>
           <property name="buttonSymbols">
            <enum>QAbstractSpinBox::NoButtons</enum>
+          </property>
+          <property name="displayFormat">
+           <string>dd/MM/yyyy</string>
           </property>
           <property name="calendarPopup">
            <bool>true</bool>
@@ -291,14 +297,21 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <widget class="QLabel" name="lItemCount">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="2,1,1">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
         <widget class="QPlainTextEdit" name="plainTextEdit">
          <property name="maximumSize">
           <size>
-           <width>256</width>
+           <width>2000</width>
            <height>71</height>
           </size>
          </property>
@@ -339,6 +352,13 @@
            </property>
            <property name="autoDefault">
             <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="payButton">
+           <property name="text">
+            <string>Bayar</string>
            </property>
           </widget>
          </item>
@@ -423,6 +443,31 @@
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
           </property>
+          <property name="buddy">
+           <cstring>spinDiscount</cstring>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QSpinBox" name="spinDiscount">
+          <property name="frame">
+           <bool>true</bool>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="buttonSymbols">
+           <enum>QAbstractSpinBox::NoButtons</enum>
+          </property>
+          <property name="showGroupSeparator" stdset="0">
+           <bool>true</bool>
+          </property>
+          <property name="maximum">
+           <number>9999999</number>
+          </property>
+          <property name="singleStep">
+           <number>1000</number>
+          </property>
          </widget>
         </item>
         <item row="2" column="0" colspan="2">
@@ -456,25 +501,6 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QSpinBox" name="spinDiscount">
-          <property name="frame">
-           <bool>true</bool>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="buttonSymbols">
-           <enum>QAbstractSpinBox::NoButtons</enum>
-          </property>
-          <property name="maximum">
-           <number>9999999</number>
-          </property>
-          <property name="singleStep">
-           <number>1000</number>
           </property>
          </widget>
         </item>

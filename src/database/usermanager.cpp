@@ -1,5 +1,6 @@
 #include "usermanager.h"
 #include <QSqlQuery>
+#include <QSqlTableModel>
 #include <QSqlError>
 #include <QtDebug>
 #include <QRandomGenerator>
@@ -112,6 +113,20 @@ void UserManager::logout()
     if( !q.exec() ) {
         qDebug() << q.lastError().text();
     }
-    _c_id = 0;
+    _c_id = -1;
     emit userLoggedOut();
 };
+
+const QSqlRecord UserManager::currentUserRecord() const {
+    if(_c_id < 1) {
+        return QSqlRecord();
+    }
+    QSqlQuery q;
+    q.prepare("SELECT * from users WHERE user_id=?");
+    q.addBindValue(_c_id);
+    if(q.exec()) {
+        if(q.next())
+            return q.record();
+    }
+    return QSqlRecord();
+}

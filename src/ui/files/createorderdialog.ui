@@ -664,6 +664,16 @@
     </widget>
    </item>
   </layout>
+  <action name="actionFindCustomer">
+   <property name="text">
+    <string>Cari</string>
+   </property>
+  </action>
+  <action name="actionFindProduct">
+   <property name="text">
+    <string>Cari</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>customerBox</tabstop>

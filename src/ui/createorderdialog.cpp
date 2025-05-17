@@ -6,6 +6,8 @@
 #include "createinvoicedialog.h"
 #include "editorderdialog.h"
 #include "database.h"
+#include "customerpickerdialog.h"
+#include "productpickerdialog.h"
 
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
@@ -66,11 +68,12 @@ db(_db), ui(new Ui::CreateOrderDialog), QDialog(parent) {
         ui->productBox->completer()->setCompletionMode(QCompleter::PopupCompletion);
     QTableView* productBoxView = new QTableView(ui->productBox);
     ui->productBox->setView(productBoxView);
-    productBoxView->verticalHeader()->setMinimumSectionSize(23);
-    productBoxView->verticalHeader()->setDefaultSectionSize(23);
+    productBoxView->verticalHeader()->setMinimumSectionSize(18);
+    productBoxView->verticalHeader()->setDefaultSectionSize(15);
     productBoxView->verticalHeader()->hide();
     productBoxView->horizontalHeader()->setStretchLastSection(true);
     productBoxView->horizontalHeader()->hide();
+    productBoxView->setAlternatingRowColors(true);
     productBoxView->hideColumn(0);
     productBoxView->hideColumn(3);
     productBoxView->hideColumn(4);
@@ -117,7 +120,7 @@ void CreateOrderDialog::on_pickDate_clicked() {
 }
 
 void CreateOrderDialog::on_customerBox_currentIndexChanged(int ix) {
-    qDebug() << "customerBox index changed:" << ix;
+    // qDebug() << "customerBox index changed:" << ix;
     ui->keteranganGroup->setEnabled(ix > -1);
     ui->buttonContainer->setEnabled(ix > -1);
     ui->createPaymentButton->setEnabled(ix > -1);
@@ -256,6 +259,7 @@ void CreateOrderDialog::onInsertSuccess() {
 
 void CreateOrderDialog::on_customerBox_customContextMenuRequested(const QPoint& pp) {
     QMenu context(this);
+    context.addAction(ui->actionFindCustomer);
     auto newCustomer = context.addAction(tr("Konsumen Baru"));
     newCustomer->connect(newCustomer, &QAction::triggered, this, &CreateOrderDialog::createCustomer);
     context.exec(ui->customerBox->mapToGlobal(pp));
@@ -263,6 +267,7 @@ void CreateOrderDialog::on_customerBox_customContextMenuRequested(const QPoint& 
 
 void CreateOrderDialog::on_productBox_customContextMenuRequested(const QPoint& pp) {
     QMenu context(this);
+    context.addAction(ui->actionFindProduct);
     auto newProduct = context.addAction(tr("Produk Baru"));
     newProduct->connect(newProduct, &QAction::triggered, this, &CreateOrderDialog::createProduct);
     context.exec(ui->productBox->mapToGlobal(pp));
@@ -290,7 +295,7 @@ void CreateOrderDialog::createProduct() {
 }
 
 void CreateOrderDialog::resetProductIndex() {
-    qDebug() << "Reset Product Index Called";
+    // qDebug() << "Reset Product Index Called";
     ui->productBox->setCurrentIndex(-1);
 }
 
@@ -303,4 +308,18 @@ void CreateOrderDialog::updateLSum() {
     QString ts("Total : %1 (Semua), %2 (Terpilih)");
     auto model = findChild<CreateOrderModel*>("orderModel");
     ui->lSum->setText(ts.arg(locale().toString(model->sum()), locale().toString(model->sum(ui->unpaidTableView->selectionModel()->selectedRows()))));
+}
+
+void CreateOrderDialog::on_actionFindCustomer_triggered() {
+    CustomerPickerDialog* cpd = new CustomerPickerDialog(ui->customerBox->model(), this);
+    cpd->setAttribute(Qt::WA_DeleteOnClose);
+    cpd->connect(cpd, &CustomerPickerDialog::activated, ui->customerBox, &QComboBox::setCurrentIndex);
+    cpd->open();
+}
+
+void CreateOrderDialog::on_actionFindProduct_triggered() {
+    ProductPickerDialog* cpd = new ProductPickerDialog(ui->productBox->model(), this);
+    cpd->setAttribute(Qt::WA_DeleteOnClose);
+    cpd->connect(cpd, &ProductPickerDialog::activated, ui->productBox, &QComboBox::setCurrentIndex);
+    cpd->open();
 }

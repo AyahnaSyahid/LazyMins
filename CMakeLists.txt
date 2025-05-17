@@ -40,6 +40,12 @@ add_executable(LazyMins src/main.cpp
                         src/ui/createinvoicedialog.h
                         src/ui/createinvoicedialog.cpp
                         src/ui/files/createinvoicedialog.ui
+                        src/ui/customerpickerdialog.h
+                        src/ui/customerpickerdialog.cpp
+                        src/ui/files/customerpickerdialog.ui
+                        src/ui/productpickerdialog.h
+                        src/ui/productpickerdialog.cpp
+                        src/ui/files/productpickerdialog.ui
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )

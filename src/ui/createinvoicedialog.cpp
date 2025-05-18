@@ -109,13 +109,15 @@ bool CreateInvoiceDialog::saveInvoice(QSqlError* ref) {
     qDebug() << "WHERE STMT : " << where;
     
     QSqlQuery q("BEGIN;");
-    q.prepare("SELECT max(invoice_enum) OR 0 + 1 FROM invoices WHERE invoice_date = ?");
+    q.prepare("SELECT COALESCE(MAX(CAST(invoice_enum AS INTEGER)), 0) + 1 FROM invoices WHERE invoice_date = ?");
     q.addBindValue(ui->invoiceDate->date().toString("yyyy-MM-dd"));
     q.exec() && q.next();
 
     int invEnum = q.value(0).toInt();
 
-    q.prepare("INSERT INTO invoices (invoice_enum, invoice_date, customer_id, user_id, total_amount, discount, notes) VALUES (?, ?, ?, ?, ?, ?, ?);");
+    q.prepare("INSERT INTO invoices (invoice_enum, invoice_date, customer_id, user_id, total_amount, discount, notes) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?);");
+    
     q.addBindValue(QString::number(invEnum));
     q.addBindValue(ui->invoiceDate->date().toString("yyyy-MM-dd"));
     q.addBindValue(custId);

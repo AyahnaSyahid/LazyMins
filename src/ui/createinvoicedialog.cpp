@@ -4,13 +4,19 @@
 #include "files/ui_createinvoicedialog.h"
 #include "models/createordermodel.h"
 
-#include <QItemSelectionModel>
 #include <QDate>
-#include <QtDebug>
+#include <QMessageBox>
+#include <QItemSelectionModel>
 #include <QStandardItemModel>
+#include <QSqlTableModel>
+#include <QSqlQuery>
+#include <QSqlError>
 
-CreateInvoiceDialog::CreateInvoiceDialog(QItemSelectionModel* sel, Database* _d, QWidget* parent) :
-db(_d), ui(new Ui::CreateInvoiceDialog), orderIds(), om(qobject_cast<CreateOrderModel*>(sel->model())), sm(sel), QDialog(parent) {
+#include <QtDebug>
+
+CreateInvoiceDialog::CreateInvoiceDialog(int cid, QItemSelectionModel* sel, Database* _d, QWidget* parent) :
+db(_d), ui(new Ui::CreateInvoiceDialog), orderIds(), 
+custId(cid), savedInvoiceId(-1), om(qobject_cast<CreateOrderModel*>(sel->model())), sm(sel), QDialog(parent) {
     ui->setupUi(this);
     ui->invoiceDate->setDate(QDate::currentDate());
 
@@ -91,7 +97,8 @@ void CreateInvoiceDialog::on_cancelButton_clicked() {
     reject();
 }
 
-void CreateInvoiceDialog::on_saveButton_clicked() {
+bool CreateInvoiceDialog::saveInvoice(QSqlError* ref) {
+        auto uman = db->findChild<UserManager*>("userManager");
     QString where("order_id IN (%1)");
     QStringList oid_t;
     for(auto nid=orderIds.cbegin(); nid != orderIds.cend(); ++nid) {
@@ -102,17 +109,59 @@ void CreateInvoiceDialog::on_saveButton_clicked() {
     qDebug() << "WHERE STMT : " << where;
     
     QSqlQuery q("BEGIN;");
-    q.prepare("SELECT count(invoice_id) + 1 FROM invoices WHERE invoice_date = ?");
+    q.prepare("SELECT max(invoice_enum) OR 0 + 1 FROM invoices WHERE invoice_date = ?");
     q.addBindValue(ui->invoiceDate->date().toString("yyyy-MM-dd"));
     q.exec() && q.next();
-    
-    int invId = q.value(0).toInt();
-    
-    q.prepare("INSERT INTO invoices (invoice_id, invoice_date, customer_id, user_id, total_amount, notes) VALUES (?, ?, ?, ?, ?, ?);");
-    q.addBincValue()
-    
+
+    int invEnum = q.value(0).toInt();
+
+    q.prepare("INSERT INTO invoices (invoice_enum, invoice_date, customer_id, user_id, total_amount, discount, notes) VALUES (?, ?, ?, ?, ?, ?, ?);");
+    q.addBindValue(QString::number(invEnum));
+    q.addBindValue(ui->invoiceDate->date().toString("yyyy-MM-dd"));
+    q.addBindValue(custId);
+    q.addBindValue(uman->currentUser());
+    auto price = sm->hasSelection() ? om->sum(sm->selectedRows()) : om->sum();
+    q.addBindValue(price);
+    q.addBindValue(ui->spinDiscount->value());
+    q.addBindValue(ui->plainTextEdit->toPlainText().simplified());
+    if(!q.exec()) {
+        QMessageBox::information(this, "Gagal", QString("Tidak dapat menyimpan invoice\nError:\n%1").arg(q.lastError().text()));
+        q.exec("ROLLBACK");
+        return false;
+    }
+    savedInvoiceId = q.lastInsertId().toInt();
+    QString upd("UPDATE orders SET invoice_id = ? WHERE %1");
+    q.prepare(upd.arg(where));
+    q.addBindValue(savedInvoiceId);
+    if(!q.exec()) {
+        QMessageBox::information(this, "Gagal", QString("Tidak dapat mengupdate orders\nError:\n%1").arg(q.lastError().text()));
+        q.exec("ROLLBACK");
+        savedInvoiceId = -1;
+        return false;
+    }
+    q.exec("COMMIT");
+    db->getTableModel("invoices")->select();
+    db->getTableModel("orders")->select();
+    om->reload();
+    return true;
+}
+
+void CreateInvoiceDialog::on_saveButton_clicked() {
+    QSqlError err;
+    if(!saveInvoice(&err)) {
+        if(err.isValid()) {
+            QMessageBox::information(this, "Gagal menyimpan", QString("Error :").arg(err.text()));
+            return ;
+        }
+        QMessageBox::information(this, "Gagal menyimpan", "Error :\nTidak diketahui");
+        return ;
+    }
+    accept();
 }
 
 void CreateInvoiceDialog::on_payButton_clicked() {
-    
+    on_saveButton_clicked();
+    if(savedInvoiceId > -1) {
+        emit openPayment(savedInvoiceId);
+    }
 }

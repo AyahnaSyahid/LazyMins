@@ -181,7 +181,7 @@ void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto customerModel = db->getTableModel("customers");
     auto rc = customerModel->record(ui->customerBox->currentIndex());
     // mari permudah dengan memberikan referensi ke dialog invoice
-    CreateInvoiceDialog* cid = new CreateInvoiceDialog(sm, db, this);
+    CreateInvoiceDialog* cid = new CreateInvoiceDialog(rc.value("customer_id").toInt(), sm, db, this);
     QLabel *nameLabel  = cid->findChild<QLabel*>("label_2"),
            *phoneLabel = cid->findChild<QLabel*>("label_5"),
            *addrLabel = cid->findChild<QLabel*>("label_6");

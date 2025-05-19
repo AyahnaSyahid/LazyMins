@@ -52,32 +52,11 @@ GROUP BY invoices.invoice_id, invoices_dcode.invoice_code, invoices.invoice_date
 CreatePaymentDialog::CreatePaymentDialog(int inv, Database* _d, QWidget* parent) :
 invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui(new Ui::CreatePaymentDialog), QDialog(parent) {
     ui->setupUi(this);
-    QSqlQuery q;
-    q.prepare(prep);
-    q.addBindValue(inv);
-    q.exec() && q.next();
-    auto irec = q.record();
-    auto loc = locale();
-    ui->lClient->setText(irec.value("CName").toString());
-    ui->lDate->setText(QDate::fromString(irec.value("invoice_date").toString(), "yyyy-MM-dd").toString("dd/MM/yyyy"));
-    ui->lCode->setText(irec.value("invoice_code").toString());
-    ui->lItem->setText(loc.toString(irec.value("ItemCount").toInt()));
-    ui->lSubTotal->setText(loc.toString(irec.value("SubT").toLongLong()));
-    ui->lDiscO->setText(loc.toString(irec.value("OTDisc").toLongLong()));
-    ui->lDiscI->setText(loc.toString(irec.value("InvDisc").toLongLong()));
-    ui->lSumDisc->setText(loc.toString(irec.value("TDisc").toLongLong()));
-    ui->lGrandT->setText(loc.toString(irec.value("GrandT").toLongLong()));
-    ui->lRecv->setText(loc.toString(irec.value("Paid").toLongLong()));
-    setProperty("currentGRest", irec.value("GRest"));
-    ui->lRest->setText(loc.toString(irec.value("GRest").toLongLong()));
-    ui->lNRest->setText(loc.toString(irec.value("GRest").toLongLong()));
-    ui->pNotes->setPlainText(irec.value("notes").toString());
     auto paymentModel = db->getTableModel("payments");
     auto mrec = paymentModel->record();
     paymentHistoryModel->setSourceModel(paymentModel);
     paymentHistoryModel->setFilterKeyColumn(mrec.indexOf("invoice_id"));
     // paymentHistoryModel->setFilterRole(Qt::DisplayRole);
-    paymentHistoryModel->setFilterFixedString(QString::number(inv));
     ui->paymentHistoryView->setModel(paymentHistoryModel);
     ui->paymentHistoryView->hideColumn(0);
     ui->paymentHistoryView->hideColumn(2);
@@ -90,7 +69,7 @@ invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui
     paymentHistoryModel->setHeaderData(5, Qt::Horizontal, "No.Ref", Qt::DisplayRole);
     paymentHistoryModel->setHeaderData(5, Qt::Horizontal, "Referensi BANK (jika ada)", Qt::ToolTipRole);
     paymentHistoryModel->setHeaderData(6, Qt::Horizontal, "Konfirmasi", Qt::DisplayRole);
-    // paymentHistoryModel->setHeaderData(6, Qt::Horizontal, "Transaksi ini telah terkonfirmasi", Qt::ToolTipRole);
+    fillUiData();
 }
 
 CreatePaymentDialog::~CreatePaymentDialog() {
@@ -122,5 +101,37 @@ void CreatePaymentDialog::on_openOrdersView_clicked() {
     QDialog* dlg = new QDialog(this);
     dlg->setLayout(new QHBoxLayout);
     QTableView* tv = new QTableView(dlg);
-    CreateOrderModel* model = new CreateOrderModel(this);
+    QSortFilterProxyModel* proxy = new QSortFilterProxyModel(this);
+    auto omod = db->getTableModel("orders");
+    proxy->setSourceModel(omod);
+    proxy->setFilterKeyColumn(omod->record().indexOf("invoice_id"));
+    proxy->setFilterFixedString(QString::number(invoiceId));
+    tv->setModel(proxy);
+    dlg->layout()->addWidget(tv);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->open();
+}
+
+void CreatePaymentDialog::fillUiData() {
+    QSqlQuery q;
+    q.prepare(prep);
+    q.addBindValue(invoiceId);
+    q.exec() && q.next();
+    auto irec = q.record();
+    auto loc = locale();
+    ui->lClient->setText(irec.value("CName").toString());
+    ui->lDate->setText(QDate::fromString(irec.value("invoice_date").toString(), "yyyy-MM-dd").toString("dd/MM/yyyy"));
+    ui->lCode->setText(irec.value("invoice_code").toString());
+    ui->lItem->setText(loc.toString(irec.value("ItemCount").toInt()));
+    ui->lSubTotal->setText(loc.toString(irec.value("SubT").toLongLong()));
+    ui->lDiscO->setText(loc.toString(irec.value("OTDisc").toLongLong()));
+    ui->lDiscI->setText(loc.toString(irec.value("InvDisc").toLongLong()));
+    ui->lSumDisc->setText(loc.toString(irec.value("TDisc").toLongLong()));
+    ui->lGrandT->setText(loc.toString(irec.value("GrandT").toLongLong()));
+    ui->lRecv->setText(loc.toString(irec.value("Paid").toLongLong()));
+    setProperty("currentGRest", irec.value("GRest"));
+    ui->lRest->setText(loc.toString(irec.value("GRest").toLongLong()));
+    ui->lNRest->setText(loc.toString(irec.value("GRest").toLongLong()));
+    ui->pNotes->setPlainText(irec.value("notes").toString());
+    paymentHistoryModel->setFilterFixedString(QString::number(invoiceId));
 }

@@ -19,6 +19,7 @@ public :
 private slots:
     void inputLogic();
     void on_openOrdersView_clicked();
+    void fillUiData();
 
 private:
     int invoiceId;

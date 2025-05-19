@@ -4,14 +4,17 @@
 #include "createorderdialog.h"
 #include "createproductdialog.h"
 #include "createcustomerdialog.h"
+#include "createpaymentdialog.h"
 #include <QMenu>
 #include <QAction>
 #include <QMenuBar>
+#include <QtDebug>
 
 MainWindow::MainWindow(Database* _d, QWidget* parent)
  : ui(new Ui::MainWindow), db(_d), QMainWindow(parent)
 {
     ui->setupUi(this);
+    connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }
 
 MainWindow::~MainWindow() {
@@ -38,4 +41,11 @@ void MainWindow::on_actionAddProduct_triggered() {
 
 void MainWindow::on_actionAddUser_triggered() {
     
+}
+
+void MainWindow::openPaymentFor(int inv) {
+    // qDebug() << "Open Paymen Triggered";
+    CreatePaymentDialog* cpd = new CreatePaymentDialog(inv, db);
+    cpd->setAttribute(Qt::WA_DeleteOnClose);
+    cpd->open();
 }

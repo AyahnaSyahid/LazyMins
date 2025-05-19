@@ -189,6 +189,7 @@ void CreateOrderDialog::on_createPaymentButton_clicked() {
     phoneLabel->setText(rc.value("phone").toString());
     addrLabel->setText(rc.value("address").toString());
     cid->setAttribute(Qt::WA_DeleteOnClose);
+    cid->connect(cid, SIGNAL(openPayment(int)), db, SIGNAL(paymentRequest(int)));
     cid->adjustSize();
     cid->open();
 }

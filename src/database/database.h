@@ -19,6 +19,9 @@ public:
 
     QSqlTableModel* getTableModel(const QString&);
 
+signals:
+    void paymentRequest(int inv);
+    
 private:
     QMap<QString, QSqlTableModel*> tModels;
 };

@@ -20,6 +20,7 @@ private slots:
     void on_actionAddCustomer_triggered();
     void on_actionAddProduct_triggered();
     void on_actionAddUser_triggered();
+    void openPaymentFor(int);
 
 private:
     Database* db;

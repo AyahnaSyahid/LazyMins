@@ -153,7 +153,6 @@ void CreateInvoiceDialog::on_payButton_clicked() {
     if(!saveInvoice(&err)) {
         return;
     }
-    if(savedInvoiceId > -1) {
-        emit openPayment(savedInvoiceId);
-    }
+    emit openPayment(savedInvoiceId);
+    accept();
 }

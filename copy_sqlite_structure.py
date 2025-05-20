@@ -1,96 +1,102 @@
 import sqlite3
 import sys
 import os
+import sqlite3
+import os
 
-def get_table_structure(cursor, table_name):
-    """Get CREATE TABLE statement for a specific table"""
-    cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{table_name}'")
-    return cursor.fetchone()[0]
-
-def get_view_structure(cursor, view_name):
-    """Get CREATE VIEW statement for a specific view"""
-    cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='view' AND name='{view_name}'")
-    return cursor.fetchone()[0]
-
-def get_index_structure(cursor, index_name):
-    """Get CREATE INDEX statement for a specific index"""
-    cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='index' AND name='{index_name}'")
-    return cursor.fetchone()[0]
-
-def get_trigger_structure(cursor, trigger_name):
-    """Get CREATE TRIGGER statement for a specific trigger"""
-    cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='trigger' AND name='{trigger_name}'")
-    return cursor.fetchone()[0]
-
-def copy_database_structure(input_db, output_db):
-    """Copy database structure without data"""
+def copy_full_schema(source_db, target_db):
+    """
+    Copy all schema objects (tables, views, indexes, triggers) from source SQLite database to target SQLite database.
+    
+    Args:
+        source_db (str): Path to source database file
+        target_db (str): Path to target database file
+    """
     try:
-        # Connect to input database
-        input_conn = sqlite3.connect(input_db)
-        input_cursor = input_conn.cursor()
-
-        # Connect to output database (create if not exists)
-        output_conn = sqlite3.connect(output_db)
-        output_cursor = output_conn.cursor()
-
-        # Get all tables
-        input_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-        tables = [row[0] for row in input_cursor.fetchall()]
-
-        # Get all views
-        input_cursor.execute("SELECT name FROM sqlite_master WHERE type='view'")
-        views = [row[0] for row in input_cursor.fetchall()]
-
-        # Get all indexes
-        input_cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'")
-        indexes = [row[0] for row in input_cursor.fetchall()]
-
-        # Get all triggers
-        input_cursor.execute("SELECT name FROM sqlite_master WHERE type='trigger'")
-        triggers = [row[0] for row in input_cursor.fetchall()]
-
-        # Copy tables
-        for table in tables:
-            create_table_sql = get_table_structure(input_cursor, table)
-            output_cursor.execute(create_table_sql)
-
-        # Copy views
-        for view in views:
-            create_view_sql = get_view_structure(input_cursor, view)
-            output_cursor.execute(create_view_sql)
-
-        # Copy indexes
-        for index in indexes:
-            create_index_sql = get_index_structure(input_cursor, index)
-            output_cursor.execute(create_index_sql)
-
-        # Copy triggers
-        for trigger in triggers:
-            create_trigger_sql = get_trigger_structure(input_cursor, trigger)
-            output_cursor.execute(create_trigger_sql)
-
+        # Connect to source database
+        source_conn = sqlite3.connect(source_db)
+        source_cursor = source_conn.cursor()
+        
+        # Get all schema objects (tables, views, indexes, triggers) excluding system objects
+        source_cursor.execute("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%';")
+        schema_objects = source_cursor.fetchall()
+        
+        # Connect to target database
+        target_conn = sqlite3.connect(target_db)
+        target_cursor = target_conn.cursor()
+        
+        # Copy each schema object
+        for schema_sql in schema_objects:
+            sql_statement = schema_sql[0]
+            try:
+                target_cursor.execute(sql_statement)
+            except sqlite3.Error as e:
+                print(f"Error executing SQL: {sql_statement}\nError message: {e}")
+                continue
+        
         # Commit changes and close connections
-        output_conn.commit()
-        input_conn.close()
-        output_conn.close()
-        print(f"Database structure copied successfully to {output_db}")
-
+        target_conn.commit()
+        source_conn.close()
+        target_conn.close()
+        
+        print(f"All schema objects successfully copied from {source_db} to {target_db}")
+        
     except sqlite3.Error as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+        print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python copy_sqlite_structure.py <input_database_file>")
-        sys.exit(1)
 
-    input_db = sys.argv[1]
-    if not os.path.exists(input_db):
-        print(f"Error: Database file {input_db} does not exist")
-        sys.exit(1)
+from PyQt5.QtWidgets import QApplication, QFileDialog, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QPushButton, QLineEdit, QLabel
+from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QMetaObject
 
-    output_db = f"copy_{os.path.basename(input_db)}"
-    copy_database_structure(input_db, output_db)
-
+class GuiDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        inputLayout = QFormLayout()
+        self.lSource = QLabel("Source", self)
+        self.lDest = QLabel("Dest", self)
+        self.iSource = QLineEdit(self)
+        self.iDest = QLineEdit(self)
+        self.bSource = QPushButton("Pilih", self)
+        self.bDest = QPushButton("Pilih", self)
+        self.btn = QPushButton("Mulai", self)
+        ls = QHBoxLayout()
+        ls.addWidget(self.iSource)
+        ls.addWidget(self.bSource)
+        ld = QHBoxLayout()
+        ld.addWidget(self.iDest)
+        ld.addWidget(self.bDest)
+        inputLayout.addRow(self.lSource, ls)
+        inputLayout.addRow(self.lDest, ld)
+        self.setLayout(inputLayout)
+        self.bSource.clicked.connect(self.on_bSource_clicked)
+        self.bDest.clicked.connect(self.on_bDest_clicked)
+        self.btn.clicked.connect(self.on_mBtn_clicked)
+        lb = QHBoxLayout()
+        lb.addStretch()
+        lb.addWidget(self.btn)
+        inputLayout.addRow(lb)
+        
+        
+    @pyqtSlot()
+    def on_bSource_clicked(self):
+        srcfile = QFileDialog.getOpenFileName(self, "Pilih database referensi")
+        if(len(srcfile[0])):
+            self.iSource.setText(srcfile[0])
+        
+    @pyqtSlot()
+    def on_bDest_clicked(self):
+        saveFile = QFileDialog.getSaveFileName(self, "Tentukan tempat penyimpanan")
+        if(len(saveFile[0])):
+            self.iDest.setText(saveFile[0])
+            
+    @pyqtSlot()
+    def on_mBtn_clicked(self):
+        copy_full_schema(self.iSource.text(), self.iDest.text())
+    
 if __name__ == "__main__":
-    main()
+    app = QApplication([])
+    win = GuiDialog()
+    win.open()
+    app.exec()

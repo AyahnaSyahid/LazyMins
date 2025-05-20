@@ -18,9 +18,10 @@ public :
 
 private slots:
     void inputLogic();
-    void on_openOrdersView_clicked();
     void fillUiData();
-
+    void on_openOrdersView_clicked();
+    void on_saveButton_clicked();
+    
 private:
     int invoiceId;
     Database* db;

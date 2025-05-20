@@ -12,6 +12,7 @@
 #include <QSqlRecord>
 #include <QHBoxLayout>
 #include <QTableView>
+#include <QMessageBox>
 
 const QString prep(R"--(
 WITH OrderPrice AS (
@@ -23,6 +24,8 @@ WITH OrderPrice AS (
             ELSE CEIL(quantity * unit_price / 500.0) * 500 
         END AS real_price
     FROM orders
+), PaymentTotal AS (
+    SELECT invoice_id, COALESCE(SUM(payments.amount), 0) AS Paid FROM payments GROUP BY invoice_id
 )
 SELECT 
     invoices.invoice_id,
@@ -36,16 +39,16 @@ SELECT
     invoices.discount AS InvDisc,
     (SUM(orders.discount) + invoices.discount) AS TDisc,
     (SUM(OrderPrice.real_price) - (SUM(orders.discount) + invoices.discount)) AS GrandT,
-    COALESCE(SUM(payments.amount), 0) AS Paid,
-    (SUM(OrderPrice.real_price) - (SUM(orders.discount) + invoices.discount)) - COALESCE(SUM(payments.amount), 0) AS GRest
+    COALESCE(Paid, 0) AS Paid,
+    (SUM(OrderPrice.real_price) - (SUM(orders.discount) + invoices.discount)) - COALESCE(Paid, 0) AS GRest
 FROM invoices
 JOIN invoices_dcode ON invoices.invoice_id = invoices_dcode.invoice_id
 LEFT JOIN orders ON invoices.invoice_id = orders.invoice_id
 LEFT JOIN OrderPrice ON orders.order_id = OrderPrice.order_id
-LEFT JOIN payments ON invoices.invoice_id = payments.invoice_id
+LEFT JOIN PaymentTotal ON invoices.invoice_id = PaymentTotal.invoice_id
 LEFT JOIN customers ON invoices.customer_id = customers.customer_id
 WHERE invoices.invoice_id = ?
-GROUP BY invoices.invoice_id, invoices_dcode.invoice_code, invoices.invoice_date, invoices.discount
+GROUP BY invoices.invoice_id, invoices_dcode.invoice_code, invoices.invoice_date, invoices.discount, PaymentTotal.invoice_id
 )--");
 
 
@@ -70,6 +73,7 @@ invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui
     paymentHistoryModel->setHeaderData(5, Qt::Horizontal, "Referensi BANK (jika ada)", Qt::ToolTipRole);
     paymentHistoryModel->setHeaderData(6, Qt::Horizontal, "Konfirmasi", Qt::DisplayRole);
     fillUiData();
+    connect(paymentModel, &QSqlTableModel::modelReset, this, &CreatePaymentDialog::fillUiData);
 }
 
 CreatePaymentDialog::~CreatePaymentDialog() {
@@ -95,6 +99,9 @@ void CreatePaymentDialog::inputLogic() {
             ui->saveButton->setEnabled(false);
         }
     }
+    if(spinRecv == 0) {
+        ui->saveButton->setEnabled(false);
+    }
 }
 
 void CreatePaymentDialog::on_openOrdersView_clicked() {
@@ -112,7 +119,35 @@ void CreatePaymentDialog::on_openOrdersView_clicked() {
     dlg->open();
 }
 
+void CreatePaymentDialog::on_saveButton_clicked() {
+    auto pm = db->getTableModel("payments");
+    auto rec = pm->record();
+    rec.setValue("invoice_id", invoiceId);
+    rec.setValue("amount", ui->spinPayNow->value());
+    rec.setValue("method", ui->methodBox->currentText());
+    rec.setGenerated("payment_date", false);
+    rec.setValue("confirmed", ui->methodBox->currentText() == "CASH" ? 1 : 0);
+    rec.setGenerated("created_utc", false);
+    rec.setGenerated("updated_utc", false);
+    
+    if(pm->insertRecord(-1, rec)) {
+        if(!pm->submitAll()) {
+            if(pm->lastError().isValid()) {
+                QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg(pm->lastError().text()));
+                return;
+            }
+            QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg("Tidak diketahui"));
+            return;
+        }
+        QMessageBox::information(this, "Berhasil disimpan", "Pembayaran berhasil disimpan kedalam database");
+        return ;
+    }
+    QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg("Tidak diketahui #2"));
+}
+
 void CreatePaymentDialog::fillUiData() {
+    ui->spinPayNow->setValue(0);
+    ui->spinRecv->setValue(0);
     QSqlQuery q;
     q.prepare(prep);
     q.addBindValue(invoiceId);
@@ -133,5 +168,6 @@ void CreatePaymentDialog::fillUiData() {
     ui->lRest->setText(loc.toString(irec.value("GRest").toLongLong()));
     ui->lNRest->setText(loc.toString(irec.value("GRest").toLongLong()));
     ui->pNotes->setPlainText(irec.value("notes").toString());
+    ui->spinPayNow->setMaximum(irec.value("GRest").toInt());
     paymentHistoryModel->setFilterFixedString(QString::number(invoiceId));
 }

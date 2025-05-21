@@ -2,12 +2,14 @@
 #define MainWindow_H
 
 #include <QMainWindow>
+#include <QMap>
 
 namespace Ui {
     class MainWindow;
 }
 
 class Database;
+class QDialog;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -21,10 +23,14 @@ private slots:
     void on_actionAddProduct_triggered();
     void on_actionAddUser_triggered();
     void openPaymentFor(int);
+    void dialogDestroyed(const QString&);
+
 
 private:
     Database* db;
     Ui::MainWindow* ui;
+    QMap<QString, QDialog*> _dialogs;
+
 };
 
 #endif

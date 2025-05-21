@@ -134,15 +134,18 @@ void CreatePaymentDialog::on_saveButton_clicked() {
         if(!pm->submitAll()) {
             if(pm->lastError().isValid()) {
                 QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg(pm->lastError().text()));
+                pm->revertAll();
                 return;
             }
             QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg("Tidak diketahui"));
+            pm->revertAll();
             return;
         }
         QMessageBox::information(this, "Berhasil disimpan", "Pembayaran berhasil disimpan kedalam database");
         return ;
     }
     QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg("Tidak diketahui #2"));
+    pm->revertAll();
 }
 
 void CreatePaymentDialog::fillUiData() {
@@ -164,10 +167,18 @@ void CreatePaymentDialog::fillUiData() {
     ui->lSumDisc->setText(loc.toString(irec.value("TDisc").toLongLong()));
     ui->lGrandT->setText(loc.toString(irec.value("GrandT").toLongLong()));
     ui->lRecv->setText(loc.toString(irec.value("Paid").toLongLong()));
-    setProperty("currentGRest", irec.value("GRest"));
-    ui->lRest->setText(loc.toString(irec.value("GRest").toLongLong()));
-    ui->lNRest->setText(loc.toString(irec.value("GRest").toLongLong()));
+    auto gr = irec.value("GRest").toInt();
+    
+    setProperty("currentGRest", gr);
+    ui->lRest->setText(loc.toString(gr));
+    ui->lNRest->setText(loc.toString(gr));
     ui->pNotes->setPlainText(irec.value("notes").toString());
-    ui->spinPayNow->setMaximum(irec.value("GRest").toInt());
+    ui->spinPayNow->setMaximum(gr);
     paymentHistoryModel->setFilterFixedString(QString::number(invoiceId));
+    
+    if(gr == 0) {
+        QMessageBox::information(this, "Info", "Invoice ini telah lunas");
+    } else if ( gr < 0) {
+        QMessageBox::information(this, "Info", "Sepertinya invoice ini kelebihan bayar");
+    }
 }

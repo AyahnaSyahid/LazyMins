@@ -10,6 +10,20 @@
 #include <QMenuBar>
 #include <QtDebug>
 
+#define REGIST_DIALOGS(DCL, DNM, MWIN) \
+    if(!_dialogs.contains("createOrderDialog")) {\
+        DCL* cod = new DCL(db);\
+        cod->setObjectName(#DNM);\
+        cod->setAttribute(Qt::WA_DeleteOnClose);\
+        connect(cod, &QObject::destroyed, [this, name = cod->objectName()]() {\
+            this->dialogDestroyed(name);\
+        });\
+        _dialogs.insert(#DNM, cod);\
+        cod->show();\
+    } else {\
+        _dialogs.value(#DNM)->activateWindow();\
+    }\
+
 MainWindow::MainWindow(Database* _d, QWidget* parent)
  : ui(new Ui::MainWindow), db(_d), QMainWindow(parent)
 {
@@ -22,21 +36,15 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::on_actionAddOrder_triggered() {
-    CreateOrderDialog* cod = new CreateOrderDialog(db, this);
-    cod->setAttribute(Qt::WA_DeleteOnClose);
-    cod->open();
+    REGIST_DIALOGS(CreateOrderDialog, createOrderDialog, this);
 }
 
 void MainWindow::on_actionAddCustomer_triggered() {
-    CreateCustomerDialog* ccd = new CreateCustomerDialog(db, this);
-    ccd->setAttribute(Qt::WA_DeleteOnClose);
-    ccd->open();
+    REGIST_DIALOGS(CreateCustomerDialog, createCustomerDialog, this);
 }
 
 void MainWindow::on_actionAddProduct_triggered() {
-    CreateProductDialog* cpd = new CreateProductDialog(db, this);
-    cpd->setAttribute(Qt::WA_DeleteOnClose);
-    cpd->open();
+    REGIST_DIALOGS(CreateProductDialog, createProductDialog, this);
 }
 
 void MainWindow::on_actionAddUser_triggered() {
@@ -44,8 +52,11 @@ void MainWindow::on_actionAddUser_triggered() {
 }
 
 void MainWindow::openPaymentFor(int inv) {
-    // qDebug() << "Open Paymen Triggered";
     CreatePaymentDialog* cpd = new CreatePaymentDialog(inv, db);
     cpd->setAttribute(Qt::WA_DeleteOnClose);
-    cpd->open();
+    cpd->show();
+}
+
+void MainWindow::dialogDestroyed(const QString& name) {
+    _dialogs.remove(name);
 }

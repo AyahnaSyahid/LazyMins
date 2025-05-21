@@ -11,7 +11,7 @@
 #include <QtDebug>
 
 #define REGIST_DIALOGS(DCL, DNM, MWIN) \
-    if(!_dialogs.contains("createOrderDialog")) {\
+    if(!_dialogs.contains(#DNM)) {\
         DCL* cod = new DCL(db);\
         cod->setObjectName(#DNM);\
         cod->setAttribute(Qt::WA_DeleteOnClose);\

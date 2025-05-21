@@ -687,6 +687,12 @@
           <property name="maximum">
            <number>99999999</number>
           </property>
+          <property name="singleStep">
+           <number>5000</number>
+          </property>
+          <property name="stepType">
+           <enum>QAbstractSpinBox::DefaultStepType</enum>
+          </property>
          </widget>
         </item>
         <item row="1" column="0">
@@ -791,6 +797,12 @@
           </property>
           <property name="maximum">
            <number>99999999</number>
+          </property>
+          <property name="singleStep">
+           <number>2000</number>
+          </property>
+          <property name="stepType">
+           <enum>QAbstractSpinBox::DefaultStepType</enum>
           </property>
          </widget>
         </item>

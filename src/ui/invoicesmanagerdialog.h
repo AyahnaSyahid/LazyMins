@@ -8,7 +8,8 @@ namespace Ui {
 #include <QDialog>
 
 class Database;
-class InvoicesManagerDialog {
+class InvoicesManagerModel;
+class InvoicesManagerDialog : public QDialog{
     Q_OBJECT
 public:
     explicit InvoicesManagerDialog(Database*, QWidget* =nullptr);
@@ -17,6 +18,7 @@ public:
 private:
     Database* db;
     Ui::InvoicesManagerDialog* ui;
+    InvoicesManagerModel* inModel;
 };
 
 #endif

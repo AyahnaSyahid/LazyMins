@@ -131,6 +131,7 @@ void CreatePaymentDialog::on_saveButton_clicked() {
     rec.setGenerated("updated_utc", false);
     
     if(pm->insertRecord(-1, rec)) {
+        // insert Ok
         if(!pm->submitAll()) {
             if(pm->lastError().isValid()) {
                 QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg(pm->lastError().text()));
@@ -175,10 +176,4 @@ void CreatePaymentDialog::fillUiData() {
     ui->pNotes->setPlainText(irec.value("notes").toString());
     ui->spinPayNow->setMaximum(gr);
     paymentHistoryModel->setFilterFixedString(QString::number(invoiceId));
-    
-    if(gr == 0) {
-        QMessageBox::information(this, "Info", "Invoice ini telah lunas");
-    } else if ( gr < 0) {
-        QMessageBox::information(this, "Info", "Sepertinya invoice ini kelebihan bayar");
-    }
 }

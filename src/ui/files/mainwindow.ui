@@ -32,7 +32,14 @@
     <addaction name="actionAddCustomer"/>
     <addaction name="actionAddUser"/>
    </widget>
+   <widget class="QMenu" name="menuManager">
+    <property name="title">
+     <string>Manager</string>
+    </property>
+    <addaction name="actionInvoicesManager"/>
+   </widget>
    <addaction name="menuAdd"/>
+   <addaction name="menuManager"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionAddOrder">
@@ -53,6 +60,11 @@
   <action name="actionAddUser">
    <property name="text">
     <string>User Baru</string>
+   </property>
+  </action>
+  <action name="actionInvoicesManager">
+   <property name="text">
+    <string>Invoice</string>
    </property>
   </action>
  </widget>

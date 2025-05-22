@@ -5,6 +5,7 @@
 #include "createproductdialog.h"
 #include "createcustomerdialog.h"
 #include "createpaymentdialog.h"
+#include "invoicesmanagerdialog.h"
 #include <QMenu>
 #include <QAction>
 #include <QMenuBar>
@@ -45,6 +46,10 @@ void MainWindow::on_actionAddCustomer_triggered() {
 
 void MainWindow::on_actionAddProduct_triggered() {
     REGIST_DIALOGS(CreateProductDialog, createProductDialog, this);
+}
+
+void MainWindow::on_actionInvoicesManager_triggered() {
+    REGIST_DIALOGS(InvoicesManagerDialog, invoicesManagerDialog, this);
 }
 
 void MainWindow::on_actionAddUser_triggered() {

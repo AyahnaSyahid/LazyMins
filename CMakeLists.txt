@@ -49,6 +49,11 @@ add_executable(LazyMins src/main.cpp
                         src/ui/createpaymentdialog.h
                         src/ui/createpaymentdialog.cpp
                         src/ui/files/createpaymentdialog.ui
+                        src/ui/files/invoicesmanagerdialog.ui
+                        src/ui/invoicesmanagerdialog.h
+                        src/ui/invoicesmanagerdialog.cpp
+                        src/ui/models/invoicesmanagermodel.h
+                        src/ui/models/invoicesmanagermodel.cpp
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )

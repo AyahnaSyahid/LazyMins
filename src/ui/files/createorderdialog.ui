@@ -582,6 +582,9 @@
           </disabled>
          </palette>
         </property>
+        <property name="contextMenuPolicy">
+         <enum>Qt::CustomContextMenu</enum>
+        </property>
         <property name="autoFillBackground">
          <bool>true</bool>
         </property>

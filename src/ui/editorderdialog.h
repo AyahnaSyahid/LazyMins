@@ -18,9 +18,6 @@ public:
     explicit EditOrderDialog(const QSqlRecord&, Database*, QWidget* =nullptr);
     ~EditOrderDialog();
 
-public slots:
-    void onUpdateStatus(const QSqlError&, const QSqlRecord&);
-
 private slots:
     void on_pickDate_clicked();
     void on_cancelButton_clicked();

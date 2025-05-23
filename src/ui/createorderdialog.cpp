@@ -49,6 +49,7 @@ db(_db), ui(new Ui::CreateOrderDialog), QDialog(parent) {
     connect(ui->unpaidTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CreateOrderDialog::updateLSum);
     ui->unpaidTableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(insertSuccess()), SLOT(onInsertSuccess()));
+    connect(db->getTableModel("orders"), SIGNAL(modelReset()), orderModel, SLOT(reload()));
 
     auto cmod = db->getTableModel("customers");
     ui->customerBox->setModel(cmod);
@@ -275,12 +276,39 @@ void CreateOrderDialog::on_productBox_customContextMenuRequested(const QPoint& p
 }
 
 void CreateOrderDialog::on_unpaidTableView_doubleClicked(const QModelIndex& x) {
-    // setProperty("orderEditId", x.siblingAtColumn(0).data(Qt::EditRole).toLongLong());
-    // QMenu context(this);
-    // auto r = ui->unpaidTableView->visualRect(x);
-    // auto act = context.addAction("Edit");
-    // act->connect(act, &QAction::triggered, this, &CreateOrderDialog::editOrder);
-    // context.exec(ui->unpaidTableView->viewport()->mapToGlobal(r.topRight()));
+    QSqlQuery q;
+    q.prepare("SELECT * FROM orders WHERE order_id = ?");
+    q.addBindValue(x.siblingAtColumn(0).data(Qt::EditRole).toInt());
+    q.exec();
+    if(!q.next()) return; // empty record
+    EditOrderDialog* eod = new EditOrderDialog(q.record(), db, this);
+    eod->setAttribute(Qt::WA_DeleteOnClose);
+    eod->connect(eod, SIGNAL(accepted()), db->getTableModel("orders"), SLOT(select()));
+    eod->open();
+}
+
+void CreateOrderDialog::on_unpaidTableView_customContextMenuRequested(const QPoint& pt) {
+    QMenu m(this);
+    // soft delete orders
+    QAction* sdo = m.addAction(tr("Hapus"));
+    QPoint rpt(ui->unpaidTableView->viewport()->mapToGlobal(pt));
+    QAction* sel = m.exec(rpt);
+    if(sel == sdo) {
+        auto sm = ui->unpaidTableView->selectionModel();
+        if(sm->hasSelection()) {
+            auto rows = sm->selectedRows(0);
+            QStringList str_id;
+            for(auto r=rows.cbegin(); r != rows.cend(); ++r) {
+                str_id << (*r).data().toString();
+            }
+            QString qs("UPDATE orders SET status = 'DELETED' WHERE order_id IN (%1)");
+            QSqlQuery q(qs.arg(str_id.join(", ")));
+            if(!q.lastError().isValid()) {
+                auto om = findChild<CreateOrderModel*>("orderModel");
+                om->reload();
+            }
+        }
+    }
 }
 
 void CreateOrderDialog::createCustomer() {

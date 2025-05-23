@@ -1,5 +1,6 @@
 #include "editorderdialog.h"
 #include "database.h"
+#include "usermanager.h"
 #include "files/ui_editorderdialog.h"
 #include <QVBoxLayout>
 #include <QSqlTableModel>
@@ -14,7 +15,7 @@
 #include <QtDebug>
 
 EditOrderDialog::EditOrderDialog(const QSqlRecord& rec, Database* _d, QWidget* parent) :
-_record(rec), ui(new Ui::EditOrderDialog), db(_d), QDialog(parent) {
+_record(rec), db(_d), ui(new Ui::EditOrderDialog), QDialog(parent) {
     ui->setupUi(this);
     ui->lDate->setText(QDate::fromString(_record.value("order_date").toString(), "yyyy-MM-dd").toString("dd/MM/yyyy"));
     ui->spinWidth->setValue(_record.value("width").toDouble());
@@ -22,6 +23,7 @@ _record(rec), ui(new Ui::EditOrderDialog), db(_d), QDialog(parent) {
     ui->spinQty->setValue(_record.value("quantity").toInt());
     ui->spinDiscount->setValue(_record.value("discount").toLongLong());
     ui->spinPrice->setValue(_record.value("unit_price").toLongLong());
+    ui->spinPrice->setMinimum(_record.value("production_cost").toLongLong());
     ui->nameEdit->setText(_record.value("name").toString());
     
     auto pmod = db->getTableModel("products");
@@ -54,8 +56,9 @@ void EditOrderDialog::on_cancelButton_clicked(){
 }
 
 void EditOrderDialog::on_saveButton_clicked(){
+    setDisabled(true);
     auto rec = _record;
-    rec.setGenerated("order_id", false);
+    // rec.setGenerated("order_id", false);
     rec.setValue("name", ui->nameEdit->text().simplified());
     rec.setValue("width", ui->spinWidth->value());
     rec.setValue("height", ui->spinHeight->value());
@@ -63,18 +66,34 @@ void EditOrderDialog::on_saveButton_clicked(){
     rec.setValue("unit_price", ui->spinPrice->value());
     rec.setValue("discount", ui->spinDiscount->value());
     rec.setValue("updated_utc", "`CURRENT_TIMESTAMP`");
-    setDisabled(true);
-    emit queryUpdate(rec);
+    rec.setValue("user_id", db->findChild<UserManager*>("userManager")->currentUser());
+    
+    QSqlQuery q;
+    q.prepare("UPDATE orders SET (name, width, height, quantity, unit_price, discount, updated_utc) = (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) WHERE order_id = ?");
+    q.addBindValue(rec.value("name"));
+    q.addBindValue(rec.value("width"));
+    q.addBindValue(rec.value("height"));
+    q.addBindValue(rec.value("quantity"));
+    q.addBindValue(rec.value("unit_price"));
+    q.addBindValue(rec.value("discount"));
+    q.addBindValue(rec.value("order_id"));
+    if(q.exec()) {
+        auto model = db->getTableModel("orders");
+        model->select();
+        accept();
+    } else {
+        QMessageBox::information(this, "Gagal Update", QString("Error :%1").arg(q.lastError().text()));
+    }
 }
 
-void EditOrderDialog::onUpdateStatus(const QSqlError& err, const QSqlRecord&) {
-    setEnabled(true);
-    if(not err.isValid()) {
-        accept();
-        return;
-    }
-    QMessageBox::information(this, tr("Gagal menyimpan"), QString("Error : ").arg(err.text()));
-}
+// void EditOrderDialog::onUpdateStatus(const QSqlError& err, const QSqlRecord&) {
+    // setEnabled(true);
+    // if(not err.isValid()) {
+        // accept();
+        // return;
+    // }
+    // QMessageBox::information(this, tr("Gagal menyimpan"), QString("Error : ").arg(err.text()));
+// }
 
 void EditOrderDialog::on_pickDate_clicked() {
     QDialog d(this);
@@ -103,7 +122,7 @@ void EditOrderDialog::setCurrentOrderDate(const QDate& cd) {
 }
 
 void EditOrderDialog::on_productBox_currentIndexChanged(int x) {
-    auto pmod = findChild<QSqlTableModel*>("productModel");
+    auto pmod = qobject_cast<QSqlTableModel*>(ui->productBox->model());
     auto rc = pmod->record(x);
     ui->sizeInput->setEnabled(rc.value("use_area").toBool());
     auto spVal = ui->spinPrice->value();

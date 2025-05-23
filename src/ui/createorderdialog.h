@@ -33,6 +33,7 @@ private slots:
     void on_customerBox_customContextMenuRequested(const QPoint&);
     void on_productBox_customContextMenuRequested(const QPoint&);
     void on_unpaidTableView_doubleClicked(const QModelIndex&);
+    void on_unpaidTableView_customContextMenuRequested(const QPoint&);
     void on_actionFindCustomer_triggered();
     void on_actionFindProduct_triggered();
     void updateSubTotal();

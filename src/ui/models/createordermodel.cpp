@@ -79,7 +79,9 @@ void CreateOrderModel::setCustomerId(int _i) {
 }
 
 void CreateOrderModel::reload() {
-    relModel->setQuery(relModel->query().lastQuery());
+    auto q = relModel->query();
+    q.exec();
+    relModel->setQuery(q);
     emit reloaded();
 }
 

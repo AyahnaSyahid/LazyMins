@@ -14,6 +14,10 @@ public:
     QVariant data(const QModelIndex&, int =Qt::DisplayRole) const;
     // QVariant headerData(int, Qt::Orientation, int =Qt::DisplayRole) const;
 
+public slots:
+    void showPaidInvoices(bool);
+    void select();
+
 private:
     using QSortFilterProxyModel::setSourceModel;
     Database* db;

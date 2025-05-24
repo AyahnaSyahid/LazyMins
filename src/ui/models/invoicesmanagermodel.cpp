@@ -3,64 +3,91 @@
 
 #include <QModelIndex>
 #include <QSqlTableModel>
-#include <QSqlQueryModel>
 #include <QSqlError>
+#include <QBrush>
+#include <QColor>
+
 #include <QtDebug>
 
-const QString myQuery(R"--(
-WITH OrdersValue AS (
-    SELECT order_id,
-           invoice_id,
-           discount,
-           CASE WHEN use_area = 1 THEN CEIL(width * height * unit_price * quantity / 500) * 500 ELSE unit_price * quantity END AS sub_total_price,
-           CASE WHEN use_area = 1 THEN CEIL(width * height * production_cost * quantity / 500) * 500 ELSE production_cost * quantity END AS sub_total_cost
-      FROM orders
-),
-OrdersSums AS (
-    SELECT invoice_id,
-           COUNT(order_id) AS order_count,
-           SUM(discount) AS discount,
-           SUM(sub_total_price) AS total_price,
-           SUM(sub_total_cost) AS total_cost
-      FROM OrdersValue
-     GROUP BY invoice_id
-)
-SELECT invoices.invoice_id,
-       invoices_dcode.invoice_code,
-       customers.name,
-       order_count,
-       total_price,
-       total_cost,
-       OrdersSums.discount AS order_discount,
-       invoices.discount AS invoice_discount,
-       total_price - total_cost - invoices.discount AS netto,
-       ROUND((total_price - total_cost) * 100.0 / total_price, 3) AS net_percent,
-       ROUND((total_price - total_cost - OrdersSums.discount) * 100.0 / total_price, 3) AS netwodisc_percent,
-       ROUND((total_price - total_cost - OrdersSums.discount - invoices.discount) * 100.0 / total_price, 3) AS netwoidisc_percent
-  FROM invoices
-       JOIN
-       invoices_dcode USING (
-           invoice_id
-       )
-       JOIN
-       customers ON customers.customer_id = invoices.customer_id
-       JOIN
-       OrdersSums USING (
-           invoice_id
-       );
-)--");
+
 
 InvoicesManagerModel::InvoicesManagerModel(Database* _d, QObject* parent) :
 db(_d), QSortFilterProxyModel(parent) {
-    QSqlQueryModel* qModel = new QSqlQueryModel(this);
-    qModel->setObjectName("qModel");
-    qModel->setQuery(myQuery);
+    QSqlTableModel* qModel = new QSqlTableModel(this);
+    qModel->setObjectName("invoices_summary_model");
+    qModel->setTable("invoices_summary");
+    qModel->setFilter("unpaid > 0");
+    qModel->select();
     setSourceModel(qModel);
-    qDebug() << qModel->lastError();
+    setHeaderData(0, Qt::Horizontal, "InvoiceID", Qt::DisplayRole);
+    setHeaderData(1, Qt::Horizontal, "Kode", Qt::DisplayRole);
+    setHeaderData(2, Qt::Horizontal, "Tanggal", Qt::DisplayRole);
+    setHeaderData(3, Qt::Horizontal, "Konsumen", Qt::DisplayRole);
+    setHeaderData(4, Qt::Horizontal, "Total", Qt::DisplayRole);
+    setHeaderData(5, Qt::Horizontal, "Terbayar", Qt::DisplayRole);
+    setHeaderData(6, Qt::Horizontal, "Sisa", Qt::DisplayRole);
+    setHeaderData(7, Qt::Horizontal, "Jumlah Pembayaran", Qt::DisplayRole);
+    setHeaderData(8, Qt::Horizontal, "Harga Order", Qt::DisplayRole);
+    setHeaderData(9, Qt::Horizontal, "Nilai Modal", Qt::DisplayRole);
+    setHeaderData(10, Qt::Horizontal, "Jumlah Order", Qt::DisplayRole);
+    setHeaderData(11, Qt::Horizontal, "Diskon", Qt::DisplayRole);
+    setHeaderData(12, Qt::Horizontal, "Pembayaran Terakhir", Qt::DisplayRole);
 }
 
 InvoicesManagerModel::~InvoicesManagerModel() {}
 
 QVariant InvoicesManagerModel::data(const QModelIndex& mi, int role) const {
+    if(role == Qt::TextAlignmentRole) {
+        switch (mi.column()) {
+            case 0:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+                return (int) (Qt::AlignRight | Qt::AlignVCenter);
+            case 1:
+            case 12:
+                return Qt::AlignCenter;
+            default :
+                return QVariant();
+        }
+    } else if (role == Qt::DisplayRole) {
+        switch (mi.column()) {
+            case 0:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+                return QLocale().toString(QSortFilterProxyModel::data(mi, Qt::EditRole).toInt());
+        }
+    } else if (role == Qt::BackgroundRole) {
+        if(mi.siblingAtColumn(6).data(Qt::EditRole).toInt() == 0) {
+            return QBrush(QColor(220, 255, 220));
+        }
+    }
     return QSortFilterProxyModel::data(mi, role);
+}
+
+void InvoicesManagerModel::showPaidInvoices(bool shw) {
+    auto model = findChild<QSqlTableModel*>("invoices_summary_model");
+    if(shw) {
+        model->setFilter("");
+    } else {
+        model->setFilter("unpaid > 0");
+    }
+}
+
+void InvoicesManagerModel::select() {
+    auto model = findChild<QSqlTableModel*>("invoices_summary_model");
+    if(model) {
+        model->select();
+    }
 }

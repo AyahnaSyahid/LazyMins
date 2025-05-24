@@ -74,6 +74,8 @@ invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui
     paymentHistoryModel->setHeaderData(6, Qt::Horizontal, "Konfirmasi", Qt::DisplayRole);
     fillUiData();
     connect(paymentModel, &QSqlTableModel::modelReset, this, &CreatePaymentDialog::fillUiData);
+    connect(db->getTableModel("invoices"), &QSqlTableModel::modelReset, this, &QDialog::reject);
+    connect(db->getTableModel("orders"), &QSqlTableModel::modelReset, this, &QDialog::reject);
 }
 
 CreatePaymentDialog::~CreatePaymentDialog() {

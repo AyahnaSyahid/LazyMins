@@ -11,9 +11,16 @@ class Database;
 class InvoicesManagerModel;
 class InvoicesManagerDialog : public QDialog{
     Q_OBJECT
+
 public:
     explicit InvoicesManagerDialog(Database*, QWidget* =nullptr);
     ~InvoicesManagerDialog();
+
+private slots:
+    void on_invoicesView_customContextMenuRequested(const QPoint&);
+
+signals:
+    void paymentRequest(int);
 
 private:
     Database* db;

@@ -1,8 +1,8 @@
 import sqlite3
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QFileDialog, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QPushButton, QLineEdit, QLabel, QTextEdit
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtWidgets import QApplication, QFileDialog, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QPushButton, QLineEdit, QLabel, QTextEdit, QMessageBox
+from PyQt5.QtCore import Qt, pyqtSlot, QFile, QFileInfo
 
 def copy_full_schema(source_db, target_db, log_callback):
     """
@@ -123,7 +123,13 @@ class GuiDialog(QDialog):
         if saveFile[0]:
             self.iDest.setText(saveFile[0])
             self.log_progress(f"Selected destination database: {saveFile[0]}")
-            
+        sf = QFile(saveFile[0])
+        inf = QFileInfo(sf)
+        if inf.exists():
+            if not sf.remove():
+                QMessageBox.critical(self, "Tidak dapat menghapus file", "Pilih file baru");
+                self.iDest.clear()
+           
     @pyqtSlot()
     def on_mBtn_clicked(self):
         source = self.iSource.text()

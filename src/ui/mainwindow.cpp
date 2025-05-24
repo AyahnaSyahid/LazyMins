@@ -6,6 +6,7 @@
 #include "createcustomerdialog.h"
 #include "createpaymentdialog.h"
 #include "invoicesmanagerdialog.h"
+#include "createaccountdialog.h"
 #include <QMenu>
 #include <QAction>
 #include <QMenuBar>

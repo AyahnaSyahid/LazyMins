@@ -7,6 +7,8 @@ namespace Ui {
     class CreateAccountDialog;
 }
 
+class Database;
+class UserManager;
 class CreateAccountDialog : public QDialog {
     Q_OBJECT
 

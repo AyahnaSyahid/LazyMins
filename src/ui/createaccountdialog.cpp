@@ -52,5 +52,6 @@ void CreateAccountDialog::on_saveButton_clicked() {
     model.setTable("users");
     
     auto rec = model.record();
+    
     accept();
 }

@@ -13,7 +13,7 @@ class CreateAccountDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit CreateAccountDialog(QWidget* =nullptr);
+    explicit CreateAccountDialog(Database* _d, QWidget* =nullptr);
     ~CreateAccountDialog();
 
 public slots:
@@ -21,7 +21,7 @@ public slots:
 
 private:
     Ui::CreateAccountDialog* ui;
-
+    Database* db;
 };
 
 #endif

@@ -54,7 +54,9 @@ void MainWindow::on_actionInvoicesManager_triggered() {
 }
 
 void MainWindow::on_actionAddUser_triggered() {
-    
+    CreateAccountDialog* cad = new CreateAccountDialog(db, this);
+    cad->setAttribute(Qt::WA_DeleteOnClose);
+    cad->open();
 }
 
 void MainWindow::openPaymentFor(int inv) {

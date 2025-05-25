@@ -1,16 +1,16 @@
 #include "createaccountdialog.h"
 #include "files/ui_createaccountdialog.h"
 #include "usermanager.h"
+#include "database.h"
 #include <QMessageBox>
 #include <QSqlTableModel>
 #include <QSqlRecord>
 #include <QSqlError>
 
 
-CreateAccountDialog::CreateAccountDialog(QWidget* parent) :
-ui(new Ui::CreateAccountDialog), QDialog(parent) {
+CreateAccountDialog::CreateAccountDialog(Database* _d, QWidget* parent) :
+db(_d), ui(new Ui::CreateAccountDialog), QDialog(parent) {
     ui->setupUi(this);
-    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 CreateAccountDialog::~CreateAccountDialog() {
@@ -22,6 +22,10 @@ void CreateAccountDialog::on_saveButton_clicked() {
     auto aDisp = ui->displayEdit->text().trimmed();
     auto pass = ui->passwordEdit->text().trimmed();
     auto repass = ui->repasswordEdit->text().trimmed();
+    if(UserManager::nameExists(aName)) {
+        QMessageBox::critical(this, tr("Info"), tr("Nama Akun %1 telah terdaftar dalam Database").arg(aName));
+        return ;
+    }
     if(aName.count() < 5) {
         QMessageBox::information(this, tr("Info"), tr("Nama Akun tidak diterima, masukan minimal 5 huruf"));
         return;
@@ -48,10 +52,17 @@ void CreateAccountDialog::on_saveButton_clicked() {
             return;
         }
     }
-    QSqlTableModel model;
-    model.setTable("users");
-    
-    auto rec = model.record();
-    
-    accept();
+    QString eMsg;
+    int inid;
+    auto userModel = db->getTableModel("users");
+    auto uman = db->findChild<UserManager*>("userManager");
+    bool createOk = uman->createUser(aName, pass, aDisp, &eMsg, &inid);
+    if(!createOk) {
+        QMessageBox::critical(this, tr("Kesalahan"), tr("Pembuatan akun gagal : %1").arg(eMsg));
+        return;
+    } else {
+        QMessageBox::information(this, tr("Berhasil"), tr("Akun dengan LOGIN '%1' berhasil dibuat [ID: %2]").arg(aName).arg(inid));
+        userModel->select();
+        accept();
+    }
 }

@@ -7,9 +7,12 @@
 #include "createpaymentdialog.h"
 #include "invoicesmanagerdialog.h"
 #include "createaccountdialog.h"
+#include "dashboardwidget.h"
+
 #include <QMenu>
 #include <QAction>
 #include <QMenuBar>
+#include <QDockWidget>
 #include <QtDebug>
 
 #define REGIST_DIALOGS(DCL, DNM, MWIN) \
@@ -31,6 +34,13 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
 {
     ui->setupUi(this);
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
+    QDockWidget *dw = new QDockWidget(this);
+    DashboardWidget* dbw = new DashboardWidget(db, this);
+    dw->setWidget(dbw);
+    addDockWidget(Qt::TopDockWidgetArea, dw);
+    QMenu* viewMenu = menuBar()->addMenu("View");
+    viewMenu->setObjectName("viewMenu");
+    viewMenu->addAction(dw->toggleViewAction());
 }
 
 MainWindow::~MainWindow() {

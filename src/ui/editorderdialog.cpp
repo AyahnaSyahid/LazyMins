@@ -80,20 +80,29 @@ void EditOrderDialog::on_saveButton_clicked(){
     if(q.exec()) {
         auto model = db->getTableModel("orders");
         model->select();
+        
+        if(!_record.isNull("invoice_id")) {
+            // do invoice update
+            auto invId = _record.value("invoice_id");
+            q.prepare(R"--(
+                UPDATE invoices SET total_amount = (
+                SELECT COALESCE(SUM(oc.price), 0) AS OCP
+                       FROM orders_calc oc
+                       LEFT JOIN orders od ON oc.order_id = od.order_id
+                       LEFT JOIN invoices inv ON od.invoice_id = inv.invoice_id
+                       WHERE inv.invoice_id = ?
+                       GROUP BY inv.invoice_id ) WHERE invoice_id = ?
+            )--");
+            q.addBindValue(invId);
+            q.addBindValue(invId);
+            q.exec();
+            db->getTableModel("invoices")->select();
+        }
         accept();
     } else {
         QMessageBox::information(this, "Gagal Update", QString("Error :%1").arg(q.lastError().text()));
     }
 }
-
-// void EditOrderDialog::onUpdateStatus(const QSqlError& err, const QSqlRecord&) {
-    // setEnabled(true);
-    // if(not err.isValid()) {
-        // accept();
-        // return;
-    // }
-    // QMessageBox::information(this, tr("Gagal menyimpan"), QString("Error : ").arg(err.text()));
-// }
 
 void EditOrderDialog::on_pickDate_clicked() {
     QDialog d(this);

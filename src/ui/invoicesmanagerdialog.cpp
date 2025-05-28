@@ -14,6 +14,7 @@ db(_d), inModel(new InvoicesManagerModel(_d, this)), ui(new Ui::InvoicesManagerD
     ui->invoicesView->hideColumn(0);
     connect(ui->showLunasCheck, SIGNAL(toggled(bool)), inModel, SLOT(showPaidInvoices(bool)));
     connect(db->getTableModel("invoices"), SIGNAL(modelReset()), inModel, SLOT(select()));
+    connect(db->getTableModel("payments"), SIGNAL(modelReset()), inModel, SLOT(select()));
 }
 
 InvoicesManagerDialog::~InvoicesManagerDialog() {

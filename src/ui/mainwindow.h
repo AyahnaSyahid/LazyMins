@@ -26,7 +26,6 @@ private slots:
     void openPaymentFor(int);
     void dialogDestroyed(const QString&);
 
-
 private:
     Database* db;
     Ui::MainWindow* ui;

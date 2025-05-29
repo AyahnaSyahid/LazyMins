@@ -37,7 +37,8 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
     QDockWidget *dw = new QDockWidget(this);
     DashboardWidget* dbw = new DashboardWidget(db, this);
     dw->setWidget(dbw);
-    addDockWidget(Qt::TopDockWidgetArea, dw);
+    dw->setWindowTitle(dbw->windowTitle());
+    addDockWidget(Qt::LeftDockWidgetArea, dw);
     QMenu* viewMenu = menuBar()->addMenu("View");
     viewMenu->setObjectName("viewMenu");
     viewMenu->addAction(dw->toggleViewAction());

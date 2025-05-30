@@ -27,7 +27,6 @@
     <property name="title">
      <string>Tambahkan</string>
     </property>
-    <addaction name="actionAddOrder"/>
     <addaction name="actionAddProduct"/>
     <addaction name="actionAddCustomer"/>
     <addaction name="actionAddUser"/>
@@ -36,15 +35,22 @@
     <property name="title">
      <string>Manager</string>
     </property>
+    <addaction name="actionOrdersManager"/>
     <addaction name="actionInvoicesManager"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
    </widget>
    <addaction name="menuAdd"/>
    <addaction name="menuManager"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionAddOrder">
+  <action name="actionOrdersManager">
    <property name="text">
-    <string>Order Baru</string>
+    <string>Order</string>
    </property>
   </action>
   <action name="actionAddProduct">

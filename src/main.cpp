@@ -17,6 +17,18 @@
 
 int main(int argc, char** argv)
 {
+    if(argc > 1) {
+        if(QString(argv[1]).lower() == "adduser" {
+            if(argc == 5) {
+                Database base;
+                UserManager uman(&base);
+                if(uman.nameExists(argv[2])) {
+                    qInfo() << QString("Nama User '%1' telah digunakan").arg()
+                }
+            }
+        }
+    }
+    
     QApplication app(argc, argv);
     QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
     QLocale::setDefault(loc);

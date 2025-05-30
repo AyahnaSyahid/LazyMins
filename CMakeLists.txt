@@ -64,9 +64,12 @@ add_executable(LazyMins src/main.cpp
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 
+target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3")
 target_include_directories(LazyMins PUBLIC src/ui src/database)
 target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
 
+
+add_subdirectory(testData)
 # test_hash
 # add_executable(hashTest src/test_hash.cpp
                          # src/database/usermanager.h
@@ -74,7 +77,6 @@ target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
                          # resources/resources.qrc )
 
 # app configuration
-target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3")
 
 # target_link_libraries(hashTest PRIVATE Qt5::Core Qt5::Sql)
 

@@ -8,6 +8,11 @@
 #include <QDir>
 #include <QtDebug>
 
+#ifndef APP_DATABASE_NAME
+    // defined in CMakeLists.txt
+    #define APP_DATABASE_NAME "database.sqlite3"
+#endif
+
 Database::Database(QObject* parent) : tModels(), QObject(parent)
 {
     QDir appDir = qApp->applicationDirPath();
@@ -16,7 +21,7 @@ Database::Database(QObject* parent) : tModels(), QObject(parent)
         appDir.mkpath("data");
         auto copy_ok = QFile::copy(":/db/base.db3", baseTarget);
         QFile f(baseTarget);
-        f.setPermissions(QFile::ReadOther | QFile::WriteOther | QFile::ExeOther);
+        f.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
     }
     QSqlDatabase base = QSqlDatabase::addDatabase("QSQLITE");
     base.setDatabaseName(baseTarget);

@@ -33,22 +33,24 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
  : ui(new Ui::MainWindow), db(_d), QMainWindow(parent)
 {
     ui->setupUi(this);
-    connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
+    
     QDockWidget *dw = new QDockWidget(this);
     DashboardWidget* dbw = new DashboardWidget(db, this);
     dw->setWidget(dbw);
     dw->setWindowTitle(dbw->windowTitle());
     addDockWidget(Qt::LeftDockWidgetArea, dw);
-    QMenu* viewMenu = menuBar()->addMenu("View");
-    viewMenu->setObjectName("viewMenu");
-    viewMenu->addAction(dw->toggleViewAction());
+    
+    // Menu Setup
+    ui->menuView->addAction(dw->toggleViewAction());
+
+    connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }
 
 MainWindow::~MainWindow() {
     delete ui;
 }
 
-void MainWindow::on_actionAddOrder_triggered() {
+void MainWindow::on_actionOrdersManager_triggered() {
     REGIST_DIALOGS(CreateOrderDialog, createOrderDialog, this);
 }
 

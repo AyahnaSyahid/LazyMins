@@ -14,16 +14,17 @@
 #include <QVBoxLayout>
 #include <QLocale>
 #include <QTimer>
+#include <QtDebug>
 
 int main(int argc, char** argv)
 {
     if(argc > 1) {
-        if(QString(argv[1]).lower() == "adduser" {
+        if(QString(argv[1]).toLower() == "adduser") {
             if(argc == 5) {
                 Database base;
                 UserManager uman(&base);
                 if(uman.nameExists(argv[2])) {
-                    qInfo() << QString("Nama User '%1' telah digunakan").arg()
+                    qInfo() << QString("Nama User '%1' telah digunakan").arg("test user");
                 }
             }
         }

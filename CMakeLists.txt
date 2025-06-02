@@ -68,7 +68,6 @@ target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3"
 target_include_directories(LazyMins PUBLIC src/ui src/database)
 target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
 
-
 add_subdirectory(testData)
 # test_hash
 # add_executable(hashTest src/test_hash.cpp

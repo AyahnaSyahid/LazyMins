@@ -1,5 +1,5 @@
-#include "dashboardwidget.h"
-#include "files/ui_dashboardwidget.h"
+#include "dailywidget.h"
+#include "../files/ui_dailywidget.h"
 #include "database.h"
 #include "usermanager.h"
 #include <QDate>
@@ -7,25 +7,25 @@
 #include <QtDebug>
 #include <QSqlTableModel>
 
-DashboardWidget::DashboardWidget(Database* _d, QWidget* parent) :
-ui(new Ui::DashboardWidget), db(_d), QWidget(parent) {
+DailyWidget::DailyWidget(Database* _d, QWidget* parent) :
+ui(new Ui::DailyWidget), db(_d), QWidget(parent) {
     ui->setupUi(this);
     auto *model = db->getTableModel("invoices");
     auto userManager = db->findChild<UserManager*>("userManager");
-    connect(userManager, &UserManager::userLoggedIn, this, &DashboardWidget::reloadData);
-    connect(model, &QSqlTableModel::modelReset, this, &DashboardWidget::reloadData);
+    connect(userManager, &UserManager::userLoggedIn, this, &DailyWidget::reloadData);
+    connect(model, &QSqlTableModel::modelReset, this, &DailyWidget::reloadData);
     model = db->getTableModel("orders");
-    connect(model, &QSqlTableModel::modelReset, this, &DashboardWidget::reloadData);
+    connect(model, &QSqlTableModel::modelReset, this, &DailyWidget::reloadData);
     model = db->getTableModel("payments");
-    connect(model, &QSqlTableModel::modelReset, this, &DashboardWidget::reloadData);
+    connect(model, &QSqlTableModel::modelReset, this, &DailyWidget::reloadData);
     // reloadData();
 }
 
-DashboardWidget::~DashboardWidget() {
+DailyWidget::~DailyWidget() {
     delete ui;
 }
 
-void DashboardWidget::reloadData() {
+void DailyWidget::reloadData() {
     QSqlRecord user = db->findChild<UserManager*>("userManager")->currentUserRecord();
     // qDebug() << user;
     ui->lUser->setText(QString("User : <b>%1</b>").arg(user.value("display_name").toString()));
@@ -140,3 +140,12 @@ void DashboardWidget::reloadData() {
     ui->label_invoicePaidCount->setText(locale().toString(q.value("invoicesPaid").toInt()));
     ui->label_invoicePaidValueSum->setText(locale().toString(q.value("invoicesPaidValue").toInt()));
 }
+
+DailyDockWidget::DailyDockWidget(Database* _d, QWidget* p) :
+    QDockWidget(p) {
+    DailyWidget* dw = new DailyWidget(_d, this);
+    setWidget(dw);
+    setWindowTitle(tr("Ringkasan Harian"));
+}
+
+DailyDockWidget::~DailyDockWidget(){}

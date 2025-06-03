@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DashboardWidget</class>
- <widget class="QWidget" name="DashboardWidget">
+ <class>DailyWidget</class>
+ <widget class="QWidget" name="DailyWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>328</width>
-    <height>172</height>
+    <height>178</height>
    </rect>
   </property>
   <property name="windowTitle">

@@ -58,9 +58,9 @@ add_executable(LazyMins src/main.cpp
                         src/ui/files/createaccountdialog.ui
                         src/ui/createaccountdialog.h
                         src/ui/createaccountdialog.cpp
-                        src/ui/dashboardwidget.h
-                        src/ui/dashboardwidget.cpp
-                        src/ui/files/dashboardwidget.ui
+                        src/ui/dockwidgets/dailywidget.h
+                        src/ui/dockwidgets/dailywidget.cpp
+                        src/ui/files/dailywidget.ui
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 

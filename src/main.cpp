@@ -45,7 +45,9 @@ int main(int argc, char** argv)
     
     LoginForm lf(&uman);
     lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
-    QTimer::singleShot(0, &lf, &LoginForm::open);
+    // QTimer::singleShot(0, &lf, &LoginForm::open);
+    lf.setWindowModality(Qt::ApplicationModal);
     
+    lf.open();
     return app.exec();
 }

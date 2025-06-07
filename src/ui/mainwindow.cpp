@@ -8,6 +8,7 @@
 #include "invoicesmanagerdialog.h"
 #include "createaccountdialog.h"
 #include "dockwidgets/dailywidget.h"
+#include "dockwidgets/customerorderswidget.h"
 
 #include <QMenu>
 #include <QAction>
@@ -34,9 +35,14 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
 {
     ui->setupUi(this);
     
-    QDockWidget *dw = new DailyDockWidget(db, this);
+    QDockWidget *dw;
+    dw = new DailyDockWidget(db, this);
     addDockWidget(Qt::LeftDockWidgetArea, dw);
     ui->menuView->addAction(dw->toggleViewAction());
+    dw = new CustomerOrdersDockWidget(db, this);
+    ui->menuView->addAction(dw->toggleViewAction());
+    addDockWidget(Qt::TopDockWidgetArea, dw);
+    
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }
 

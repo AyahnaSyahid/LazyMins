@@ -15,12 +15,15 @@ class CustomerOrdersWidget : public QWidget {
 public:
     explicit CustomerOrdersWidget(Database*, QWidget* =nullptr);
     ~CustomerOrdersWidget();
+private slots:
+    void reloadData();
 private:
     Ui::CustomerOrdersWidget* ui;
-    QSqlTableModel* model;
+    QSqlQueryModel* model;
 };
 
 class CustomerOrdersDockWidget : public QDockWidget {
+public:
     explicit CustomerOrdersDockWidget(Database*, QWidget* =nullptr);
     ~CustomerOrdersDockWidget();
 };

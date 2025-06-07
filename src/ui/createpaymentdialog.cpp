@@ -51,9 +51,16 @@ WHERE invoices.invoice_id = ?
 GROUP BY invoices.invoice_id, invoices_dcode.invoice_code, invoices.invoice_date, invoices.discount, PaymentTotal.invoice_id
 )--");
 
+class _PaymentHistoryModel : public QSortFilterProxyModel {
+public:
+    _PaymentHistoryModel(QObject* parent=nullptr) : QSortFilterProxyModel(parent) {}
+    QVariant data(const QModelIndex&, int role=Qt::DisplayRole) const override ;
+private:
+    QLocale loc;
+};
 
 CreatePaymentDialog::CreatePaymentDialog(int inv, Database* _d, QWidget* parent) :
-invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui(new Ui::CreatePaymentDialog), QDialog(parent) {
+invoiceId(inv), db(_d), paymentHistoryModel(new _PaymentHistoryModel(this)), ui(new Ui::CreatePaymentDialog), QDialog(parent) {
     ui->setupUi(this);
     auto paymentModel = db->getTableModel("payments");
     auto mrec = paymentModel->record();
@@ -65,6 +72,7 @@ invoiceId(inv), db(_d), paymentHistoryModel(new QSortFilterProxyModel(this)), ui
     ui->paymentHistoryView->hideColumn(2);
     ui->paymentHistoryView->hideColumn(7);
     ui->paymentHistoryView->hideColumn(8);
+    ui->paymentHistoryView->verticalHeader()->hide();
     paymentHistoryModel->setHeaderData(1, Qt::Horizontal, "Tanggal", Qt::DisplayRole);
     paymentHistoryModel->setHeaderData(1, Qt::Horizontal, "Tanggal pembayaran", Qt::ToolTipRole);
     paymentHistoryModel->setHeaderData(3, Qt::Horizontal, "Nilai", Qt::DisplayRole);
@@ -178,4 +186,36 @@ void CreatePaymentDialog::fillUiData() {
     ui->pNotes->setPlainText(irec.value("notes").toString());
     ui->spinPayNow->setMaximum(gr);
     paymentHistoryModel->setFilterFixedString(QString::number(invoiceId));
+    ui->paymentHistoryView->resizeColumnsToContents();
+}
+
+QVariant _PaymentHistoryModel::data(const QModelIndex& mi, int role) const {
+    if(role == Qt::DisplayRole) {
+        if(mi.column() == 3) {
+            return loc.toString(mi.data(Qt::EditRole).toInt());
+        } else if ( mi.column() == 6 ) {
+            int idata = mi.data(Qt::EditRole).toInt();
+            switch(idata) {
+                case 0:
+                    return "Belum";
+                case 1:
+                    return "Sudah";
+                default:
+                    return "Nilai belum diimplementasi";
+            }
+        }
+    } else if(role == Qt::TextAlignmentRole) {
+        switch (mi.column()) {
+            case 1:
+            case 4:
+            case 5:
+            case 6:
+                return Qt::AlignCenter;            
+            case 3:
+                return int(Qt::AlignRight | Qt::AlignVCenter);
+            default:
+                return QVariant();
+        }
+    }
+    return QSortFilterProxyModel::data(mi, role);
 }

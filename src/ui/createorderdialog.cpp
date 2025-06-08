@@ -305,7 +305,8 @@ void CreateOrderDialog::on_unpaidTableView_customContextMenuRequested(const QPoi
             QSqlQuery q(qs.arg(str_id.join(", ")));
             if(!q.lastError().isValid()) {
                 auto om = findChild<CreateOrderModel*>("orderModel");
-                om->reload();
+                db->getTableModel("orders")->select();
+				om->reload();
             }
         }
     }

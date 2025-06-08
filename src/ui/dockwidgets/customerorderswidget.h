@@ -15,8 +15,13 @@ class CustomerOrdersWidget : public QWidget {
 public:
     explicit CustomerOrdersWidget(Database*, QWidget* =nullptr);
     ~CustomerOrdersWidget();
+
 private slots:
     void reloadData();
+	void on_customerOrdersTable_customContextMenuRequested(const QPoint&);
+	void showOrdersFor(const QVariant&);
+	void showInvoicesFor(const QVariant&);
+	
 private:
     Ui::CustomerOrdersWidget* ui;
     QSqlQueryModel* model;

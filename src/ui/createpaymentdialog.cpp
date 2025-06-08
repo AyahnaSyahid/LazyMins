@@ -153,6 +153,7 @@ void CreatePaymentDialog::on_saveButton_clicked() {
             return;
         }
         QMessageBox::information(this, "Berhasil disimpan", "Pembayaran berhasil disimpan kedalam database");
+		pm->select();
         return ;
     }
     QMessageBox::critical(this, "Gagal menyimpan data", QString("Error :%1").arg("Tidak diketahui #2"));

@@ -3,7 +3,20 @@
 #include "database.h"
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
+#include <QSortFilterProxyModel>
 #include <QSqlQuery>
+#include <QAction>
+#include <QMenu>
+#include <QPoint>
+#include <QtDebug>
+
+class _Proxy : public QSortFilterProxyModel {
+public:
+	_Proxy(QObject* parent) : QSortFilterProxyModel(parent) {}
+	QVariant data(const QModelIndex& mi, int role = Qt::DisplayRole) const override;
+private:
+	QLocale locale;
+};
 
 CustomerOrdersWidget::CustomerOrdersWidget(Database* _d, QWidget* parent)
     : ui(new Ui::CustomerOrdersWidget), model(nullptr), QWidget(parent)
@@ -12,17 +25,38 @@ CustomerOrdersWidget::CustomerOrdersWidget(Database* _d, QWidget* parent)
     connect(_d->getTableModel("orders"), &QSqlTableModel::modelReset, this, &CustomerOrdersWidget::reloadData);
     connect(_d->getTableModel("invoices"), &QSqlTableModel::modelReset, this, &CustomerOrdersWidget::reloadData);
     connect(_d->getTableModel("customers"), &QSqlTableModel::modelReset, this, &CustomerOrdersWidget::reloadData);
+    connect(_d->getTableModel("payments"), &QSqlTableModel::modelReset, this, &CustomerOrdersWidget::reloadData);
     model = new QSqlQueryModel(this);
-    ui->customerOrdersTable->setModel(model);
     model->setQuery(R"--(
-    SELECT one.customer_name,
-       COALESCE(never_paid, 0) AS never_paid,
-       COALESCE(partial, 0) AS partial
-       FROM ( SELECT name as customer_name FROM customers ) one
-       LEFT JOIN ( SELECT customer_name, COALESCE(COUNT(invoice_id), 0) as never_paid FROM invoices_summary GROUP BY customer_name HAVING paid = 0 ) two ON one.customer_name = two.customer_name
-       LEFT JOIN ( SELECT customer_name, COALESCE(COUNT(invoice_id), 0) AS partial FROM invoices_summary GROUP BY customer_name HAVING payment_count > 0 AND unpaid > 0) three ON one.customer_name = three.customer_name
-       WHERE never_paid > 0 OR partial > 0
+SELECT c.name AS Konsumen,
+       COUNT(DISTINCT CASE WHEN o.invoice_id IS NULL AND o.status = 'OK' THEN o.order_id END) AS Orders,
+       COUNT(DISTINCT CASE WHEN i.paid = 0 THEN i.invoice_id END) AS Inv,
+       COUNT(DISTINCT CASE WHEN i.payment_count > 0 AND
+                                i.unpaid > 0 THEN i.invoice_id END) AS [Inv (P)]
+  FROM customers c
+       LEFT JOIN
+       orders o ON c.customer_id = o.customer_id
+       LEFT JOIN
+       invoices_summary i ON c.name = i.customer_name -- atau gunakan c.customer_id = i.customer_id jika ada
+ GROUP BY c.name
+HAVING [Orders] > 0 OR Inv > 0 OR [Inv (P)] > 0
+ORDER BY Orders DESC,
+          INV DESC,
+          [INV (P)],
+          Konsumen;
     )--");
+	auto proxy = new _Proxy(this);
+	proxy->setSourceModel(model);
+	proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+	connect(ui->lineEdit, &QLineEdit::textEdited, [this, proxy](QString text) { proxy->setFilterFixedString(text);}); 
+	model->setHeaderData(1, Qt::Horizontal, "Jumlah Order\nyang belum tercatat dalam invoice", Qt::ToolTipRole);
+	model->setHeaderData(2, Qt::Horizontal, "Jumlah Invoice\nyang belum dibayar", Qt::ToolTipRole);
+	model->setHeaderData(3, Qt::Horizontal, "Jumlah Invoice\nyang belum lunas", Qt::ToolTipRole);
+    ui->customerOrdersTable->setModel(proxy);
+    ui->customerOrdersTable->verticalHeader()->hide();
+	ui->customerOrdersTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->customerOrdersTable->resizeColumnsToContents();
+	// connect(this, &CustomerOrdersWidget::customContextMenuRequested, ui->customerOrdersTable, &QTableView::customContextMenuRequested);
 }
 
 CustomerOrdersWidget::~CustomerOrdersWidget() {
@@ -35,11 +69,46 @@ void CustomerOrdersWidget::reloadData() {
     model->setQuery(q);
 }
 
+void CustomerOrdersWidget::on_customerOrdersTable_customContextMenuRequested(const QPoint& _p) {
+	auto showPoint = ui->customerOrdersTable->viewport()->mapToGlobal(_p);
+	auto sCustomerName = model->index(ui->customerOrdersTable->rowAt(_p.y()), 0).data();
+	QMenu contextMenu("Atur", this);
+	auto aOrder = contextMenu.addAction("Buka Data Order");
+	auto aInvoice = contextMenu.addAction("Buka Data Invoice");
+	connect(aOrder, &QAction::triggered, [this, &sCustomerName]() { showOrdersFor(sCustomerName); });
+	connect(aInvoice, &QAction::triggered,[this, &sCustomerName]() { showInvoicesFor(sCustomerName); });
+	contextMenu.exec(showPoint);
+}
+
+void CustomerOrdersWidget::showOrdersFor(const QVariant& cn) {
+	qDebug() << "Showing Orders for" << cn.toString();
+}
+
+void CustomerOrdersWidget::showInvoicesFor(const QVariant& cn) {
+	qDebug() << "Showing Invoices for" << cn.toString();
+}
+
 CustomerOrdersDockWidget::CustomerOrdersDockWidget(Database* _d, QWidget* parent)
 : QDockWidget(parent) {
     auto cu = new CustomerOrdersWidget(_d, this);
     setWidget(cu);
-    setWindowTitle("Tabel Order Konsumen");
+    setWindowTitle("Order Konsumen");
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	// connect(this, &CustomerOrdersDockWidget::customContextMenuRequested, cu, &CustomerOrdersWidget::customContextMenuRequested);
 }
 
 CustomerOrdersDockWidget::~CustomerOrdersDockWidget(){}
+
+
+QVariant _Proxy::data(const QModelIndex& mi, int role) const {
+	if(role == Qt::DisplayRole) {
+		if(mi.column() > 0) {
+			return locale.toString(mi.data(Qt::EditRole).toInt());
+		}
+	} else if(role == Qt::TextAlignmentRole) {
+		if(mi.column() > 0) {
+			return int(Qt::AlignRight | Qt::AlignVCenter);
+		}
+	}
+	return QSortFilterProxyModel::data(mi, role);
+}

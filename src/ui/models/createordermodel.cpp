@@ -75,6 +75,7 @@ QVariant CreateOrderModel::data(const QModelIndex& ix, int role) const {
 void CreateOrderModel::setCustomerId(int _i) {
     // qDebug() << _iquery.arg(_i);
     relModel->setQuery(_iquery.arg(_i));
+	loadAll();
     emit reloaded();
 }
 
@@ -82,6 +83,7 @@ void CreateOrderModel::reload() {
     auto q = relModel->query();
     q.exec();
     relModel->setQuery(q);
+	loadAll();
     emit reloaded();
 }
 
@@ -99,4 +101,9 @@ qint64 CreateOrderModel::sum(const QList<QModelIndex>& ixl) const{
         s += f->siblingAtColumn(9).data(Qt::EditRole).toLongLong();
     }
     return s;
+}
+
+void CreateOrderModel::loadAll() {
+	while(relModel->canFetchMore())
+		relModel->fetchMore();
 }

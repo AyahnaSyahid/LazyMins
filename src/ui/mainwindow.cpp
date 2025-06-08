@@ -41,7 +41,7 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
     ui->menuView->addAction(dw->toggleViewAction());
     dw = new CustomerOrdersDockWidget(db, this);
     ui->menuView->addAction(dw->toggleViewAction());
-    addDockWidget(Qt::TopDockWidgetArea, dw);
+    addDockWidget(Qt::LeftDockWidgetArea, dw);
     
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }

@@ -1,6 +1,7 @@
 #include "customerorderswidget.h"
 #include "../files/ui_customerorderswidget.h"
 #include "database.h"
+#include "viewer/orderviewdialog.h"
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
 #include <QSortFilterProxyModel>
@@ -56,7 +57,6 @@ ORDER BY Orders DESC,
     ui->customerOrdersTable->verticalHeader()->hide();
 	ui->customerOrdersTable->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->customerOrdersTable->resizeColumnsToContents();
-	// connect(this, &CustomerOrdersWidget::customContextMenuRequested, ui->customerOrdersTable, &QTableView::customContextMenuRequested);
 }
 
 CustomerOrdersWidget::~CustomerOrdersWidget() {
@@ -73,15 +73,20 @@ void CustomerOrdersWidget::on_customerOrdersTable_customContextMenuRequested(con
 	auto showPoint = ui->customerOrdersTable->viewport()->mapToGlobal(_p);
 	auto sCustomerName = model->index(ui->customerOrdersTable->rowAt(_p.y()), 0).data();
 	QMenu contextMenu("Atur", this);
-	auto aOrder = contextMenu.addAction("Buka Data Order");
-	auto aInvoice = contextMenu.addAction("Buka Data Invoice");
+	auto aOrder = contextMenu.addAction("Lihat Order");
+	auto aInvoice = contextMenu.addAction("Lihat Invoice");
 	connect(aOrder, &QAction::triggered, [this, &sCustomerName]() { showOrdersFor(sCustomerName); });
 	connect(aInvoice, &QAction::triggered,[this, &sCustomerName]() { showInvoicesFor(sCustomerName); });
 	contextMenu.exec(showPoint);
 }
 
 void CustomerOrdersWidget::showOrdersFor(const QVariant& cn) {
-	qDebug() << "Showing Orders for" << cn.toString();
+	OrderViewDialog* d = new OrderViewDialog(cn.toString(), this);
+    d->setAttribute(Qt::WA_DeleteOnClose);
+    connect(d, &OrderViewDialog::createInvoiceForOrders, this, &CustomerOrdersWidget::createInvoiceForOrders);
+    // connect(this, &CustomerOrdersWidget::createInvoiceForOrdersSent, d, &QDialog::close);
+    connect(model, &QSqlQueryModel::modelReset, d, &OrderViewDialog::reloadData);
+    d->open();
 }
 
 void CustomerOrdersWidget::showInvoicesFor(const QVariant& cn) {
@@ -91,10 +96,9 @@ void CustomerOrdersWidget::showInvoicesFor(const QVariant& cn) {
 CustomerOrdersDockWidget::CustomerOrdersDockWidget(Database* _d, QWidget* parent)
 : QDockWidget(parent) {
     auto cu = new CustomerOrdersWidget(_d, this);
+    cu->setObjectName("customerOrdersWidget");
     setWidget(cu);
     setWindowTitle("Order Konsumen");
-	setContextMenuPolicy(Qt::CustomContextMenu);
-	// connect(this, &CustomerOrdersDockWidget::customContextMenuRequested, cu, &CustomerOrdersWidget::customContextMenuRequested);
 }
 
 CustomerOrdersDockWidget::~CustomerOrdersDockWidget(){}

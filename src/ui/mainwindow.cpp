@@ -9,6 +9,10 @@
 #include "createaccountdialog.h"
 #include "dockwidgets/dailywidget.h"
 #include "dockwidgets/customerorderswidget.h"
+#include "createinvoicedialog.h"
+
+#include <QSqlQuery>
+#include <QItemSelectionModel>
 
 #include <QMenu>
 #include <QAction>
@@ -42,7 +46,9 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
     dw = new CustomerOrdersDockWidget(db, this);
     ui->menuView->addAction(dw->toggleViewAction());
     addDockWidget(Qt::LeftDockWidgetArea, dw);
-    
+    CustomerOrdersWidget* cow = dw->findChild<CustomerOrdersWidget*>("customerOrdersWidget");
+    connect(cow, &CustomerOrdersWidget::createInvoiceForOrders, this, &MainWindow::createInvoiceForOrdersReceiver);
+    connect(this, &MainWindow::createInvoiceForOrdersReceived, cow, &CustomerOrdersWidget::createInvoiceForOrdersSent);
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }
 
@@ -80,4 +86,17 @@ void MainWindow::openPaymentFor(int inv) {
 
 void MainWindow::dialogDestroyed(const QString& name) {
     _dialogs.remove(name);
+}
+
+void MainWindow::createInvoiceForOrdersReceiver(const QList<int>& orders) {
+    QStringList sOrders;
+    for(auto oo = orders.cbegin(); oo != orders.cend(); ++oo) {
+        sOrders << QString::number(*oo);
+    }
+    auto cid = CreateInvoiceDialog::fromOrderList(orders, db, this);
+    cid->setAttribute(Qt::WA_DeleteOnClose);
+    cid->setWindowModality(Qt::WindowModal);
+    emit createInvoiceForOrdersReceived();
+    connect(cid, SIGNAL(openPayment(int)), this, SLOT(openPaymentFor(int)));
+    cid->open();
 }

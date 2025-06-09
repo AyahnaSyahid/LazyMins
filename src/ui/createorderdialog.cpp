@@ -181,14 +181,11 @@ void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto sm = ui->unpaidTableView->selectionModel();
     auto customerModel = db->getTableModel("customers");
     auto rc = customerModel->record(ui->customerBox->currentIndex());
-    // mari permudah dengan memberikan referensi ke dialog invoice
+
     CreateInvoiceDialog* cid = new CreateInvoiceDialog(rc.value("customer_id").toInt(), sm, db, this);
-    QLabel *nameLabel  = cid->findChild<QLabel*>("label_2"),
-           *phoneLabel = cid->findChild<QLabel*>("label_5"),
-           *addrLabel = cid->findChild<QLabel*>("label_6");
-    nameLabel->setText(rc.value("name").toString());
-    phoneLabel->setText(rc.value("phone").toString());
-    addrLabel->setText(rc.value("address").toString());
+    // nameLabel->setText(rc.value("name").toString());
+    // phoneLabel->setText(rc.value("phone").toString());
+    // addrLabel->setText(rc.value("address").toString());
     cid->setAttribute(Qt::WA_DeleteOnClose);
     cid->connect(cid, SIGNAL(openPayment(int)), db, SIGNAL(paymentRequest(int)));
     cid->adjustSize();

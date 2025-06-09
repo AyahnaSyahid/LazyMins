@@ -16,7 +16,10 @@ class CreateInvoiceDialog : public QDialog {
 
 public:
     explicit CreateInvoiceDialog(int cid, QItemSelectionModel*, Database* db, QWidget* = nullptr);
+    static CreateInvoiceDialog* fromOrderList(const QList<int>& oid, Database* db, QWidget* parent);
+
     ~CreateInvoiceDialog();
+
 public slots:
     void calculateTotal();
 

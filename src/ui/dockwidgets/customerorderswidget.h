@@ -21,7 +21,11 @@ private slots:
 	void on_customerOrdersTable_customContextMenuRequested(const QPoint&);
 	void showOrdersFor(const QVariant&);
 	void showInvoicesFor(const QVariant&);
-	
+
+signals:
+    void createInvoiceForOrders(const QList<int>&);
+    void createInvoiceForOrdersSent();
+
 private:
     Ui::CustomerOrdersWidget* ui;
     QSqlQueryModel* model;

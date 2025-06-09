@@ -25,6 +25,10 @@ private slots:
     void on_actionInvoicesManager_triggered();
     void openPaymentFor(int);
     void dialogDestroyed(const QString&);
+    void createInvoiceForOrdersReceiver(const QList<int>& );
+
+signals:
+    void createInvoiceForOrdersReceived();
 
 private:
     Database* db;

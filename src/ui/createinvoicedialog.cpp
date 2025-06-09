@@ -6,6 +6,7 @@
 
 #include <QDate>
 #include <QMessageBox>
+#include <QTableView>
 #include <QItemSelectionModel>
 #include <QStandardItemModel>
 #include <QSqlTableModel>
@@ -73,6 +74,46 @@ custId(cid), savedInvoiceId(-1), om(qobject_cast<CreateOrderModel*>(sel->model()
             ui->lUserDisplay->setText(rc.value("display_name").toString());
         }
     }
+    
+    QSqlQuery q;
+    q.prepare("SELECT * from customers WHERE customers.customer_id = ?");
+    q.addBindValue(cid);
+    q.exec() && q.next();
+    ui->label_2->setText(q.value("name").toString());
+    ui->label_5->setText(q.value("phone").toString());
+    ui->label_6->setText(q.value("address").toString());
+}
+
+CreateInvoiceDialog* CreateInvoiceDialog::fromOrderList(const QList<int>& orders, Database* _d, QWidget* parent) {
+    CreateOrderModel* om = new CreateOrderModel;
+    QSqlQuery q;
+    q.prepare("SELECT customer_id FROM orders WHERE order_id = ?");
+    q.addBindValue(orders.at(0));
+    q.exec() && q.next();
+    om->setCustomerId(q.value(0).toInt());
+    // QTableView* view = new QTableView;
+    // view->setModel(om);
+    // view->show();
+    auto sm = new QItemSelectionModel;
+    sm->setModel(om);
+    QItemSelection sel;
+    
+    QList<int> orc(orders);
+    for(auto i = 0; i < om->rowCount(); ++i) {
+        auto ix = om->index(i, 0);
+        auto oi = orc.indexOf(ix.data(Qt::EditRole).toInt());
+        if(oi != -1) {
+            orc.takeAt(oi);
+            sel.select(ix, ix.siblingAtColumn(om->columnCount() -1));
+        }
+        if( !orc.count() ) break;
+    }
+    sm->select(sel, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    auto cid = new CreateInvoiceDialog(q.value(0).toInt(), sm, _d, parent);
+    // connect(cid, &QObject::destroyed, view, &QObject::deleteLater);
+    connect(cid, &QObject::destroyed, om, &QObject::deleteLater);
+    connect(cid, &QObject::destroyed, sm, &QObject::deleteLater);
+    return cid;
 }
 
 CreateInvoiceDialog::~CreateInvoiceDialog() {

@@ -10,7 +10,6 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(Qt5 COMPONENTS Widgets Sql Network)
 
-
 add_executable(LazyMins src/main.cpp
                         src/database/database.h
                         src/database/database.cpp
@@ -64,6 +63,9 @@ add_executable(LazyMins src/main.cpp
                         src/ui/dockwidgets/customerorderswidget.h
                         src/ui/dockwidgets/customerorderswidget.cpp
                         src/ui/files/customerorderswidget.ui
+                        src/ui/files/customerorderswidget.ui
+                        src/ui/dockwidgets/viewer/orderviewdialog.h
+                        src/ui/dockwidgets/viewer/orderviewdialog.cpp
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 
@@ -71,7 +73,7 @@ target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3"
 target_include_directories(LazyMins PUBLIC src/ui src/database)
 target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
 
-add_subdirectory(testData)
+# add_subdirectory(testData)
 # test_hash
 # add_executable(hashTest src/test_hash.cpp
                          # src/database/usermanager.h

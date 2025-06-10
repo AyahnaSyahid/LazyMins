@@ -66,6 +66,10 @@ add_executable(LazyMins src/main.cpp
                         src/ui/files/customerorderswidget.ui
                         src/ui/dockwidgets/viewer/orderviewdialog.h
                         src/ui/dockwidgets/viewer/orderviewdialog.cpp
+                        src/ui/dockwidgets/viewer/invoiceviewdialog.h
+                        src/ui/dockwidgets/viewer/invoiceviewdialog.cpp
+                        src/ui/dockwidgets/viewer/ui_files/invoiceviewdialog.ui
+                        
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 

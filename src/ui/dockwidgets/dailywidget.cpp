@@ -2,10 +2,14 @@
 #include "../files/ui_dailywidget.h"
 #include "database.h"
 #include "usermanager.h"
+#include "mainwindow.h"
 #include <QDate>
+#include <QMenu>
+#include <QAction>
 #include <QSqlQuery>
-#include <QtDebug>
 #include <QSqlTableModel>
+
+#include <QtDebug>
 
 DailyWidget::DailyWidget(Database* _d, QWidget* parent) :
 ui(new Ui::DailyWidget), db(_d), QWidget(parent) {
@@ -141,11 +145,15 @@ void DailyWidget::reloadData() {
     ui->label_invoicePaidValueSum->setText(locale().toString(q.value("invoicesPaidValue").toInt()));
 }
 
-DailyDockWidget::DailyDockWidget(Database* _d, QWidget* p) :
+DailyDockWidget::DailyDockWidget(Database* _d, MainWindow* p) :
     QDockWidget(p) {
     DailyWidget* dw = new DailyWidget(_d, this);
     setWidget(dw);
-    setWindowTitle(tr("Ringkasan Harian"));
+    QMenu* menuView = findChild<QMenu*>("menuView");
+    if(menuView) {
+        menuView->insertAction(nullptr, this->toggleViewAction());
+    }
+    setWindowTitle("Ringkasan Harian");
 }
 
 DailyDockWidget::~DailyDockWidget(){}

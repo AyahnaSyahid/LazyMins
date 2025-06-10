@@ -10,9 +10,11 @@
 #include "dockwidgets/dailywidget.h"
 #include "dockwidgets/customerorderswidget.h"
 #include "createinvoicedialog.h"
+#include "editorderdialog.h"
 
 #include <QSqlQuery>
 #include <QItemSelectionModel>
+#include <QMessageBox>
 
 #include <QMenu>
 #include <QAction>
@@ -38,17 +40,9 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
  : ui(new Ui::MainWindow), db(_d), QMainWindow(parent)
 {
     ui->setupUi(this);
+    addDockWidget(Qt::LeftDockWidgetArea, new DailyDockWidget(db, this));
+    addDockWidget(Qt::LeftDockWidgetArea, new CustomerOrdersDockWidget(db, this));
     
-    QDockWidget *dw;
-    dw = new DailyDockWidget(db, this);
-    addDockWidget(Qt::LeftDockWidgetArea, dw);
-    ui->menuView->addAction(dw->toggleViewAction());
-    dw = new CustomerOrdersDockWidget(db, this);
-    ui->menuView->addAction(dw->toggleViewAction());
-    addDockWidget(Qt::LeftDockWidgetArea, dw);
-    CustomerOrdersWidget* cow = dw->findChild<CustomerOrdersWidget*>("customerOrdersWidget");
-    connect(cow, &CustomerOrdersWidget::createInvoiceForOrders, this, &MainWindow::createInvoiceForOrdersReceiver);
-    connect(this, &MainWindow::createInvoiceForOrdersReceived, cow, &CustomerOrdersWidget::createInvoiceForOrdersSent);
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
 }
 
@@ -99,4 +93,18 @@ void MainWindow::createInvoiceForOrdersReceiver(const QList<int>& orders) {
     emit createInvoiceForOrdersReceived();
     connect(cid, SIGNAL(openPayment(int)), this, SLOT(openPaymentFor(int)));
     cid->open();
+}
+
+void MainWindow::openOrderEditor(int o) {
+    QSqlQuery q;
+    q.prepare("SELECT * FROM orders WHERE order_id = ?");
+    q.addBindValue(o);
+    q.exec();
+    if(! q.next()) {
+        QMessageBox::information(this, "Kesalahan", tr("tidak ditemukan order dengan id %1").arg(o));
+        return;
+    }
+    EditOrderDialog* eo = new EditOrderDialog(q.record(), db, this);
+    eo->setAttribute(Qt::WA_DeleteOnClose);
+    eo->open();
 }

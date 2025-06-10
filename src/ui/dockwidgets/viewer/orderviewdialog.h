@@ -10,7 +10,7 @@ class OrderViewDialog : public QDialog {
     Q_OBJECT
 
 public:
-    OrderViewDialog(const QString& customerName, QWidget* parent=nullptr);
+    OrderViewDialog(int cs_id, QWidget* parent=nullptr);
     ~OrderViewDialog();
 
 signals:

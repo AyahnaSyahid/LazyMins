@@ -8,6 +8,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QMenu>
+#include <QDate>
 #include <QAction>
 #include <QSqlQueryModel>
 #include <QWidget>
@@ -15,6 +16,7 @@
 #include <QSqlQuery>
 #include <QSortFilterProxyModel>
 #include <QItemSelectionModel>
+#include <QtDebug>
 
 namespace Viewer {
     class _Proxy : public QSortFilterProxyModel {
@@ -27,9 +29,14 @@ namespace Viewer {
     };
 }
 
-OrderViewDialog::OrderViewDialog(const QString& cn, QWidget* parent)
-: customerName(cn), QDialog(parent) {
-    setWindowTitle(QString("Data order | %1").arg(customerName));
+OrderViewDialog::OrderViewDialog(int cs_id, QWidget* parent)
+: customerName(), QDialog(parent) {
+    QSqlQuery q;
+    q.prepare("SELECT name FROM customers WHERE id = ?");
+    q.addBindValue(cs_id);
+    q.exec() && q.next();
+    
+    setWindowTitle(QString("Data order | %1").arg(q.value(0).toString()));
     tableView = new QTableView(this);
     tableView->setObjectName("tableView");
     model = new QSqlQueryModel(this);
@@ -50,9 +57,9 @@ OrderViewDialog::OrderViewDialog(const QString& cn, QWidget* parent)
     
     setLayout(ml);
     
-    QSqlQuery q;
     q.prepare(R"--(
 SELECT  od.order_id AS [OrderID],
+        od.order_date AS [Tanggal],
         od.name AS [Nama],
         pr.name AS [Produk],
         od.quantity AS [Qty],
@@ -60,9 +67,9 @@ SELECT  od.order_id AS [OrderID],
         FROM orders od JOIN products pr ON od.product_id = pr.product_id
                        JOIN orders_calc ad ON ad.order_id = od.order_id
                        JOIN customers cs ON od.customer_id = cs.customer_id
-                       WHERE cs.name = ? AND od.invoice_id IS NULL AND od.status = 'OK';
+                       WHERE cs.customer_id = ? AND od.invoice_id IS NULL AND od.status = 'OK';
     )--");
-    q.addBindValue(customerName);
+    q.addBindValue(cs_id);
     q.exec();
     model->setQuery(q);
     
@@ -125,15 +132,19 @@ void OrderViewDialog::reloadData() {
 QVariant Viewer::_Proxy::data(const QModelIndex& mi, int role) const {
     if(role == Qt::DisplayRole) {
         switch (mi.column()) {
-            case 3:
             case 4:
+            case 5:
                 return loc.toString(mi.data(Qt::EditRole).toInt());
+            case 1:
+                return loc.toString(QDate::fromString(mi.data(Qt::EditRole).toString(), "yyyy-MM-dd"), "dd MMMM yyyy");
         }
     } else if(role == Qt::TextAlignmentRole) {
         switch (mi.column()) {
-            case 3:
             case 4:
+            case 5:
                 return int(Qt::AlignRight | Qt::AlignVCenter);
+            case 1:
+                return Qt::AlignCenter;
         }
     }
     return QSortFilterProxyModel::data(mi, role);

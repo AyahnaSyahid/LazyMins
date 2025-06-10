@@ -10,6 +10,7 @@ namespace Ui {
 
 class Database;
 class QSqlQueryModel;
+class MainWindow;
 class CustomerOrdersWidget : public QWidget {
     Q_OBJECT
 public:
@@ -25,6 +26,7 @@ private slots:
 signals:
     void createInvoiceForOrders(const QList<int>&);
     void createInvoiceForOrdersSent();
+    void editOrder(int);
 
 private:
     Ui::CustomerOrdersWidget* ui;
@@ -33,7 +35,7 @@ private:
 
 class CustomerOrdersDockWidget : public QDockWidget {
 public:
-    explicit CustomerOrdersDockWidget(Database*, QWidget* =nullptr);
+    explicit CustomerOrdersDockWidget(Database*, MainWindow* =nullptr);
     ~CustomerOrdersDockWidget();
 };
 

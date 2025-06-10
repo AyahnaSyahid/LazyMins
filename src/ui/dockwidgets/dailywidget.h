@@ -8,6 +8,7 @@ namespace Ui {
 #include <QWidget>
 #include <QDockWidget>
 
+class MainWindow;
 class Database;
 class DailyWidget : public QWidget {
     Q_OBJECT
@@ -26,7 +27,7 @@ private:
 
 class DailyDockWidget : public QDockWidget {
 public:
-    explicit DailyDockWidget(Database*, QWidget* =nullptr);
+    explicit DailyDockWidget(Database*, MainWindow* =nullptr);
     ~DailyDockWidget();
 };
 

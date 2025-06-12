@@ -10,6 +10,7 @@
 #include <QSqlQuery>
 #include <QAction>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPoint>
 #include <QtDebug>
 
@@ -108,11 +109,10 @@ CustomerOrdersDockWidget::CustomerOrdersDockWidget(Database* _d, MainWindow* par
     connect(cu, SIGNAL(createInvoiceForOrders(QList<int>)), parent, SLOT(createInvoiceForOrdersReceiver(QList<int>)));
     connect(parent, SIGNAL(createInvoiceForOrdersReceived()), cu, SIGNAL(createInvoiceForOrdersSent()));
     
-    QMenu* menuView = findChild<QMenu*>("menuView");
+    QMenu* menuView = parent->menuBar()->findChild<QMenu*>("menuView");
     if(menuView) {
         menuView->insertAction(nullptr, toggleViewAction());
     }
-    
     setWindowTitle("Order Konsumen");
 }
 

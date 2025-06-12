@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 #include <QDate>
 #include <QMenu>
+#include <QMenuBar>
 #include <QAction>
 #include <QSqlQuery>
 #include <QSqlTableModel>
@@ -149,7 +150,7 @@ DailyDockWidget::DailyDockWidget(Database* _d, MainWindow* p) :
     QDockWidget(p) {
     DailyWidget* dw = new DailyWidget(_d, this);
     setWidget(dw);
-    QMenu* menuView = findChild<QMenu*>("menuView");
+    QMenu* menuView = p->menuBar()->findChild<QMenu*>("menuView");
     if(menuView) {
         menuView->insertAction(nullptr, this->toggleViewAction());
     }

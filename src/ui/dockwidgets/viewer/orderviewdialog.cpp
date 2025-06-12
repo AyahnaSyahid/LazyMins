@@ -32,7 +32,7 @@ namespace Viewer {
 OrderViewDialog::OrderViewDialog(int cs_id, QWidget* parent)
 : customerName(), QDialog(parent) {
     QSqlQuery q;
-    q.prepare("SELECT name FROM customers WHERE id = ?");
+    q.prepare("SELECT name FROM customers WHERE customer_id = ?");
     q.addBindValue(cs_id);
     q.exec() && q.next();
     

@@ -8,9 +8,9 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-find_package(Qt5 COMPONENTS Widgets Sql Network)
+find_package(Qt5 COMPONENTS Widgets Test Sql Network REQUIRED)
 
-add_executable(LazyMins src/main.cpp
+add_executable(LazyAdmins src/main.cpp
                         src/database/database.h
                         src/database/database.cpp
                         src/database/tablemanager.h
@@ -73,9 +73,9 @@ add_executable(LazyMins src/main.cpp
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
 
-target_compile_definitions(LazyMins PRIVATE APP_DATABASE_NAME="database.sqlite3")
-target_include_directories(LazyMins PUBLIC src/ui src/database)
-target_link_libraries(LazyMins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
+target_compile_definitions(LazyAdmins PRIVATE APP_DATABASE_NAME="database.sqlite3")
+target_include_directories(LazyAdmins PUBLIC src/ui src/database)
+target_link_libraries(LazyAdmins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)
 
 # add_subdirectory(testData)
 # test_hash

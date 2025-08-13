@@ -12,31 +12,31 @@ class Database;
 class QSqlQueryModel;
 class MainWindow;
 class CustomerOrdersWidget : public QWidget {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit CustomerOrdersWidget(Database*, QWidget* =nullptr);
-    ~CustomerOrdersWidget();
+  explicit CustomerOrdersWidget(Database*, QWidget* =nullptr);
+  ~CustomerOrdersWidget();
 
 private slots:
-    void reloadData();
+  void reloadData();
 	void on_customerOrdersTable_customContextMenuRequested(const QPoint&);
 	void showOrdersFor(const QVariant&);
 	void showInvoicesFor(const QVariant&);
 
 signals:
-    void createInvoiceForOrders(const QList<int>&);
-    void createInvoiceForOrdersSent();
-    void editOrder(int);
+  void createInvoiceForOrders(const QList<int>&);
+  void createInvoiceForOrdersSent();
+  void editOrder(int);
 
 private:
-    Ui::CustomerOrdersWidget* ui;
-    QSqlQueryModel* model;
+  Ui::CustomerOrdersWidget* ui;
+  QSqlQueryModel* model;
 };
 
 class CustomerOrdersDockWidget : public QDockWidget {
 public:
-    explicit CustomerOrdersDockWidget(Database*, MainWindow* =nullptr);
-    ~CustomerOrdersDockWidget();
+  explicit CustomerOrdersDockWidget(Database*, MainWindow* =nullptr);
+  ~CustomerOrdersDockWidget();
 };
 
 #endif

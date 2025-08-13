@@ -33,8 +33,11 @@ int main(int argc, char** argv)
     QApplication app(argc, argv);
     QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
     QLocale::setDefault(loc);
+    
     Database database;
+    
     UserManager uman(&database);
+    
     uman.setObjectName("userManager");
 
     if(!uman.nameExists("root")) {
@@ -45,7 +48,7 @@ int main(int argc, char** argv)
     
     LoginForm lf(&uman);
     lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
-    // QTimer::singleShot(0, &lf, &LoginForm::open);
+
     lf.setWindowModality(Qt::ApplicationModal);
     lf.open();
     return app.exec();

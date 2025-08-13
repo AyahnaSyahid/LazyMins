@@ -29,7 +29,6 @@
     </property>
     <addaction name="actionAddProduct"/>
     <addaction name="actionAddCustomer"/>
-    <addaction name="actionAddUser"/>
    </widget>
    <widget class="QMenu" name="menuManager">
     <property name="title">
@@ -43,6 +42,15 @@
      <string>View</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuAkun">
+    <property name="title">
+     <string>Akun</string>
+    </property>
+    <addaction name="actionLogOut"/>
+    <addaction name="separator"/>
+    <addaction name="actionAddUser"/>
+   </widget>
+   <addaction name="menuAkun"/>
    <addaction name="menuAdd"/>
    <addaction name="menuManager"/>
    <addaction name="menuView"/>
@@ -52,25 +60,45 @@
    <property name="text">
     <string>Order</string>
    </property>
+   <property name="requiredPerm" stdset="0">
+    <string>ManageOrders</string>
+   </property>
   </action>
   <action name="actionAddProduct">
    <property name="text">
     <string>Produk Baru</string>
+   </property>
+   <property name="requiredPerm" stdset="0">
+    <string>AddProducts</string>
    </property>
   </action>
   <action name="actionAddCustomer">
    <property name="text">
     <string>Konsumen Baru</string>
    </property>
+   <property name="requiredPerm" stdset="0">
+    <string>AddCustomers</string>
+   </property>
   </action>
   <action name="actionAddUser">
    <property name="text">
     <string>User Baru</string>
    </property>
+   <property name="requiredPerm" stdset="0">
+    <string>AddUsers</string>
+   </property>
   </action>
   <action name="actionInvoicesManager">
    <property name="text">
     <string>Invoice</string>
+   </property>
+   <property name="requiredPerm" stdset="0">
+    <string>ManageInvoices</string>
+   </property>
+  </action>
+  <action name="actionLogOut">
+   <property name="text">
+    <string>Log Out</string>
    </property>
   </action>
  </widget>

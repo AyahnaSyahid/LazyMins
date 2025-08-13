@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "files/ui_mainwindow.h"
 #include "database.h"
+#include "usermanager.h"
 #include "createorderdialog.h"
 #include "createproductdialog.h"
 #include "createcustomerdialog.h"
@@ -11,6 +12,7 @@
 #include "dockwidgets/customerorderswidget.h"
 #include "createinvoicedialog.h"
 #include "editorderdialog.h"
+#include "loginform.h"
 
 #include <QSqlQuery>
 #include <QItemSelectionModel>
@@ -42,8 +44,12 @@ MainWindow::MainWindow(Database* _d, QWidget* parent)
     ui->setupUi(this);
     addDockWidget(Qt::LeftDockWidgetArea, new DailyDockWidget(db, this));
     addDockWidget(Qt::LeftDockWidgetArea, new CustomerOrdersDockWidget(db, this));
-    
     connect(db, SIGNAL(paymentRequest(int)), this, SLOT(openPaymentFor(int)));
+    
+    UserManager *uman = db->findChild<UserManager*>("userManager");
+    connect(uman, UserManager::userLoggedIn, this, MainWindow::onUserLoggedIn);
+    connect(uman, UserManager::userLoggedOut, this, MainWindow::onUserLoggedOut);
+    connect(ui->actionLogOut, QAction::triggered, uman, UserManager::logout);
 }
 
 MainWindow::~MainWindow() {
@@ -107,4 +113,45 @@ void MainWindow::openOrderEditor(int o) {
     EditOrderDialog* eo = new EditOrderDialog(q.record(), db, this);
     eo->setAttribute(Qt::WA_DeleteOnClose);
     eo->open();
+}
+
+void MainWindow::onUserLoggedIn(int uid) {
+  auto uman = db->findChild<UserManager*>("userManager");
+  if(!uman) return;
+  auto actions = findChildren<QAction*>();
+  if(uman->hasPermission(uid, "GRANT_EVERYTHING")) {
+    for(auto a = actions.cbegin(); a != actions.cend(); ++a) {
+      (*a)->setEnabled(true);
+      (*a)->setToolTip("");
+    }
+    return;
+  }
+  QAction *aptr;
+  for(auto a = actions.cbegin(); a != actions.cend(); ++a) {
+    aptr = (*a);
+    QVariant perm_var = aptr->property("requiredPerm");
+    if(perm_var.isValid()) {
+      if(uman->hasPermission(uid, perm_var.toString())) {
+        aptr->setEnabled(true);
+        aptr->setToolTip("");
+      } else {
+        aptr->setEnabled(false);
+        aptr->setToolTip("Akses dibatasi");
+      }
+    } else {
+    aptr->setEnabled(true);
+    aptr->setToolTip("");
+    }
+  }
+}
+
+void MainWindow::onUserLoggedOut() {
+  LoginForm *lform = new LoginForm(db->findChild<UserManager*>("userManager"), this);
+  lform->setAttribute(Qt::WA_DeleteOnClose);
+  hide();
+  connect(lform, &QDialog::accepted, this, &MainWindow::show);
+  connect(lform, &QDialog::rejected, this, &MainWindow::close);
+  // connect(lform, &QDialog::destroyed, [](){qDebug() << "LoginForm deleted"; });
+  lform->setWindowTitle("Masuk lagi");
+  lform->open();
 }

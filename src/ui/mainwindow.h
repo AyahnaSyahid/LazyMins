@@ -29,6 +29,8 @@ private slots:
 public slots:
     void createInvoiceForOrdersReceiver(const QList<int>& );
     void openOrderEditor(int);
+    void onUserLoggedIn(int);
+    void onUserLoggedOut();
 
 signals:
     void createInvoiceForOrdersReceived();

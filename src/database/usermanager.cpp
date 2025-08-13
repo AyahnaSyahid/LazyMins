@@ -130,3 +130,11 @@ const QSqlRecord UserManager::currentUserRecord() const {
     }
     return QSqlRecord();
 }
+
+bool UserManager::hasPermission(int uid, const QString& perm) {
+  QSqlQuery q;
+  q.prepare("SELECT up.user_id, up.permission_id FROM users_permissions up JOIN permissions per ON up.permission_id = per.permission_id WHERE up.user_id = ? AND per.name = ?");
+  q.addBindValue(uid);
+  q.addBindValue(perm);
+  return q.exec() && q.next();
+}

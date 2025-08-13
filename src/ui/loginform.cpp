@@ -54,6 +54,6 @@ void LoginForm::on_pushButton_clicked() {
         warning("Anda telah gagal masuk sebanyak 3 kali, Aplikasi akan ditutup", this);
         reject();
     } else {
-    accept();
+      accept();
     }
 }

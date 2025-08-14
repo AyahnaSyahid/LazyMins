@@ -22,7 +22,6 @@ public:
 
     const int& currentUser() const { return _c_id ; }
     const QSqlRecord currentUserRecord() const;
-    
 
 // STATIC
     static bool nameExists(const QString& name);

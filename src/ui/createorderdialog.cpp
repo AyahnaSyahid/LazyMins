@@ -6,6 +6,7 @@
 #include "createinvoicedialog.h"
 #include "editorderdialog.h"
 #include "database.h"
+#include "usermanager.h"
 #include "customerpickerdialog.h"
 #include "productpickerdialog.h"
 
@@ -181,11 +182,15 @@ void CreateOrderDialog::on_createPaymentButton_clicked() {
     auto sm = ui->unpaidTableView->selectionModel();
     auto customerModel = db->getTableModel("customers");
     auto rc = customerModel->record(ui->customerBox->currentIndex());
+    
+    if( sm->model()->rowCount() < 1) {
+      // jangan buka dialog invoice jika order kosong
+      QMessageBox::information(this, "Order Kosong", "Tidak ada Pesanan yang dapat dimasukkan kedalam Nota");
+      return ;
+    }
 
     CreateInvoiceDialog* cid = new CreateInvoiceDialog(rc.value("customer_id").toInt(), sm, db, this);
-    // nameLabel->setText(rc.value("name").toString());
-    // phoneLabel->setText(rc.value("phone").toString());
-    // addrLabel->setText(rc.value("address").toString());
+
     cid->setAttribute(Qt::WA_DeleteOnClose);
     cid->connect(cid, SIGNAL(openPayment(int)), db, SIGNAL(paymentRequest(int)));
     cid->adjustSize();
@@ -217,10 +222,11 @@ void CreateOrderDialog::on_draftButton_clicked() {
     auto rCus = customerModel->record(ui->customerBox->currentIndex());
 
     auto omod = db->getTableModel("orders");
+    auto uman = db->findChild<UserManager*>("userManager");
     QSqlRecord rec = omod->record();
     rec.setGenerated("order_id", false);
     rec.setValue("order_date", QDate::fromString(ui->lDate->text(), "dd/MM/yyyy").toString("yyyy-MM-dd"));
-    rec.setValue("user_id", 1);
+    rec.setValue("user_id", uman ? uman->currentUser() : 1);
     rec.setValue("customer_id", rCus.value("customer_id"));
     rec.setValue("product_id", rPro.value("product_id"));
     rec.setValue("name", ui->nameEdit->text().simplified());

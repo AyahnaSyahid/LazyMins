@@ -34,6 +34,9 @@
     <property name="title">
      <string>Manager</string>
     </property>
+    <property name="toolTipsVisible">
+     <bool>true</bool>
+    </property>
     <addaction name="actionOrdersManager"/>
     <addaction name="actionInvoicesManager"/>
    </widget>
@@ -41,14 +44,22 @@
     <property name="title">
      <string>View</string>
     </property>
+    <property name="toolTipsVisible">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QMenu" name="menuAkun">
     <property name="title">
      <string>Akun</string>
     </property>
+    <property name="toolTipsVisible">
+     <bool>true</bool>
+    </property>
     <addaction name="actionLogOut"/>
     <addaction name="separator"/>
     <addaction name="actionAddUser"/>
+    <addaction name="separator"/>
+    <addaction name="actionPerizinan"/>
    </widget>
    <addaction name="menuAkun"/>
    <addaction name="menuAdd"/>
@@ -99,6 +110,14 @@
   <action name="actionLogOut">
    <property name="text">
     <string>Log Out</string>
+   </property>
+  </action>
+  <action name="actionPerizinan">
+   <property name="text">
+    <string>Perizinan</string>
+   </property>
+   <property name="requiredPerm" stdset="0">
+    <string>ManagePermissions</string>
    </property>
   </action>
  </widget>

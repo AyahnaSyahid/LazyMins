@@ -6,18 +6,21 @@
 #include <QSqlTableModel>
 #include <QTableView>
 #include <QHeaderView>
+#include <QColor>
+#include <QBrush>
+#include <QMessageBox>
+#include <QtDebug>
 
 enum QueryDataRole {
   QueryID = Qt::UserRole + 1,
   QueryDescription
 };
 
-
 PermissionDialog::PermissionDialog(int user_id, QWidget *parent)
 : _user_id(user_id), 
   permissionModel(new QStandardItemModel(this)),
   ui(new Ui::PermissionDialog),
-  _safe_to_open(false),
+  checkedIndex {},
   QDialog(parent) {
   ui->setupUi(this);
   
@@ -35,7 +38,9 @@ PermissionDialog::PermissionDialog(int user_id, QWidget *parent)
     } else {
       item->setCheckable(true);    
     }
+    item->setBackground(QBrush(Qt::NoBrush));
     sim->appendRow(item);
+    // qDebug() << item->background();
   };
   
   ui->listView->setModel(permissionModel);
@@ -61,6 +66,8 @@ PermissionDialog::PermissionDialog(int user_id, QWidget *parent)
   comboView->horizontalHeader()->setStretchLastSection(true);
   comboModel->setHeaderData(1, Qt::Horizontal, "Nama", Qt::DisplayRole);
   comboModel->setHeaderData(4, Qt::Horizontal, "Alias", Qt::DisplayRole);
+  setProperty("lastView", -1);
+  connect(permissionModel, &QAbstractItemModel::dataChanged, this, &PermissionDialog::on_itemDataChanged);
 }
 
 PermissionDialog::~PermissionDialog() {}
@@ -68,13 +75,16 @@ PermissionDialog::~PermissionDialog() {}
 void PermissionDialog::on_comboBox_currentIndexChanged(int ix) {
   auto sim = qobject_cast<QStandardItemModel*>(permissionModel);
   int uid = ui->comboBox->model()->index(ix, 0).data().toInt();
-  
-  for(int i=1; i < sim->rowCount(); ++i) {
-    // i == 0 adalah GRANT_EVERYTHING skip aja
-    auto item = sim->item(i);
-    item->setCheckState(Qt::Unchecked);
+  for(int r=0; r < sim->rowCount(); ++r) {
+    auto index = sim->itemFromIndex(sim->index(r, 0));
+    if(index->background().style() != Qt::NoBrush) {
+      auto que = QMessageBox::question(this, "Informasi", "abaikan?");
+      if(que == QMessageBox::No) {
+        ui->comboBox->setCurrentIndex(property("lastView").toInt());
+        return ;
+      }
+    }
   }
-  
   // get user permission list
   QSqlQuery q;
   q.prepare("SELECT user_id, name FROM users_permissions JOIN permissions USING(permission_id) WHERE user_id = ?");
@@ -83,12 +93,26 @@ void PermissionDialog::on_comboBox_currentIndexChanged(int ix) {
   while (q.next()) {
     auto itemList = sim->findItems(q.value("name").toString());
     for(auto item_ptr = itemList.begin(); item_ptr != itemList.end(); ++item_ptr) {
-      // (*item_ptr)->text() == q.value("name").toString();
       (*item_ptr)->setCheckState(Qt::Checked);
     }
   }
+  setProperty("lastView", ix);
 }
 
-void PermissionDialog::on_itemChanged(QStandardItem *item) {
-  
+void PermissionDialog::on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int> &roles){
+  auto sim = qobject_cast<QStandardItemModel*>(permissionModel);
+  if(roles.contains(Qt::CheckStateRole)) {
+    qDebug() << "on item CheckMenu";
+    for(int r = tl.row(); r <= bl.row(); ++r) {
+      for(int c = tl.column(); c <= tl.column(); ++c) {
+        auto item = sim->itemFromIndex(sim->index(r, c));
+        auto brush = item->background();
+        if(brush.style() == Qt::NoBrush) {
+          item->setBackground(QBrush(QColor(168, 158, 50)));
+        } else {
+          item->setBackground(QBrush(Qt::NoBrush));
+        }
+      }
+    }
+  }
 }

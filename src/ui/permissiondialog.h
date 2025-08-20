@@ -2,15 +2,14 @@
 #define PermissionDialog_H
 
 #include <QDialog>
+#include <QList>
 
 namespace Ui {
   class PermissionDialog;
 }
 
 class QAbstractItemModel;
-class QStandardItem;
-
-
+class QModelIndex;
 
 class PermissionDialog : public QDialog
 {
@@ -22,13 +21,13 @@ public:
 
 private slots:
   void on_comboBox_currentIndexChanged(int);
-  void on_itemChanged(QStandardItem *item);
+  void on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int>& roles);
 
 private:
   QAbstractItemModel *permissionModel;
   Ui::PermissionDialog *ui;
   int _user_id;
-  bool _safe_to_open;
+  QList<int> checkedIndex;
 };
 
 #endif

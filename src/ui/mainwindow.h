@@ -23,6 +23,7 @@ private slots:
     void on_actionAddProduct_triggered();
     void on_actionAddUser_triggered();
     void on_actionInvoicesManager_triggered();
+    void on_actionPerizinan_triggered();
     void openPaymentFor(int);
     void dialogDestroyed(const QString&);
 

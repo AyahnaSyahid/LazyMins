@@ -69,10 +69,13 @@ add_executable(LazyAdmins src/main.cpp
                         src/ui/dockwidgets/viewer/invoiceviewdialog.h
                         src/ui/dockwidgets/viewer/invoiceviewdialog.cpp
                         src/ui/dockwidgets/viewer/ui_files/invoiceviewdialog.ui
+                        src/ui/permissiondialog.h
+                        src/ui/permissiondialog.cpp
+                        src/ui/files/permissiondialog.ui
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )
-
+                        
 target_compile_definitions(LazyAdmins PRIVATE APP_DATABASE_NAME="database.sqlite3")
 target_include_directories(LazyAdmins PUBLIC src/ui src/database)
 target_link_libraries(LazyAdmins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network)

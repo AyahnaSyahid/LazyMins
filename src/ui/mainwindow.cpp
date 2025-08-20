@@ -13,6 +13,7 @@
 #include "createinvoicedialog.h"
 #include "editorderdialog.h"
 #include "loginform.h"
+#include "permissiondialog.h"
 
 #include <QSqlQuery>
 #include <QItemSelectionModel>
@@ -154,4 +155,11 @@ void MainWindow::onUserLoggedOut() {
   // connect(lform, &QDialog::destroyed, [](){qDebug() << "LoginForm deleted"; });
   lform->setWindowTitle("Masuk lagi");
   lform->open();
+}
+
+void MainWindow::on_actionPerizinan_triggered() {
+  auto uman = db->findChild<UserManager*>("userManager");
+  auto pd = new PermissionDialog(uman->currentUser(), this);
+  pd->setAttribute(Qt::WA_DeleteOnClose);
+  pd->open();
 }

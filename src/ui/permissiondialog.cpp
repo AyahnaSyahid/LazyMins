@@ -9,6 +9,7 @@
 #include <QColor>
 #include <QBrush>
 #include <QMessageBox>
+#include <QComboBox>
 #include <QtDebug>
 
 enum QueryDataRole {
@@ -66,43 +67,81 @@ PermissionDialog::PermissionDialog(int user_id, QWidget *parent)
   comboView->horizontalHeader()->setStretchLastSection(true);
   comboModel->setHeaderData(1, Qt::Horizontal, "Nama", Qt::DisplayRole);
   comboModel->setHeaderData(4, Qt::Horizontal, "Alias", Qt::DisplayRole);
-  setProperty("lastView", -1);
   connect(permissionModel, &QAbstractItemModel::dataChanged, this, &PermissionDialog::on_itemDataChanged);
+  setProperty("lastView", -1);
 }
 
 PermissionDialog::~PermissionDialog() {}
 
 void PermissionDialog::on_comboBox_currentIndexChanged(int ix) {
+  /* CurrentUser selecting userId
+      if there are modification on item inside permissionsModel
+        ask for ignoring modification or return for continue editing selected userId
+      load permissions to be edited otherwise
+  */
+  
+  // modification checking
+  //    when item is modified we mark its backgroud brush
   auto sim = qobject_cast<QStandardItemModel*>(permissionModel);
-  int uid = ui->comboBox->model()->index(ix, 0).data().toInt();
   for(int r=0; r < sim->rowCount(); ++r) {
     auto index = sim->itemFromIndex(sim->index(r, 0));
     if(index->background().style() != Qt::NoBrush) {
-      auto que = QMessageBox::question(this, "Informasi", "abaikan?");
+      // item change detected here
+      auto que = QMessageBox::question(this, "Data telah diubah", "Lanjut dan abaikan perubahan ?");
       if(que == QMessageBox::No) {
-        ui->comboBox->setCurrentIndex(property("lastView").toInt());
-        return ;
-      }
+          // currentUser decide to continue editing last userId
+          ui->comboBox->blockSignals(true);
+          ui->comboBox->setCurrentIndex(property("lastView").toInt());
+          ui->comboBox->blockSignals(false);
+          // just return dont do anything further
+          return ;
+      } 
+      // currentUser decide to ignoring data modification
     }
   }
-  // get user permission list
+  
+  // here we load permissions for given userId
+  int uid = ui->comboBox->model()->index(ix, 0).data().toInt();
+
   QSqlQuery q;
-  q.prepare("SELECT user_id, name FROM users_permissions JOIN permissions USING(permission_id) WHERE user_id = ?");
+  q.prepare(R"--(
+      SELECT per.permission_id,
+       per.name,
+       (up.user_id IS NOT NULL) AS has_permission,
+       description
+  FROM permissions per
+       LEFT JOIN
+       users_permissions up ON up.permission_id = per.permission_id AND 
+                               up.user_id = ?
+  ORDER BY per.permission_id;)--");
   q.addBindValue(uid);
   q.exec();
-  while (q.next()) {
-    auto itemList = sim->findItems(q.value("name").toString());
-    for(auto item_ptr = itemList.begin(); item_ptr != itemList.end(); ++item_ptr) {
-      (*item_ptr)->setCheckState(Qt::Checked);
+  
+  // Block signal sementara saat menginisialisasi centang pada permissions list
+  disconnect(sim, &QAbstractItemModel::dataChanged, this, &PermissionDialog::on_itemDataChanged);
+  sim->clear();
+  while(q.next()) {
+    auto item = new QStandardItem(q.value("name").toString());
+    item->setData(q.value("permission_id").toInt(), QueryID);
+    item->setToolTip(q.value("description").toString());
+    item->setEditable(false);
+    if(q.value("name").toString() == "GRANT_EVERYTHING") {
+      item->setCheckable(false);
+      item->setCheckState(q.value("has_permission").toBool() ? Qt::Checked : Qt::Unchecked);    
+      item->setEnabled(false);
+    } else {
+      item->setCheckable(true);    
+      item->setCheckState(q.value("has_permission").toBool() ? Qt::Checked : Qt::Unchecked);    
     }
+    sim->appendRow(item);
   }
+  connect(sim, &QAbstractItemModel::dataChanged, this, &PermissionDialog::on_itemDataChanged);
   setProperty("lastView", ix);
 }
 
-void PermissionDialog::on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int> &roles){
+void PermissionDialog::on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int> &roles) {
   auto sim = qobject_cast<QStandardItemModel*>(permissionModel);
   if(roles.contains(Qt::CheckStateRole)) {
-    qDebug() << "on item CheckMenu";
     for(int r = tl.row(); r <= bl.row(); ++r) {
       for(int c = tl.column(); c <= tl.column(); ++c) {
         auto item = sim->itemFromIndex(sim->index(r, c));
@@ -115,4 +154,8 @@ void PermissionDialog::on_itemDataChanged(const QModelIndex& tl, const QModelInd
       }
     }
   }
+}
+
+void PermissionDialog::loadPermissionsForUser(int uid) {
+  
 }

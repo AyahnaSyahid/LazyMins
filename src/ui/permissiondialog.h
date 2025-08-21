@@ -22,6 +22,7 @@ public:
 private slots:
   void on_comboBox_currentIndexChanged(int);
   void on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int>& roles);
+  void loadPermissionsForUser(int uid);
 
 private:
   QAbstractItemModel *permissionModel;

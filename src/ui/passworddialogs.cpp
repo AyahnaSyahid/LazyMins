@@ -1,6 +1,7 @@
 #include "passworddialogs.h"
 #include "files/ui_passworddialogs.h"
 #include "usermanager.h"
+#include QMessageBox
 
 ChangePasswordDialog::ChangePasswordDialog(UserManager* _uman, QWidget* parent)
 : uman(_uman), ui(new Ui::ChangePasswordDialog()), QDialog(parent) {
@@ -20,6 +21,9 @@ void ChangePasswordDialog::on_saveButton_clicked {
     QMessageBox::information(this, "Periksa input", "Kata Sandi baru belum di setel");
     return ;
   } else if(retype.isEmpty()) {
-    
+    QMessageBox::information(this, "Periksa input", "Ulangi password baru");
+    return ;
   }
+  int cid = uman->currentUser();
+  
 }

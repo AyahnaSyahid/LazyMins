@@ -18,12 +18,13 @@ class PermissionDialog : public QDialog
 public:
   explicit PermissionDialog(int UserId, QWidget * =nullptr);
   ~PermissionDialog();
-
+  bool isDirty() const;
+  
 private slots:
   void on_comboBox_currentIndexChanged(int);
   void on_itemDataChanged(const QModelIndex& tl, const QModelIndex& bl, const QVector<int>& roles);
-  void loadPermissionsForUser(int uid);
-
+  void on_saveButton_clicked();
+  void fetchPermissions(int uid);
 private:
   QAbstractItemModel *permissionModel;
   Ui::PermissionDialog *ui;

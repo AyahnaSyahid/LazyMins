@@ -2,6 +2,7 @@
 #include "passworddialogs.h"
 #include "files/ui_changepassworddialog.h"
 #include "files/ui_revokepassworddialog.h"
+#include "files/ui_userselectordialog.h"
 #include <QSqlTableModel>
 #include <QItemSelectionModel>
 #include <QModelIndex>
@@ -66,8 +67,24 @@ ChangeOtherPasswordDialog::~ChangeOtherPasswordDialog(){}
 void ChangeOtherPasswordDialog::revokePassword() {
   auto rpd = new RevokePasswordDialog(uman, this);
   connect(rpd, &QDialog::rejected, this, &QDialog::reject);
-  connect(rpd, &QDialog::accepted, this, &QDialog::open);
+  connect(rpd, &RevokePasswordDialog::revokeSuccess, this, &QDialog::open);
   rpd->setAttribute(Qt::WA_DeleteOnClose);
+  rpd->open();
+}
+
+void ChangeOtherPasswordDialog::on_saveButton_clicked() {
+  QString np = ui->newPassword->text(),
+          rp = ui->retypePassword->text();
+  if(np.count() < 5) {
+    QMessageBox::information(this, "Tidak memenuhi syarat", "Password harus terdiri dari 5 karakter atau lebih");
+    return ;
+  }
+  if(np != rp) {
+    QMessageBox::information(this, "Tidak Cocok", "Sandi dan pengulang sandi tidak cocok");
+    return ;
+  }
+  uman->changePassword(euid, np);
+  accept();
 }
 
 RevokePasswordDialog::RevokePasswordDialog(UserManager *_uman, QWidget *parent)
@@ -79,21 +96,28 @@ RevokePasswordDialog::~RevokePasswordDialog() {}
 
 void RevokePasswordDialog::on_okButton_clicked() {
   if(uman->revokePassword(ui->revoked->text())) {
+    emit revokeSuccess();
     accept();
   }
 }
 
-UserSelectorDialog::UserSelectorDialog(QWidget* parent)
+UserSelectorDialog::UserSelectorDialog(int selid, QWidget* parent)
 : ui(new Ui::UserSelectorDialog), sid(-1), QDialog(parent) {
   ui->setupUi(this);
   auto m = new QSqlTableModel(this);
   m->setTable("users");
+  m->setFilter(QString("user_id != %1").arg(selid));
+  m->select();
+  m->setHeaderData(1, Qt::Horizontal, "Nama Akun", Qt::DisplayRole);
+  m->setHeaderData(4, Qt::Horizontal, "Nama Display", Qt::DisplayRole);
   ui->userView->setModel(m);
   ui->userView->hideColumn(0);
+  ui->userView->hideColumn(2);
   ui->userView->hideColumn(3);
   ui->userView->hideColumn(5);
   ui->userView->hideColumn(6);
   ui->userView->hideColumn(7);
+  ui->userView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
 
 UserSelectorDialog::~UserSelectorDialog() {}
@@ -105,6 +129,6 @@ void UserSelectorDialog::on_pilihButton_clicked() {
     QMessageBox::information(this, "Pilih User", "Anda belum memilih User");
     return ;
   }
-  sid = currentIndex->siblingAtColumn(0).data(Qt::EditRole).toInt();
+  sid = currentIndex.siblingAtColumn(0).data(Qt::EditRole).toInt();
   accept();
 };

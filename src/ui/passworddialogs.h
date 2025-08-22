@@ -18,9 +18,9 @@ public:
   ~ChangePasswordDialog();
 
 private slots:
-  void on_saveButton_clicked();
+  virtual void on_saveButton_clicked();
 
-private:
+protected:
   Ui::ChangePasswordDialog *ui;
   UserManager *uman;
 };
@@ -35,6 +35,9 @@ public:
   ~ChangeOtherPasswordDialog();
 
 private slots:
+  void on_saveButton_clicked() override;
+
+public slots:
   void revokePassword();
 
 private:
@@ -53,7 +56,7 @@ public:
 private slots:
   void on_okButton_clicked();
 
-private
+private:
   Ui::RevokePasswordDialog *ui;
   UserManager *uman;
 
@@ -68,7 +71,7 @@ class UserSelectorDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit UserSelectorDialog(QWidget *parent);
+  explicit UserSelectorDialog(int selectorId, QWidget *parent);
   ~UserSelectorDialog();
   const int& selectedId() const { return sid; };
 
@@ -76,6 +79,7 @@ private slots:
   void on_pilihButton_clicked();
 
 private:
+  Ui::UserSelectorDialog *ui;
   int sid;
 };
 #endif

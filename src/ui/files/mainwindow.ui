@@ -68,6 +68,7 @@
     <addaction name="separator"/>
     <addaction name="actionPerizinan"/>
     <addaction name="menuPassword"/>
+    <addaction name="actionTutupAplikasi"/>
    </widget>
    <addaction name="menuAkun"/>
    <addaction name="menuAdd"/>
@@ -141,7 +142,29 @@
     <string>ModifyUsersPassword</string>
    </property>
   </action>
+  <action name="actionTutupAplikasi">
+   <property name="text">
+    <string>Tutup Aplikasi</string>
+   </property>
+  </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>actionTutupAplikasi</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

@@ -149,11 +149,10 @@ void MainWindow::onUserLoggedIn(int uid) {
 
 void MainWindow::onUserLoggedOut() {
   LoginForm *lform = new LoginForm(db->findChild<UserManager*>("userManager"), this);
-  lform->setAttribute(Qt::WA_DeleteOnClose);
   hide();
-  connect(lform, &QDialog::accepted, this, &MainWindow::show);
   connect(lform, &QDialog::rejected, this, &MainWindow::close);
-  // connect(lform, &QDialog::destroyed, [](){qDebug() << "LoginForm deleted"; });
+  connect(lform, &QDialog::accepted, this, &MainWindow::show);
+  connect(lform, &QDialog::accepted, lform, &QObject::deleteLater);
   lform->setWindowTitle("Masuk lagi");
   lform->open();
 }
@@ -172,10 +171,11 @@ void MainWindow::on_actionPasswordSaya_triggered() {
 }
 
 void MainWindow::on_actionPasswordUserLain_triggered(){
-  // select user
-  UserSelectorDialog usd(this);
+  auto uman = db->findChild<UserManager*>("userManager");
+  UserSelectorDialog usd(uman->currentUser(), this);
   if(usd.exec() == QDialog::Accepted) {
-    auto copd = new ChangeOtherPasswordDialog(usd.selectedId(), db->findChild<UserManager*>("userManager"), this);
-    
+    auto copd = new ChangeOtherPasswordDialog(usd.selectedId(), uman, this);
+    copd->setAttribute(Qt::WA_DeleteOnClose);
+    copd->revokePassword();
   }
 }

@@ -5,10 +5,12 @@
 
 namespace Ui {
   class ChangePasswordDialog;
-}
+  class RevokePasswordDialog;
+  class UserSelectorDialog;
+};
 
 class UserManager;
-class ChangePasswordDialog(QDialog) {
+class ChangePasswordDialog : public QDialog {
   Q_OBJECT
 
 public:
@@ -23,5 +25,57 @@ private:
   UserManager *uman;
 };
 
-// class ChangeOtherPasswordDialog(QDialog)
+// ==============================================
+
+class ChangeOtherPasswordDialog: public ChangePasswordDialog {
+  Q_OBJECT
+
+public:
+  explicit ChangeOtherPasswordDialog(int userId, UserManager* uman, QWidget* =nullptr);
+  ~ChangeOtherPasswordDialog();
+
+private slots:
+  void revokePassword();
+
+private:
+  int euid;
+};
+
+// ==============================================
+
+class RevokePasswordDialog : public QDialog {
+  Q_OBJECT
+
+public:
+  explicit RevokePasswordDialog(UserManager*, QWidget* = nullptr);
+  ~RevokePasswordDialog();
+
+private slots:
+  void on_okButton_clicked();
+
+private
+  Ui::RevokePasswordDialog *ui;
+  UserManager *uman;
+
+signals:
+  void revokeSuccess();
+
+};
+
+// ==============================================
+
+class UserSelectorDialog : public QDialog {
+  Q_OBJECT
+
+public:
+  explicit UserSelectorDialog(QWidget *parent);
+  ~UserSelectorDialog();
+  const int& selectedId() const { return sid; };
+
+private slots:
+  void on_pilihButton_clicked();
+
+private:
+  int sid;
+};
 #endif

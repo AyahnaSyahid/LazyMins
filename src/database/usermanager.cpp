@@ -178,3 +178,9 @@ bool UserManager::changePassword(int uid, const QString& newPwd) {
 bool UserManager::changePassword(const QString& newPwd) {
   return changePassword(_c_id, newPwd);
 }
+
+bool UserManager::revokePassword(const QString& pass) {
+  if(_c_id < 1) return false;
+  QString uname = getNameById(_c_id);
+  return UserManager::nameAndPasswordMatch(uname, pass);
+}

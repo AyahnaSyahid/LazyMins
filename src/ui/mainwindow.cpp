@@ -14,6 +14,7 @@
 #include "editorderdialog.h"
 #include "loginform.h"
 #include "permissiondialog.h"
+#include "passworddialogs.h"
 
 #include <QSqlQuery>
 #include <QItemSelectionModel>
@@ -162,4 +163,19 @@ void MainWindow::on_actionPerizinan_triggered() {
   auto pd = new PermissionDialog(uman->currentUser(), this);
   pd->setAttribute(Qt::WA_DeleteOnClose);
   pd->open();
+}
+
+void MainWindow::on_actionPasswordSaya_triggered() {
+  auto cpd = new ChangePasswordDialog(db->findChild<UserManager*>("userManager"), this);
+  cpd->setAttribute(Qt::WA_DeleteOnClose);
+  cpd->open();
+}
+
+void MainWindow::on_actionPasswordUserLain_triggered(){
+  // select user
+  UserSelectorDialog usd(this);
+  if(usd.exec() == QDialog::Accepted) {
+    auto copd = new ChangeOtherPasswordDialog(usd.selectedId(), db->findChild<UserManager*>("userManager"), this);
+    
+  }
 }

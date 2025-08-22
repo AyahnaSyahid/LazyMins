@@ -26,6 +26,8 @@ private slots:
     void on_actionPerizinan_triggered();
     void openPaymentFor(int);
     void dialogDestroyed(const QString&);
+    void on_actionPasswordSaya_triggered();
+    void on_actionPasswordUserLain_triggered();
 
 public slots:
     void createInvoiceForOrdersReceiver(const QList<int>& );

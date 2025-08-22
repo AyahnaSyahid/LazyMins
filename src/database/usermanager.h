@@ -24,6 +24,7 @@ public:
     const QSqlRecord currentUserRecord() const;
     bool changePassword(const QString& newPwd);
     bool changePassword(int uid, const QString& newPwd);
+    bool revokePassword(const QString& pass);
 
 // STATIC
     static bool nameExists(const QString& name);

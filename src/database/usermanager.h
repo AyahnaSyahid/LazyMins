@@ -22,12 +22,16 @@ public:
 
     const int& currentUser() const { return _c_id ; }
     const QSqlRecord currentUserRecord() const;
+    bool changePassword(const QString& newPwd);
+    bool changePassword(int uid, const QString& newPwd);
 
 // STATIC
     static bool nameExists(const QString& name);
     static QByteArray generateHash(const QString& pw, const QString& salt);
     static QString generateSalt(int length=0);
     static bool hasPermission(int uid, const QString& perm);
+    static bool nameAndPasswordMatch(const QString& name, const QString& pw);
+    static QString getNameById(int);
 
 public slots:
     void logout();
@@ -39,6 +43,7 @@ signals:
     void userLoggedIn(int);
     void userCreated(int);
     void userLoggedOut();
+    void passwordChanged(int);
 };
 
 #endif

@@ -2,9 +2,9 @@
 #include <QSqlQuery>
 #include <QSqlTableModel>
 #include <QSqlError>
-#include <QtDebug>
 #include <QRandomGenerator>
 #include <QVariant>
+#include <QtDebug>
 
 #ifndef HASH_ITERATION_COUNT
 #define HASH_ITERATION_COUNT 98975
@@ -27,23 +27,34 @@ UserManager::~UserManager()
 }
 
 bool UserManager::login(const QString& acc, const QString& pw) {
+  if(UserManager::nameAndPasswordMatch(acc, pw)) {
     QSqlQuery q;
-    q.prepare("SELECT user_id, account_name, password_hash, salt FROM users WHERE account_name = ?");
+    q.prepare("SELECT user_id FROM users WHERE account_name = ?");
     q.addBindValue(acc);
-    q.exec();
-    if(!q.next()) {
-        return false;
-    }
-    QByteArray hash = q.value("password_hash").toByteArray();
-    QString salt = q.value("salt").toString();
-    QByteArray calculated = generateHash(pw, salt);
+    q.exec() && q.next();
+    _c_id = q.value("user_id").toInt();
+    emit userLoggedIn(_c_id);
+    return true;
+  }
+  return false;
+}
 
-    if(hash == calculated) {
-        _c_id = q.value("user_id").toInt();
-        emit userLoggedIn(_c_id);
-        return true;
-    }
-    return false;
+bool UserManager::nameAndPasswordMatch(const QString& name, const QString& pwd) {
+  QSqlQuery q;
+  q.prepare("SELECT user_id, account_name, password_hash, salt FROM users WHERE account_name = ?");
+  q.addBindValue(name);
+  q.exec();
+  
+  if(!q.next()) {
+      return false;
+  }
+  
+  QByteArray hash = q.value("password_hash").toByteArray();
+  QString salt = q.value("salt").toString();
+  QByteArray calculated = generateHash(pwd, salt);
+  // qDebug() << "Hash :" << hash;
+  // qDebug() << "Calc :" << calculated;
+  return hash == calculated;
 }
 
 bool UserManager::nameExists(const QString& name) {
@@ -137,4 +148,33 @@ bool UserManager::hasPermission(int uid, const QString& perm) {
   q.addBindValue(uid);
   q.addBindValue(perm);
   return q.exec() && q.next();
+}
+
+QString UserManager::getNameById(int uid) {
+  QSqlQuery q;
+  q.prepare("SELECT account_name FROM users WHERE user_id = ?");
+  q.addBindValue(uid);
+  if(! (q.exec() && q.next()) ) {
+    return QString();
+  }
+  return q.value("account_name").toString();
+}
+
+bool UserManager::changePassword(int uid, const QString& newPwd) {
+  QString salt = generateSalt();
+  QByteArray hash = generateHash(newPwd, salt);
+  QSqlQuery q;
+  q.prepare("UPDATE users SET (password_hash, salt) = (?, ?) WHERE user_id = ?");
+  q.addBindValue(hash);
+  q.addBindValue(salt);
+  q.addBindValue(uid);
+  if(q.exec()) {
+    emit passwordChanged(uid);
+    return true;
+  }
+  return false;
+}
+
+bool UserManager::changePassword(const QString& newPwd) {
+  return changePassword(_c_id, newPwd);
 }

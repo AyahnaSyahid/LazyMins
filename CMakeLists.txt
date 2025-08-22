@@ -72,6 +72,9 @@ add_executable(LazyAdmins src/main.cpp
                         src/ui/permissiondialog.h
                         src/ui/permissiondialog.cpp
                         src/ui/files/permissiondialog.ui
+                        src/ui/passworddialogs.h
+                        src/ui/passworddialogs.cpp
+                        src/ui/files/changepassworddialog.ui
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
                         resources/resources.qrc )

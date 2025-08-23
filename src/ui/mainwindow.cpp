@@ -149,7 +149,6 @@ void MainWindow::onUserLoggedIn(int uid) {
 
 void MainWindow::onUserLoggedOut() {
   LoginForm *lform = new LoginForm(db->findChild<UserManager*>("userManager"), this);
-  hide();
   connect(lform, &QDialog::rejected, this, &MainWindow::close);
   connect(lform, &QDialog::accepted, this, &MainWindow::show);
   connect(lform, &QDialog::accepted, lform, &QObject::deleteLater);

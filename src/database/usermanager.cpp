@@ -18,13 +18,20 @@
 #define SALT_CHAR_LENGTH 32
 #endif
 
+UserManager* UserManager::_inst = nullptr;
+
 UserManager::UserManager(QObject* parent) : QObject(parent), _c_id(0)
-{}
+{
+  if(!UserManager::_inst) 
+    UserManager::_inst = this;
+}
 
 UserManager::~UserManager()
 {
     logout();
 }
+
+const UserManager* UserManager::instance() { return UserManager::_inst; }
 
 bool UserManager::login(const QString& acc, const QString& pw) {
   if(UserManager::nameAndPasswordMatch(acc, pw)) {

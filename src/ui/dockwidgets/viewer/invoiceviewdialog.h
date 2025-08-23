@@ -9,17 +9,22 @@ namespace Ui {
 #include <QLocale>
 
 class QSqlQueryModel;
+class Database;
 class InvoiceViewDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit InvoiceViewDialog(int c_id, QWidget* =nullptr);
+    explicit InvoiceViewDialog(int c_id, Database*, QWidget* =nullptr);
     ~InvoiceViewDialog();
+
+private slots:
+  void on_invoiceView_customContextMenuRequested(const QPoint&);
+  void reselectModel();
 
 private:
     QSqlQueryModel* model;
     Ui::InvoiceViewDialog* ui;
-    // QLocale loc;
+    Database *db;
 };
 
 #endif

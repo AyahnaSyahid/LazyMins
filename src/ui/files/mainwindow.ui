@@ -55,20 +55,26 @@
     <property name="toolTipsVisible">
      <bool>true</bool>
     </property>
-    <widget class="QMenu" name="menuPassword">
+    <widget class="QMenu" name="menuKelola">
      <property name="title">
-      <string>Kelola Password</string>
+      <string>Kelola</string>
      </property>
-     <addaction name="actionPasswordSaya"/>
-     <addaction name="actionPasswordUserLain"/>
+     <widget class="QMenu" name="menuPassword_2">
+      <property name="title">
+       <string>Password</string>
+      </property>
+      <addaction name="actionPasswordSaya"/>
+      <addaction name="actionPasswordUserLain"/>
+     </widget>
+     <addaction name="actionPerizinan"/>
+     <addaction name="menuPassword_2"/>
     </widget>
     <addaction name="actionLogOut"/>
     <addaction name="separator"/>
     <addaction name="actionAddUser"/>
     <addaction name="separator"/>
-    <addaction name="actionPerizinan"/>
-    <addaction name="menuPassword"/>
     <addaction name="actionTutupAplikasi"/>
+    <addaction name="menuKelola"/>
    </widget>
    <addaction name="menuAkun"/>
    <addaction name="menuAdd"/>
@@ -123,7 +129,7 @@
   </action>
   <action name="actionPerizinan">
    <property name="text">
-    <string>Kelola Izin</string>
+    <string>Izin</string>
    </property>
    <property name="requiredPerm" stdset="0">
     <string>ManagePermissions</string>

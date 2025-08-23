@@ -58,16 +58,22 @@ OrderViewDialog::OrderViewDialog(int cs_id, QWidget* parent)
     setLayout(ml);
     
     q.prepare(R"--(
-SELECT  od.order_id AS [OrderID],
-        od.order_date AS [Tanggal],
-        od.name AS [Nama],
-        pr.name AS [Produk],
-        od.quantity AS [Qty],
-        ad.ad_price AS [SubTotal]
-        FROM orders od JOIN products pr ON od.product_id = pr.product_id
-                       JOIN orders_calc ad ON ad.order_id = od.order_id
-                       JOIN customers cs ON od.customer_id = cs.customer_id
-                       WHERE cs.customer_id = ? AND od.invoice_id IS NULL AND od.status = 'OK';
+        SELECT od.order_id AS OrderID,
+               od.order_date AS Tanggal,
+               od.name AS Nama,
+               pr.name AS Produk,
+               od.quantity AS Qty,
+               ad.price AS SubTotal
+          FROM orders od
+               JOIN
+               products pr ON od.product_id = pr.product_id
+               JOIN
+               orders_calc ad ON ad.order_id = od.order_id
+               JOIN
+               customers cs ON od.customer_id = cs.customer_id
+         WHERE cs.customer_id = ? AND 
+               od.invoice_id IS NULL AND 
+               od.status = 'OK';
     )--");
     q.addBindValue(cs_id);
     q.exec();
@@ -100,14 +106,12 @@ void OrderViewDialog::show_tableView_contextMenu(const QPoint& pt) {
     auto smod = tableView->selectionModel();
     auto showPoint = tableView->viewport()->mapToGlobal(pt);
     QMenu context;
-    auto bayar = context.addAction("Bayar");
+    auto bayar = context.addAction("Buat Invoice");
     auto edit = context.addAction("Edit");
     QModelIndexList mil = smod->selectedRows(0);
-    
     if(mil.count() > 1) {
         edit->setDisabled(true);
     }
-    
     QAction* act = context.exec(showPoint);
     if(!act) return;
     if(act == bayar) {

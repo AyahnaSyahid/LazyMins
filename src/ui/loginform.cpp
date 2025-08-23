@@ -45,15 +45,17 @@ void LoginForm::on_pushButton_clicked() {
         return warning("Nama Akun tidak terdaftar", this);
     }
     
-    if( ! uman->login(username.trimmed(), password.trimmed()) ) {
-        if(passFailCount < 3) {
-            passFailCount++;
-            return warning("Nama Akun atau Kata Sandi tidak cocok.", this);
-        }
-        hide();
+    if( uman->login(username.trimmed(), password.trimmed()) ) {
+      accept();
+      return;
+    } else {
+      if(passFailCount < 3) {
+          passFailCount++;
+          warning("Nama Akun atau Kata Sandi tidak cocok.", this);
+          return;
+      } else {
         warning("Anda telah gagal masuk sebanyak 3 kali, Aplikasi akan ditutup", this);
         reject();
-    } else {
-      accept();
+      }
     }
 }

@@ -33,11 +33,13 @@ public:
     static bool hasPermission(int uid, const QString& perm);
     static bool nameAndPasswordMatch(const QString& name, const QString& pw);
     static QString getNameById(int);
+    const static UserManager* instance();
 
 public slots:
     void logout();
 
 private:
+    static UserManager* _inst;
     int _c_id;
 
 signals:

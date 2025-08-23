@@ -31,12 +31,17 @@ signals:
 private:
   Ui::CustomerOrdersWidget* ui;
   QSqlQueryModel* model;
+  Database *db;
 };
 
 class CustomerOrdersDockWidget : public QDockWidget {
+  Q_OBJECT
 public:
   explicit CustomerOrdersDockWidget(Database*, MainWindow* =nullptr);
   ~CustomerOrdersDockWidget();
+
+private slots:
+  void currentUserChanged(int);
 };
 
 #endif

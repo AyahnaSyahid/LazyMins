@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>279</width>
-    <height>337</height>
+    <height>332</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -118,8 +118,23 @@
          </size>
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,0,1">
+         <property name="spacing">
+          <number>5</number>
+         </property>
          <property name="sizeConstraint">
-          <enum>QLayout::SetMinAndMaxSize</enum>
+          <enum>QLayout::SetDefaultConstraint</enum>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
          </property>
          <item>
           <widget class="QDoubleSpinBox" name="spinWidth">

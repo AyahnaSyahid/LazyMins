@@ -15,7 +15,9 @@ ChangePasswordDialog::ChangePasswordDialog(UserManager* _uman, QWidget* parent)
   ui->setupUi(this);
 }
 
-ChangePasswordDialog::~ChangePasswordDialog() {}
+ChangePasswordDialog::~ChangePasswordDialog() {
+  delete ui;
+}
 
 void ChangePasswordDialog::on_saveButton_clicked() {
   QString crPass = ui->currentPassword->text(),
@@ -92,7 +94,9 @@ RevokePasswordDialog::RevokePasswordDialog(UserManager *_uman, QWidget *parent)
   ui->setupUi(this);
 }
 
-RevokePasswordDialog::~RevokePasswordDialog() {}
+RevokePasswordDialog::~RevokePasswordDialog() {
+  delete ui;
+}
 
 void RevokePasswordDialog::on_okButton_clicked() {
   if(uman->revokePassword(ui->revoked->text())) {
@@ -120,7 +124,9 @@ UserSelectorDialog::UserSelectorDialog(int selid, QWidget* parent)
   ui->userView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
 
-UserSelectorDialog::~UserSelectorDialog() {}
+UserSelectorDialog::~UserSelectorDialog() {
+  delete ui;
+}
 
 void UserSelectorDialog::on_pilihButton_clicked() {
   auto sm = ui->userView->selectionModel();

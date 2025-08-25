@@ -83,6 +83,7 @@ OrderViewDialog::OrderViewDialog(int cs_id, QWidget* parent)
     tableView->verticalHeader()->setDefaultAlignment(Qt::AlignRight | Qt::AlignVCenter);
     tableView->verticalHeader()->setMinimumSectionSize(15);
     tableView->verticalHeader()->setDefaultSectionSize(18);
+    tableView->verticalHeader()->hide();
     setMinimumSize(380, 200);
     
     Viewer::_Proxy* proxy = new Viewer::_Proxy(this);

@@ -44,6 +44,7 @@ _record(rec), db(_d), ui(new Ui::EditOrderDialog), QDialog(parent) {
     connect(ui->spinHeight, SIGNAL(valueChanged(double)), SLOT(updateSubTotal()));
 
     updateSubTotal();
+    adjustSize();
 }
 
 EditOrderDialog::~EditOrderDialog(){

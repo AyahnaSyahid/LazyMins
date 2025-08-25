@@ -73,8 +73,8 @@
     <addaction name="separator"/>
     <addaction name="actionAddUser"/>
     <addaction name="separator"/>
-    <addaction name="actionTutupAplikasi"/>
     <addaction name="menuKelola"/>
+    <addaction name="actionTutupAplikasi"/>
    </widget>
    <addaction name="menuAkun"/>
    <addaction name="menuAdd"/>

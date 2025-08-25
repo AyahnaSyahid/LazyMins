@@ -4,17 +4,23 @@
 #include "models/invoicesmanagermodel.h"
 #include <QMenu>
 #include <QAction>
+#include <QHeaderView>
 #include <QSqlTableModel>
 
 InvoicesManagerDialog::InvoicesManagerDialog(Database *_d, QWidget* parent) :
 db(_d), inModel(new InvoicesManagerModel(_d, this)), ui(new Ui::InvoicesManagerDialog), QDialog(parent) {
     ui->setupUi(this);
+    inModel->setFilterKeyColumn(-1);
+    inModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     ui->invoicesView->setModel(inModel);
-    ui->invoicesView->resizeColumnsToContents();
     ui->invoicesView->hideColumn(0);
     connect(ui->showLunasCheck, SIGNAL(toggled(bool)), inModel, SLOT(showPaidInvoices(bool)));
     connect(db->getTableModel("invoices"), SIGNAL(modelReset()), inModel, SLOT(select()));
     connect(db->getTableModel("payments"), SIGNAL(modelReset()), inModel, SLOT(select()));
+    ui->invoicesView->verticalHeader()->hide();
+    ui->invoicesView->resizeColumnsToContents();
+    ui->invoicesView->setMinimumWidth(ui->invoicesView->horizontalHeader()->length());
+    adjustSize();
 }
 
 InvoicesManagerDialog::~InvoicesManagerDialog() {
@@ -34,4 +40,8 @@ void InvoicesManagerDialog::on_invoicesView_customContextMenuRequested(const QPo
         return ;
     }
     cm.exec(ui->invoicesView->viewport()->mapToGlobal(p));
+}
+
+void InvoicesManagerDialog::on_eFilter_textChanged(const QString& f) {
+  inModel->setFilterFixedString(f);
 }

@@ -479,9 +479,6 @@
         <property name="tabChangesFocus">
          <bool>true</bool>
         </property>
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
         <property name="placeholderText">
          <string>Catatan **</string>
         </property>
@@ -515,8 +512,14 @@
        </item>
        <item>
         <widget class="QTableView" name="paymentHistoryView">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
          <property name="alternatingRowColors">
           <bool>true</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
          </property>
          <attribute name="horizontalHeaderDefaultSectionSize">
           <number>50</number>

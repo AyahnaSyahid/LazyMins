@@ -18,6 +18,7 @@ public:
 
 private slots:
     void on_invoicesView_customContextMenuRequested(const QPoint&);
+    void on_eFilter_textChanged(const QString&);
 
 signals:
     void paymentRequest(int);

@@ -74,7 +74,14 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
 
     double module_px = static_cast<double>(width_px) / total_modules;
 
+    // Reserve space for text (e.g., 20% of height_px for text)
+    int text_height = height_px * 0.2;
+    int barcode_height = height_px;
+    // int barcode_height = height_px;
+
     QImage image(width_px, height_px, QImage::Format_ARGB32);
+    image.setDotsPerMeterX(11811); // 300 DPI
+    image.setDotsPerMeterY(11811); // 300 DPI
     image.fill(Qt::white);
 
     QPainter painter(&image);
@@ -92,7 +99,7 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
         for (int j = 0; j < 6; ++j) {
             int ww = w[j].digitValue();
             if (j % 2 == 0) { // bar
-                painter.drawRect(QRectF(x, 0, ww * module_px, height_px));
+                painter.drawRect(QRectF(x, 0, ww * module_px, barcode_height));
             }
             x += ww * module_px;
         }
@@ -103,12 +110,26 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
     for (int j = 0; j < 7; ++j) {
         int ww = stop_w[j].digitValue();
         if (j % 2 == 0) { // bar
-            painter.drawRect(QRectF(x, 0, ww * module_px, height_px));
+            painter.drawRect(QRectF(x, 0, ww * module_px, barcode_height));
         }
         x += ww * module_px;
     }
 
-    // Right quiet zone is already white
-
+    painter.save();
+    
+    QFont font("Calibri");
+    font.setPointSizeF(4.5);
+    painter.setFont(font);
+    QRectF textBg(0, 0, width_px / 3.5, height_px / 7);
+    textBg.moveLeft((width_px - textBg.width()) / 2.0);
+    textBg.moveBottom(height_px * 1.0);
+    
+    painter.setBrush(Qt::white);
+    painter.drawRect(textBg);
+    
+    painter.setPen(Qt::black);
+    painter.drawText(textBg, Qt::AlignCenter, text);
+    painter.restore();
+    
     return image;
 }

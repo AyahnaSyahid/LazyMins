@@ -117,10 +117,11 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
 
     painter.save();
     
-    QFont font("Calibri");
-    font.setPointSizeF(4.5);
+    QFont font("Courier New");
+    font.setPointSizeF(7);
+    font.setWeight(QFont::Bold);
     painter.setFont(font);
-    QRectF textBg(0, 0, width_px / 3.5, height_px / 7);
+    QRectF textBg(0, 0, width_px / 3, height_px / 5.0);
     textBg.moveLeft((width_px - textBg.width()) / 2.0);
     textBg.moveBottom(height_px * 1.0);
     

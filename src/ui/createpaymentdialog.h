@@ -21,6 +21,7 @@ private slots:
     void fillUiData();
     void on_openOrdersView_clicked();
     void on_saveButton_clicked();
+    void on_printButton_clicked();
     
 private:
     int invoiceId;

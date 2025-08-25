@@ -2,4 +2,8 @@
   <qresource prefix="db">
     <file alias="base.db3">database/base.db3</file>
   </qresource>
+  <qresource prefix="images">
+    <file>sample-logo.png</file>
+    <file>LM.ico</file>
+  </qresource>
 </RCC>

@@ -2,6 +2,7 @@
 #include "files/ui_createpaymentdialog.h"
 #include "database.h"
 #include "models/createordermodel.h"
+#include "invoiceprinter.h"
 #include <QDate>
 #include <QLocale>
 
@@ -192,6 +193,11 @@ void CreatePaymentDialog::fillUiData() {
     ui->paymentHistoryView->resizeColumnsToContents();
 }
 
+void CreatePaymentDialog::on_printButton_clicked() {
+  InvoicePrinter inp;
+  inp.openPreviewDialog(invoiceId);
+}
+
 QVariant _PaymentHistoryModel::data(const QModelIndex& mi, int role) const {
     if(role == Qt::DisplayRole) {
         if(mi.column() == 3) {
@@ -222,3 +228,4 @@ QVariant _PaymentHistoryModel::data(const QModelIndex& mi, int role) const {
     }
     return QSortFilterProxyModel::data(mi, role);
 }
+

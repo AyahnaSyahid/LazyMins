@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     }
     
     QApplication app(argc, argv);
+
     QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
     QLocale::setDefault(loc);
     

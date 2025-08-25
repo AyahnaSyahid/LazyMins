@@ -538,7 +538,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="printButton">
            <property name="text">
             <string>Print</string>
            </property>
@@ -836,7 +836,7 @@
   <tabstop>methodBox</tabstop>
   <tabstop>saveButton</tabstop>
   <tabstop>paymentHistoryView</tabstop>
-  <tabstop>pushButton_3</tabstop>
+  <tabstop>printButton</tabstop>
   <tabstop>openOrdersView</tabstop>
  </tabstops>
  <resources/>

@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>LazyMins</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../../../resources/resources.qrc">
+    <normaloff>:/images/LM.ico</normaloff>:/images/LM.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -154,7 +158,9 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../../resources/resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>actionTutupAplikasi</sender>

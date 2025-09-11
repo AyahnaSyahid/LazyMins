@@ -1,56 +1,57 @@
+#include <QAction>
 #include <QApplication>
+#include <QLocale>
 #include <QMainWindow>
+#include <QMenu>
+#include <QMenuBar>
+#include <QSqlTableModel>
+#include <QTableView>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <QtDebug>
 
-#include "usermanager.h"
 #include "database.h"
 #include "loginform.h"
 #include "mainwindow.h"
+#include "usermanager.h"
+#include "invoicegraphics.h"
 
-#include <QMenuBar>
-#include <QMenu>
-#include <QAction>
-#include <QSqlTableModel>
-#include <QTableView>
-#include <QVBoxLayout>
-#include <QLocale>
-#include <QTimer>
-#include <QtDebug>
-
-int main(int argc, char** argv)
-{
-    if(argc > 1) {
-        if(QString(argv[1]).toLower() == "adduser") {
-            if(argc == 5) {
-                Database base;
-                UserManager uman(&base);
-                if(uman.nameExists(argv[2])) {
-                    qInfo() << QString("Nama User '%1' telah digunakan").arg("test user");
-                }
-            }
+int main(int argc, char** argv) {
+  if (argc > 1) {
+    if (QString(argv[1]).toLower() == "adduser") {
+      if (argc == 5) {
+        Database base;
+        UserManager uman(&base);
+        if (uman.nameExists(argv[2])) {
+          qInfo() << QString("Nama User '%1' telah digunakan").arg("test user");
         }
+      }
     }
-    
-    QApplication app(argc, argv);
+  }
 
-    QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
-    QLocale::setDefault(loc);
-    
-    Database database;
-    
-    UserManager uman(&database);
-    
-    uman.setObjectName("userManager");
+  QApplication app(argc, argv);
+  
+  // InvoiceGraphics::
+  
+  QLocale loc(QLocale::Indonesian, QLocale::Indonesia);
+  QLocale::setDefault(loc);
 
-    if(!uman.nameExists("root")) {
-        uman.createUser("root", "holis", "Na Ha La Ka Ma Ra Da");
-    }
+  Database database;
 
-    MainWindow mainWindow(&database);
-    
-    LoginForm lf(&uman);
-    lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
+  UserManager uman(&database);
 
-    lf.setWindowModality(Qt::ApplicationModal);
-    lf.open();
-    return app.exec();
+  uman.setObjectName("userManager");
+
+  if (!uman.nameExists("root")) {
+    uman.createUser("root", "holis", "Na Ha La Ka Ma Ra Da");
+  }
+
+  MainWindow mainWindow(&database);
+
+  LoginForm lf(&uman);
+  lf.connect(&lf, &QDialog::accepted, &mainWindow, &QMainWindow::show);
+
+  lf.setWindowModality(Qt::ApplicationModal);
+  lf.open();
+  return app.exec();
 }

@@ -1,6 +1,7 @@
 #include <QImage>
 #include <QPainter>
 #include <QString>
+#include <QFontMetrics>
 #include <vector>
 
 QImage createBarcode(const QString& text, int width_px, int height_px) {
@@ -20,7 +21,6 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
     };
 
     // Note: widths_str[106] is for stop: "2331112"
-
     // Assume text is printable ASCII, use Code Set B
     QByteArray data = text.toLatin1();
     int num_data = data.length();
@@ -118,15 +118,16 @@ QImage createBarcode(const QString& text, int width_px, int height_px) {
     painter.save();
     
     QFont font("Courier New");
-    font.setPointSizeF(7);
+    font.setPointSizeF(8);
     font.setWeight(QFont::Bold);
     painter.setFont(font);
-    QRectF textBg(0, 0, width_px / 3, height_px / 5.0);
-    textBg.moveLeft((width_px - textBg.width()) / 2.0);
-    textBg.moveBottom(height_px * 1.0);
+    
+    QRect textBg = painter.fontMetrics().boundingRect(text);
+    textBg.moveCenter(image.rect().center());
+    textBg.moveTop(image.rect().top());
     
     painter.setBrush(Qt::white);
-    painter.drawRect(textBg);
+    painter.drawRect(textBg.adjusted(-7, 0, 7, 0));
     
     painter.setPen(Qt::black);
     painter.drawText(textBg, Qt::AlignCenter, text);

@@ -76,11 +76,14 @@ add_executable(LazyAdmins src/main.cpp
                         src/ui/passworddialogs.cpp
                         src/ui/files/changepassworddialog.ui
                         src/ui/files/userselectordialog.ui
-                        src/printing/invoiceprinter.h
-                        src/printing/invoiceprinter.cpp
+                        src/printing/invoicegraphics.h
+                        src/printing/invoicegraphics.cpp
+                        src/printing/invoicemaker.h
+                        src/printing/invoicemaker.cpp
                         src/printing/barcode128.cpp
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
+                        src/printing/inv.qrc
                         resources/resources.qrc
                         resources/res.rc)
                         

@@ -3,6 +3,7 @@
     <file alias="base.db3">database/base.db3</file>
   </qresource>
   <qresource prefix="images">
+    <file alias="company-logo.svg">lazy-admin-company-logo.svg</file>
     <file>sample-logo.png</file>
     <file>LM.ico</file>
   </qresource>

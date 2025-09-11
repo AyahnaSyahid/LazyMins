@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="fonts">
+    <file alias="printing/roboto.ttf">res/RobotoMono.ttf</file>
+  </qresource>
+  <qresource prefix="images">
+    <file alias="printing/sample-logo.jpg">res/sample-logo.jpg</file>
+  </qresource>
+</RCC>

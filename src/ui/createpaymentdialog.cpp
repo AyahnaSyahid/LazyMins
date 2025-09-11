@@ -2,7 +2,7 @@
 #include "files/ui_createpaymentdialog.h"
 #include "database.h"
 #include "models/createordermodel.h"
-#include "invoiceprinter.h"
+#include "invoicemaker.h"
 #include <QDate>
 #include <QLocale>
 
@@ -194,8 +194,8 @@ void CreatePaymentDialog::fillUiData() {
 }
 
 void CreatePaymentDialog::on_printButton_clicked() {
-  InvoicePrinter inp;
-  inp.openPreviewDialog(invoiceId);
+  InvoiceMaker inm;
+  inm.showInvoice(invoiceId);
 }
 
 QVariant _PaymentHistoryModel::data(const QModelIndex& mi, int role) const {

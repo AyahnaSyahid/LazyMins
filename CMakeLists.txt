@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.20)
+
 project(LazyMins)
 
 
@@ -7,6 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt5 COMPONENTS Widgets Test Sql Network PrintSupport REQUIRED)
 
@@ -90,7 +92,6 @@ add_executable(LazyAdmins src/main.cpp
 target_compile_definitions(LazyAdmins PRIVATE APP_DATABASE_NAME="database.sqlite3")
 target_include_directories(LazyAdmins PUBLIC src/ui src/database src/printing)
 target_link_libraries(LazyAdmins PRIVATE Qt5::Widgets Qt5::Sql Qt5::Network Qt5::PrintSupport)
-
 # add_subdirectory(testData)
 # test_hash
 # add_executable(hashTest src/test_hash.cpp

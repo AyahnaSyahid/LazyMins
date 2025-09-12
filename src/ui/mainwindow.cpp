@@ -28,14 +28,14 @@
 
 #define REGIST_DIALOGS(DCL, DNM, MWIN) \
     if(!_dialogs.contains(#DNM)) {\
-        DCL* cod = new DCL(db);\
+        DCL* cod = new DCL(db, this);\
         cod->setObjectName(#DNM);\
         cod->setAttribute(Qt::WA_DeleteOnClose);\
         connect(cod, &QObject::destroyed, [this, name = cod->objectName()]() {\
             this->dialogDestroyed(name);\
         });\
         _dialogs.insert(#DNM, cod);\
-        cod->show();\
+        cod->open();\
     } else {\
         _dialogs.value(#DNM)->activateWindow();\
     }\

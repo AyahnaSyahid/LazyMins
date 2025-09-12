@@ -3,6 +3,8 @@
 #include "database.h"
 #include "models/createordermodel.h"
 #include "invoicemaker.h"
+#include "ordersofinvoicedialog.h"
+
 #include <QDate>
 #include <QLocale>
 
@@ -116,18 +118,10 @@ void CreatePaymentDialog::inputLogic() {
 }
 
 void CreatePaymentDialog::on_openOrdersView_clicked() {
-    QDialog* dlg = new QDialog(this);
-    dlg->setLayout(new QHBoxLayout);
-    QTableView* tv = new QTableView(dlg);
-    QSortFilterProxyModel* proxy = new QSortFilterProxyModel(this);
-    auto omod = db->getTableModel("orders");
-    proxy->setSourceModel(omod);
-    proxy->setFilterKeyColumn(omod->record().indexOf("invoice_id"));
-    proxy->setFilterFixedString(QString::number(invoiceId));
-    tv->setModel(proxy);
-    dlg->layout()->addWidget(tv);
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-    dlg->open();
+  OrdersOfInvoiceDialog *dia = new OrdersOfInvoiceDialog(invoiceId, db, this);
+  dia->findChild<QLabel*>("label")->setText(ui->lCode->text());
+  dia->setAttribute(Qt::WA_DeleteOnClose);
+  dia->open();
 }
 
 void CreatePaymentDialog::on_saveButton_clicked() {

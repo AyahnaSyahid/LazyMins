@@ -183,7 +183,7 @@ void InvoiceMaker::showInvoice(int iid, QWidget *parentWidget) {
   painter.setBrush(Qt::black);
 
   painter.drawText(QRectF(40.0f, lastY + distFromLine, textWidth, fontHeight),
-                   Qt::AlignLeft, tabHeader[0], &tempRect);
+                   Qt::AlignLeft | Qt::TextDontClip, tabHeader[0], &tempRect);
   painter.drawText(tempRect.translated(0, fontHeight), Qt::AlignLeft,
                    tabHeader[1], &tempRect2);
 

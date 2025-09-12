@@ -78,11 +78,18 @@ add_executable(LazyAdmins src/main.cpp
                         src/ui/passworddialogs.cpp
                         src/ui/files/changepassworddialog.ui
                         src/ui/files/userselectordialog.ui
+                        
                         src/printing/invoicegraphics.h
                         src/printing/invoicegraphics.cpp
                         src/printing/invoicemaker.h
                         src/printing/invoicemaker.cpp
                         src/printing/barcode128.cpp
+                        
+                        src/ui/ordersofinvoicedialog.h
+                        src/ui/ordersofinvoicedialog.cpp
+                        src/ui/files/ordersofinvoicedialog.ui
+                        src/ui/models/ordersofinvoicemodel.cpp
+                        src/ui/models/ordersofinvoicemodel.h
                         
                         # ${UI_SOURCES} ${DB_SOURCES}
                         src/printing/inv.qrc

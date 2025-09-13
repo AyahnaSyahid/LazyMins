@@ -91,7 +91,7 @@ add_executable(LazyAdmins src/main.cpp
                         src/ui/models/ordersofinvoicemodel.cpp
                         src/ui/models/ordersofinvoicemodel.h
                         
-                        # ${UI_SOURCES} ${DB_SOURCES}
+                        # ${UI_SOURCES} ${DB_SOURCES}s
                         src/printing/inv.qrc
                         resources/resources.qrc
                         resources/res.rc)

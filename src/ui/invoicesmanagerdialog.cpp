@@ -31,10 +31,14 @@ void InvoicesManagerDialog::on_invoicesView_customContextMenuRequested(const QPo
     QModelIndex iap(ui->invoicesView->indexAt(p));
     QMenu cm(this);
     if(iap.siblingAtColumn(6).data(Qt::EditRole).toInt() > 0) {
-        QAction* act = cm.addAction("Lihat");
-        act->connect(act, &QAction::triggered, [this, iap](){
-            emit db->paymentRequest(iap.siblingAtColumn(0).data(Qt::EditRole).toInt());
-        });
+      // Aksi hanya tersedia untuk invoice yang belum lunas
+      QAction* act = cm.addAction("Pembayaran");
+      act->connect(act, &QAction::triggered, [this, iap](){
+          emit db->paymentRequest(iap.siblingAtColumn(0).data(Qt::EditRole).toInt());
+      });
+    } else {
+      // Aksi untuk invoice yang telah lunas
+      
     }
     if(cm.isEmpty()) {
         return ;

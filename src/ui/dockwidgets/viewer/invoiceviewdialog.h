@@ -19,6 +19,7 @@ public:
 
 private slots:
   void on_invoiceView_customContextMenuRequested(const QPoint&);
+  void requestPayment(int inv_id);
   void reselectModel();
 
 private:

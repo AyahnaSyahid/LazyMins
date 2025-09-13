@@ -1,5 +1,4 @@
 #include "editorderdialog.h"
-#include "database.h"
 #include "usermanager.h"
 #include "files/ui_editorderdialog.h"
 #include <QVBoxLayout>

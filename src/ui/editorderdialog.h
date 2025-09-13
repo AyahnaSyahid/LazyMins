@@ -3,9 +3,7 @@
 
 #include <QDialog>
 #include <QSqlRecord>
-
-class QSqlError;
-class Database;
+#include "database.h"
 
 namespace Ui {
     class EditOrderDialog;
@@ -30,8 +28,8 @@ signals:
     void queryUpdate(const QSqlRecord& r);
 
 private:
-    QSqlRecord _record;
     Ui::EditOrderDialog* ui;
+    QSqlRecord _record;
     Database* db;
 };
 

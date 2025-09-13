@@ -1,8 +1,7 @@
-
 #ifndef OrderManager_H
 #define OrderManager_H
-
 #include "tablemanager.h"
+
 
 class QSqlRecord;
 class QSqlError;

@@ -1,6 +1,7 @@
 #include "database.h"
 #include "usermanager.h"
 #include "invoiceviewdialog.h"
+#include "createpaymentdialog.h"
 #include "ui_files/ui_invoiceviewdialog.h"
 #include <QDate>
 #include <QMenu>
@@ -44,7 +45,6 @@ InvoiceViewDialog::InvoiceViewDialog(int cid, Database* _d, QWidget* parent)
   
   setWindowTitle(QString("Data Invoice | %1").arg(model->record(0).value("Konsumen").toString()));
   auto proxy = new InvoiceViewDialogNS::_Proxy(this);
-  // proxy->setObjectName("proxyModel");
   proxy->setSourceModel(model);
   proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
   proxy->setFilterKeyColumn(-1);
@@ -79,7 +79,8 @@ void InvoiceViewDialog::on_invoiceView_customContextMenuRequested(const QPoint& 
   auto g_point = ui->invoiceView->viewport()->mapToGlobal(p);
   QMenu invoiceMenu("inv");
   auto actShow = invoiceMenu.addAction("Lihat");
-  connect(actShow, &QAction::triggered, [this, &invoiceId] () { db->paymentRequest(invoiceId); });
+  // connect(actShow, &QAction::triggered, [this, &invoiceId] () { db->paymentRequest(invoiceId); });
+  connect(actShow, &QAction::triggered, [this, &invoiceId] () { requestPayment(invoiceId); });
   invoiceMenu.exec(g_point);
 }
 
@@ -100,3 +101,8 @@ QVariant InvoiceViewDialogNS::_Proxy::data(const QModelIndex& mi, int role) cons
     return QSortFilterProxyModel::data(mi, role);
 }
 
+void InvoiceViewDialog::requestPayment(int inv_id) {
+  CreatePaymentDialog* cid = new CreatePaymentDialog(inv_id, db, this);
+  cid->setAttribute(Qt::WA_DeleteOnClose);
+  cid->open();
+}

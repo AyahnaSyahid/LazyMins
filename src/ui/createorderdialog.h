@@ -3,7 +3,6 @@
 
 #include <QDialog>
 
-
 class QDate;
 class QSqlRecord;
 class QSqlError;

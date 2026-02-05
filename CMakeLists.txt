@@ -5,4 +5,6 @@ project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Network)
 qt_standard_project_setup()
 
-# qt_add_executable(LMInstaller )
+qt_add_executable(LAdmins src/main.cpp)
+
+target_link_libraries(LAdmins PRIVATE Qt6::Sql Qt6::Widgets)

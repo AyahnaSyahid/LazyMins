@@ -134,4 +134,5 @@ CREATE TABLE payments (
 
 CREATE UNIQUE INDEX "" ON products (sku COLLATE NOCASE);
 CREATE INDEX idx_admin_tanggal ON transaksi (tanggal, admin_id);
+
 COMMIT;

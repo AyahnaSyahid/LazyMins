@@ -1,22 +1,21 @@
 #include <QApplication>
 #include <QSqlDatabase>
 #include <QSqlError>
+#include <QSettings>
+#include <QHash>
+#include "src/database/databasemanager.h"
+
 #include <QtDebug>
 
 int main(int argc, char **args)
 {
   QApplication app(argc, args);
+  app.setOrganizationName("AksaraJaya");
+  app.setApplicationName("LazyAdmins");
   
-  // just for now, connect the to the database inside build/data directory
-  auto db = QSqlDatabase::addDatabase("QSQLITE", "LMDatabase");
-  db.setDatabaseName(QString("%1/data/lm.db3").arg(app.applicationDirPath()));
-  if(!db.open()) {
-    qDebug() << "Database Open Failed : " << db.databaseName();
-    qDebug() << db.lastError().text();
-    app.quit();
-    return 0;
-  }
-  qDebug() << "Database :" << db.databaseName() << "Opened gracefully";
-  app.quit();
+  QSettings::setDefaultFormat(QSettings::IniFormat);
+  QSettings settings;
+  auto db = DatabaseManager::instance();
+
   return 0;
 };

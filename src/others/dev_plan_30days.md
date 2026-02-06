@@ -31,16 +31,16 @@
   ├── tests/
   └── docs/
   ```
-- [✔️] Konfigurasi `.pro` atau `CMakeLists.txt`
-- [✔️] Setup database connection class
+- [✔] Konfigurasi `.pro` atau `CMakeLists.txt`
+- [✔] Setup database connection class
 
 **Deliverable:** Project Qt6 yang bisa di-compile dengan database connection
 
 #### **Hari 2: Database Layer**
-- [ ] Implementasi `DatabaseManager` class
-- [ ] Import skema database SQL
-- [ ] Buat migration system sederhana
-- [ ] Test koneksi database
+- [✔] Implementasi `DatabaseManager` class
+- [✔] Import skema database SQL
+- [✔] Buat migration system sederhana
+- [✔] Test koneksi database
 - [ ] Implementasi error handling untuk database
 - [ ] Buat utility untuk backup/restore database
 

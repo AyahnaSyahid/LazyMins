@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="schema">
+    <file alias="main.sql">schema/percetakan_schema_improved.sql</file>
+  </qresource>
+</RCC>

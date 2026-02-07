@@ -14,6 +14,7 @@ CREATE TABLE admins (
     role_id INTEGER NOT NULL,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
+    salt TEXT NOT NULL,               -- Password ter-hash (bcrypt/argon2)
     nama_lengkap TEXT NOT NULL,
     email TEXT,                       -- TAMBAHAN: Email admin
     nomor_telp TEXT,                  -- TAMBAHAN: Nomor telepon admin

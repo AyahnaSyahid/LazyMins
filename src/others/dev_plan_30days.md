@@ -41,8 +41,8 @@
 - [✔] Import skema database SQL
 - [✔] Buat migration system sederhana
 - [✔] Test koneksi database
-- [ ] Implementasi error handling untuk database
-- [ ] Buat utility untuk backup/restore database
+- [] Implementasi error handling untuk database
+- [] Buat utility untuk backup/restore database
 
 **Deliverable:** Database layer yang fungsional dengan CRUD dasar
 

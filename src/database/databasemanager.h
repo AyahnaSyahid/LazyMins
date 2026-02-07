@@ -6,6 +6,8 @@ class DatabaseManager
 {
   public:
     static DatabaseManager& instance();
+    DatabaseManager(const DatabaseManager &) = delete;
+    DatabaseManager &operator=(DatabaseManager &) = delete;
     bool initialize(const QHash<QString, QVariant> &settings);
     
     bool isOpen() const;
@@ -15,15 +17,14 @@ class DatabaseManager
     bool rollback();
     
     QSqlError lastError() const;
-    ~DatabaseManager();
     
   private:
     DatabaseManager();
+    ~DatabaseManager();
     QSqlDatabase m_database;
     bool m_databaseReady;
     bool initSchema(QSqlDatabase &db);
     bool verifySchema(QSqlDatabase &db);
-    
 };
 
 #endif

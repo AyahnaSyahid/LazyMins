@@ -1,7 +1,7 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
 CREATE TABLE roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     role_name TEXT NOT NULL UNIQUE,  -- Nama role: super_admin, kasir, operator
     description TEXT,                 -- Deskripsi role
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -10,8 +10,8 @@ INSERT INTO roles VALUES(1,'super_admin','Akses penuh ke seluruh sistem','2026-0
 INSERT INTO roles VALUES(2,'kasir','Menangani transaksi dan pembayaran','2026-02-05 16:44:14');
 INSERT INTO roles VALUES(3,'operator','Mengelola order dan produksi','2026-02-05 16:44:14');
 CREATE TABLE admins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id INTEGER NOT NULL,
+    id INTEGER PRIMARY KEY,
+    role_id INTEGER NOT NULL DEFAULT 3, -- role terendah
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
     salt TEXT NOT NULL,               -- Password ter-hash (bcrypt/argon2)
@@ -25,7 +25,7 @@ CREATE TABLE admins (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT
 );
 CREATE TABLE konsumen (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     customer_code TEXT UNIQUE,        -- TAMBAHAN: Kode unik pelanggan (CUST-001)
     nama_lengkap TEXT NOT NULL,
     customer_type TEXT DEFAULT 'individual',  -- TAMBAHAN: individual/company
@@ -46,7 +46,7 @@ CREATE TABLE konsumen (
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id)
 );
 CREATE TABLE product_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     category_name TEXT NOT NULL UNIQUE,
     description TEXT,
     is_active INTEGER DEFAULT 1,
@@ -59,7 +59,7 @@ INSERT INTO product_categories VALUES(4,'Stiker','Stiker dan label',1,'2026-02-0
 INSERT INTO product_categories VALUES(5,'Fotocopy','Layanan fotocopy',1,'2026-02-05 16:44:14');
 INSERT INTO product_categories VALUES(6,'Lainnya','Produk lainnya',1,'2026-02-05 16:44:14');
 CREATE TABLE products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     sku TEXT UNIQUE NOT NULL,         -- Stock Keeping Unit
     name TEXT NOT NULL,
     category_id INTEGER,              -- TAMBAHAN: Kategori produk
@@ -74,7 +74,7 @@ CREATE TABLE products (
     FOREIGN KEY (category_id) REFERENCES product_categories(id)
 );
 CREATE TABLE price_levels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     level_name TEXT NOT NULL UNIQUE,
     discount_percentage REAL DEFAULT 0,  -- TAMBAHAN: Persentase diskon
     description TEXT,                     -- TAMBAHAN: Deskripsi level
@@ -92,8 +92,19 @@ CREATE TABLE product_prices (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id) ON DELETE CASCADE
 );
+
+CREATE TRIGGER trg_product_prices_update
+         AFTER UPDATE OF price
+            ON product_prices
+          WHEN old.price != new.price
+BEGIN
+    UPDATE product_prices
+       SET updated_at = CURRENT_TIMESTAMP
+     WHERE (product_id, price_level_id) = (product_id, price_level_id);
+END;
+
 CREATE TABLE finishing_services (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     code TEXT UNIQUE,                 -- TAMBAHAN: Kode finishing (FIN-001)
     name TEXT NOT NULL,
     description TEXT,                 -- TAMBAHAN: Deskripsi layanan
@@ -104,7 +115,7 @@ CREATE TABLE finishing_services (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_number TEXT UNIQUE NOT NULL,
     customer_id INTEGER,
     customer_name TEXT NOT NULL,      -- Denormalisasi untuk performa
@@ -145,7 +156,7 @@ CREATE TABLE orders (
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id)
 );
 CREATE TABLE order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_id INTEGER NOT NULL,
     product_id INTEGER,
     product_name TEXT NOT NULL,       -- TAMBAHAN: Denormalisasi nama produk
@@ -162,7 +173,7 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
 );
 CREATE TABLE order_item_finishings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_item_id INTEGER NOT NULL,
     finishing_id INTEGER,
     finishing_name TEXT NOT NULL,     -- TAMBAHAN: Denormalisasi nama finishing
@@ -174,7 +185,7 @@ CREATE TABLE order_item_finishings (
     FOREIGN KEY (finishing_id) REFERENCES finishing_services(id) ON DELETE RESTRICT
 );
 CREATE TABLE payment_methods (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     method_code TEXT UNIQUE NOT NULL,
     method_name TEXT NOT NULL,
     is_active INTEGER DEFAULT 1,
@@ -186,7 +197,7 @@ INSERT INTO payment_methods VALUES(3,'qris','QRIS',1,'2026-02-05 16:44:14');
 INSERT INTO payment_methods VALUES(4,'debit','Kartu Debit',1,'2026-02-05 16:44:14');
 INSERT INTO payment_methods VALUES(5,'credit','Kartu Kredit',1,'2026-02-05 16:44:14');
 CREATE TABLE payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     payment_number TEXT UNIQUE,       -- TAMBAHAN: Nomor pembayaran unik (PAY-001)
     order_id INTEGER NOT NULL,
     customer_id INTEGER,              -- TAMBAHAN: Referensi ke customer
@@ -224,7 +235,7 @@ CREATE TABLE payments (
     FOREIGN KEY (verified_by) REFERENCES admins(id)
 );
 CREATE TABLE kategori_transaksi (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
     tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
@@ -243,7 +254,7 @@ INSERT INTO kategori_transaksi VALUES(6,NULL,'Utilitas','pengeluaran',NULL,'List
 INSERT INTO kategori_transaksi VALUES(7,NULL,'Maintenance','pengeluaran',NULL,'Perawatan mesin dan peralatan',1,'2026-02-05 16:44:14');
 INSERT INTO kategori_transaksi VALUES(8,NULL,'Lain-lain (Pengeluaran)','pengeluaran',NULL,'Pengeluaran lainnya',1,'2026-02-05 16:44:14');
 CREATE TABLE transaksi (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     transaction_number TEXT UNIQUE,   -- TAMBAHAN: Nomor transaksi unik
     admin_id INTEGER NOT NULL,
     kategori_id INTEGER,
@@ -268,7 +279,7 @@ CREATE TABLE transaksi (
     FOREIGN KEY (kategori_id) REFERENCES kategori_transaksi(id) ON DELETE RESTRICT
 );
 CREATE TABLE stock_movements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
     movement_type TEXT NOT NULL CHECK(movement_type IN ('in', 'out', 'adjustment')),
     quantity INTEGER NOT NULL,        -- Positif untuk masuk, negatif untuk keluar
@@ -289,7 +300,7 @@ CREATE TABLE stock_movements (
     FOREIGN KEY (admin_id) REFERENCES admins(id)
 );
 CREATE TABLE activity_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     admin_id INTEGER,
     action TEXT NOT NULL,             -- login, create_order, update_payment, dll
     table_name TEXT,                  -- Nama tabel yang diubah
@@ -303,7 +314,7 @@ CREATE TABLE activity_logs (
     FOREIGN KEY (admin_id) REFERENCES admins(id)
 );
 CREATE TABLE app_settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     setting_key TEXT UNIQUE NOT NULL,
     setting_value TEXT,
     data_type TEXT DEFAULT 'string',  -- string, number, boolean, json

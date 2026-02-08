@@ -14,7 +14,7 @@ BEGIN TRANSACTION;
 
 -- Tabel Roles: Mendefinisikan peran pengguna dalam sistem
 CREATE TABLE roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     role_name TEXT NOT NULL UNIQUE,  -- Nama role: super_admin, kasir, operator
     description TEXT,                 -- Deskripsi role
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -28,10 +28,11 @@ INSERT INTO roles (id, role_name, description) VALUES
 
 -- Tabel Admins: Pengguna/staff yang mengoperasikan sistem
 CREATE TABLE admins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id INTEGER NOT NULL,
+    id INTEGER PRIMARY KEY,
+    role_id INTEGER NOT NULL DEFAULT 3, -- Mulai sebagai Operator
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
+    salt TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
     nama_lengkap TEXT NOT NULL,
     email TEXT,                       -- TAMBAHAN: Email admin
     nomor_telp TEXT,                  -- TAMBAHAN: Nomor telepon admin
@@ -52,7 +53,7 @@ CREATE INDEX idx_admins_role ON admins(role_id);
 
 -- Tabel Konsumen: Data pelanggan (diperbaiki dengan field tambahan)
 CREATE TABLE konsumen (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     customer_code TEXT UNIQUE,        -- TAMBAHAN: Kode unik pelanggan (CUST-001)
     nama_lengkap TEXT NOT NULL,
     customer_type TEXT DEFAULT 'individual',  -- TAMBAHAN: individual/company
@@ -84,7 +85,7 @@ CREATE INDEX idx_konsumen_code ON konsumen(customer_code);
 
 -- Tabel Kategori Produk (TAMBAHAN BARU)
 CREATE TABLE product_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     category_name TEXT NOT NULL UNIQUE,
     description TEXT,
     is_active INTEGER DEFAULT 1,
@@ -102,7 +103,7 @@ INSERT INTO product_categories (category_name, description) VALUES
 
 -- Tabel Products: Produk yang dijual (diperbaiki)
 CREATE TABLE products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     sku TEXT UNIQUE NOT NULL,         -- Stock Keeping Unit
     name TEXT NOT NULL,
     category_id INTEGER,              -- TAMBAHAN: Kategori produk
@@ -124,7 +125,7 @@ CREATE INDEX idx_products_category ON products(category_id);
 
 -- Tabel Price Levels: Level harga untuk berbagai tipe pelanggan
 CREATE TABLE price_levels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     level_name TEXT NOT NULL UNIQUE,
     discount_percentage REAL DEFAULT 0,  -- TAMBAHAN: Persentase diskon
     description TEXT,                     -- TAMBAHAN: Deskripsi level
@@ -141,12 +142,22 @@ INSERT INTO price_levels (id, level_name, discount_percentage, description) VALU
 CREATE TABLE product_prices (
     product_id INTEGER,
     price_level_id INTEGER,
-    price REAL NOT NULL CHECK(price >= 0),
+    price INTEGER NOT NULL CHECK(price >= 0),
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (product_id, price_level_id),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id) ON DELETE CASCADE
 );
+
+CREATE TRIGGER trg_product_price_update
+     AFTER UPDATE OF price
+        ON product_prices
+      WHEN old.price != new.price
+BEGIN
+    UPDATE product_prices
+       SET updated_at = CURRENT_TIMESTAMP
+     WHERE (product_id, price_level_id) = (product_id, price_level_id);
+END;
 
 -- ============================================================================
 -- 4. TABEL MASTER - LAYANAN FINISHING
@@ -154,7 +165,7 @@ CREATE TABLE product_prices (
 
 -- Tabel Finishing Services: Layanan finishing tambahan (diperbaiki)
 CREATE TABLE finishing_services (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     code TEXT UNIQUE,                 -- TAMBAHAN: Kode finishing (FIN-001)
     name TEXT NOT NULL,
     description TEXT,                 -- TAMBAHAN: Deskripsi layanan
@@ -174,7 +185,7 @@ CREATE INDEX idx_finishing_name ON finishing_services(name);
 
 -- Tabel Orders: Header order/pesanan (diperbaiki)
 CREATE TABLE orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_number TEXT UNIQUE NOT NULL,
     customer_id INTEGER,
     customer_name TEXT NOT NULL,      -- Denormalisasi untuk performa
@@ -225,7 +236,7 @@ CREATE INDEX idx_orders_payment_status ON orders(payment_status);
 
 -- Tabel Order Items: Detail item dalam order (diperbaiki)
 CREATE TABLE order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_id INTEGER NOT NULL,
     product_id INTEGER,
     product_name TEXT NOT NULL,       -- TAMBAHAN: Denormalisasi nama produk
@@ -248,7 +259,7 @@ CREATE INDEX idx_order_items_product ON order_items(product_id);
 
 -- Tabel Order Item Finishings: Finishing untuk setiap item order
 CREATE TABLE order_item_finishings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_item_id INTEGER NOT NULL,
     finishing_id INTEGER,
     finishing_name TEXT NOT NULL,     -- TAMBAHAN: Denormalisasi nama finishing
@@ -269,7 +280,7 @@ CREATE INDEX idx_order_finishings_item ON order_item_finishings(order_item_id);
 
 -- Tabel Payment Methods (TAMBAHAN BARU)
 CREATE TABLE payment_methods (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     method_code TEXT UNIQUE NOT NULL,
     method_name TEXT NOT NULL,
     is_active INTEGER DEFAULT 1,
@@ -286,7 +297,7 @@ INSERT INTO payment_methods (method_code, method_name) VALUES
 
 -- Tabel Payments: Pembayaran dari customer (diperbaiki)
 CREATE TABLE payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     payment_number TEXT UNIQUE,       -- TAMBAHAN: Nomor pembayaran unik (PAY-001)
     order_id INTEGER NOT NULL,
     customer_id INTEGER,              -- TAMBAHAN: Referensi ke customer
@@ -337,7 +348,7 @@ CREATE INDEX idx_payments_method ON payments(payment_method);
 
 -- Tabel Kategori Transaksi: Kategori pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE kategori_transaksi (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
     tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
@@ -361,7 +372,7 @@ INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
 
 -- Tabel Transaksi: Catatan pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE transaksi (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     transaction_number TEXT UNIQUE,   -- TAMBAHAN: Nomor transaksi unik
     admin_id INTEGER NOT NULL,
     kategori_id INTEGER,
@@ -398,7 +409,7 @@ CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
 
 -- Tabel Stock Movements: Tracking pergerakan stok
 CREATE TABLE stock_movements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
     movement_type TEXT NOT NULL CHECK(movement_type IN ('in', 'out', 'adjustment')),
     quantity INTEGER NOT NULL,        -- Positif untuk masuk, negatif untuk keluar
@@ -430,7 +441,7 @@ CREATE INDEX idx_stock_movements_type ON stock_movements(movement_type);
 
 -- Tabel Activity Logs: Log aktivitas user
 CREATE TABLE activity_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     admin_id INTEGER,
     action TEXT NOT NULL,             -- login, create_order, update_payment, dll
     table_name TEXT,                  -- Nama tabel yang diubah
@@ -455,7 +466,7 @@ CREATE INDEX idx_activity_logs_action ON activity_logs(action);
 
 -- Tabel App Settings: Pengaturan aplikasi
 CREATE TABLE app_settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     setting_key TEXT UNIQUE NOT NULL,
     setting_value TEXT,
     data_type TEXT DEFAULT 'string',  -- string, number, boolean, json

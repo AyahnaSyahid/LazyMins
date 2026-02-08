@@ -23,7 +23,6 @@ DatabaseManager::DatabaseManager() : m_databaseReady(false)
   
   if (!_db.isValid()) {
     _db = QSqlDatabase::addDatabase("QSQLITE", "LMAdmins_db");
-  
     if (dbPath != ":memory:") {
       if (!QFileInfo::exists(dbPath)) {
         // create new database file
@@ -63,6 +62,9 @@ DatabaseManager::DatabaseManager() : m_databaseReady(false)
       }
     }
   } else {
+    if (_db.tables().count() < 5) {
+      initSchema(_db);
+    }
     m_databaseReady = true;
   }
   
@@ -112,9 +114,8 @@ bool DatabaseManager::initSchema(QSqlDatabase &db) {
   qDebug() << "Using :" << db.databaseName();
   QSqlQuery q(db);
   for (auto st : stl) {
-    qDebug() << q.exec(st);
+    q.exec(st);
   }
-  qDebug() <<  db.tables();
   return true;
 };
 

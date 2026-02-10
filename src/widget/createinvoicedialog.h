@@ -5,18 +5,10 @@
 #include <QResizeEvent>
 #include <QStandardItemModel>
 
+#include "../invoicedatatype.h"
+
 namespace Ui {
   class CreateInvoiceDialog;
-};
-
-struct InvoiceData {
-  QString adminName, customerName, customerPhone, dateString;
-  int total;
-  struct ItemData {
-    QString productName;
-    int unitPrice, unitQty, subTotal;
-  };
-  QList<ItemData> itemList;
 };
 
 class CreateInvoiceDialog : public QDialog {

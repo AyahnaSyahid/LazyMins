@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.22)
 
 project(LazyMins_JustInvoice LANGUAGES CXX)
 
-find_package(Qt6 COMPONENTS Widgets Sql)
+find_package(Qt6 COMPONENTS Widgets Sql Core5Compat)
 
 qt_standard_project_setup()
 

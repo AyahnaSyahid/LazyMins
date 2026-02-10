@@ -18,7 +18,7 @@ bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
   qi.bindValue(":admin", ida.adminName);
   qi.bindValue(":total", ida.total);
   qi.bindValue(":customer", ida.customerName);
-  qi.bindValue(":customer_phone", ida.customerPhone);
+  qi.bindValue(":customer_phone", ida.customerPhone.isEmpty() ? QVariant(QMetaType::fromType<QString>()): ida.customerPhone);
   if (!qi.exec()) {
     qFatal() << "Tidak dapat menyimpan" << qi.lastError().text();
     db.rollback();
@@ -55,8 +55,3 @@ bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
   emit saveDone(true);
   return true;
 }
-
-
-// bool DatabaseInterface::saveInvoiceData(const QVariant &va){
-  // return saveInvoiceData(va.value<InvoiceData>());
-// }

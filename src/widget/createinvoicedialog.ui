@@ -107,6 +107,11 @@
         </item>
         <item row="2" column="1">
          <widget class="QDateEdit" name="tanggalDateEdit">
+          <property name="font">
+           <font>
+            <family>Consolas</family>
+           </font>
+          </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
           </property>
@@ -327,12 +332,18 @@
        <property name="text">
         <string>Simpan</string>
        </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="bayarButton">
        <property name="text">
         <string>Bayar</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

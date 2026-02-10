@@ -26,3 +26,5 @@ qt_add_executable(testJINV test/testMain.cpp)
 target_link_libraries(testJINV PUBLIC JINV)
 
 target_include_directories(testJINV PUBLIC ${CMAKE_SOURCE_DIR})
+
+add_subdirectory(external/escpos-qt)

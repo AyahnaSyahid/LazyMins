@@ -1,7 +1,7 @@
 #ifndef DATABASEINTEFACE_H
 #define DATABASEINTEFACE_H
 
-#include "widget/createinvoicedialog.h"
+#include "invoicedatatype.h"
 
 #include <QObject>
 #include <QSqlDatabase>

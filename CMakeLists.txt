@@ -15,6 +15,8 @@ qt_add_library(JINV STATIC
             src/widget/orderinputdialog.h
             src/widget/orderinputdialog.ui
             src/widget/orderinputdialog.cpp
+            src/databaseinterface.h
+            src/databaseinterface.cpp
             )
             
 target_link_libraries(JINV PUBLIC Qt6::Widgets Qt6::Sql)

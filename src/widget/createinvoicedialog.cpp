@@ -2,10 +2,17 @@
 #include "ui_createinvoicedialog.h"
 #include "notacolumndelegate.h"
 #include "orderinputdialog.h"
+#include "../databaseinterface.h"
+#include <QMessageBox>
 #include <QHeaderView>
 #include <QDate>
 #include <QItemSelectionModel>
 #include <QStandardItem>
+
+void CreateInvoiceDialog::RegisterMetaType() {
+  qRegisterMetaType<InvoiceData::ItemData>();
+  qRegisterMetaType<InvoiceData>();
+}
 
 CreateInvoiceDialog::CreateInvoiceDialog(QWidget *parent) :
   ui(new Ui::CreateInvoiceDialog),
@@ -33,6 +40,12 @@ CreateInvoiceDialog::CreateInvoiceDialog(QWidget *parent) :
     });
   connect(notaModel, &QAbstractItemModel::dataChanged, this, &CreateInvoiceDialog::notaDataChanged);
   ui->tanggalDateEdit->setDate(QDate::currentDate());
+  connect(notaModel, &QAbstractItemModel::rowsInserted, this, &CreateInvoiceDialog::notaModelRowCountChanged);
+  connect(notaModel, &QAbstractItemModel::rowsRemoved, this, &CreateInvoiceDialog::notaModelRowCountChanged);
+  DatabaseInterface &di = DatabaseInterface::instance();
+  connect(this, &CreateInvoiceDialog::saveNotaRequest, &di, &DatabaseInterface::saveInvoiceData);
+  connect(&di, &DatabaseInterface::saveDone, this, &CreateInvoiceDialog::onNotaSaveDone);
+  
 }
 
 CreateInvoiceDialog::~CreateInvoiceDialog() {
@@ -94,43 +107,108 @@ void CreateInvoiceDialog::inputDialogAccepted() {
 void CreateInvoiceDialog::notaDataChanged(const QModelIndex& t, const QModelIndex& b, const QList<int> &roles)
 {
   if (b.column() == 4) {
-    int t = 0;
-    for(int i=0; i<notaModel->rowCount(); ++i) {
-      t += notaModel->index(i, 4).data(Qt::EditRole).toInt();
-    }
-    ui->totalLineEdit->setProperty("totalValue", t);
-    if (t == 0) {
-      ui->cashBackLabel->setText("Kembalian");
+    int tp = totalPrice(), by = ui->spinBoxBayar->value();
+    ui->totalLineEdit->setText(locale().toString(tp));
+    if(tp == 0) {
+      ui->kembalianLineEdit->setText("N/A");
       ui->bayarButton->setEnabled(false);
       ui->simpanButton->setEnabled(false);
-      ui->spinBoxBayar->setEnabled(false);
-      ui->totalLineEdit->setText("0");
-      ui->kembalianLineEdit->setText("N/A");
-      ui->spinBoxBayar->setValue(0);
       return;
     }
     
-    ui->totalLineEdit->setText(QLocale().toString(t));
-    if (ui->spinBoxBayar->value() >= t) {
-      ui->kembalianLineEdit->setText(locale().toString(ui->spinBoxBayar->value() - t));
+    if(by >= tp) {
+      ui->kembalianLineEdit->setText(locale().toString(by - tp));
       ui->bayarButton->setEnabled(true);
-      ui->simpanButton->setEnabled(false);
-    } else {
-      ui->kembalianLineEdit->setText(locale().toString(t - ui->spinBoxBayar->value()));
       ui->simpanButton->setEnabled(true);
+      ui->cashBackLabel->setText("Kembalian");
+      return;
+    } else {
+      ui->kembalianLineEdit->setText(locale().toString(tp - by));
       ui->bayarButton->setEnabled(false);
+      ui->simpanButton->setEnabled(true);
+      ui->cashBackLabel->setText("Sisa");
+      return;
     }
   }
 }
 
 void CreateInvoiceDialog::on_spinBoxBayar_valueChanged(int nv) {
-  int t = ui->totalLineEdit->property("totalValue").toInt();
-  if (nv >= t) {
+  int tp = totalPrice();
+  if(nv >= tp) {
+    ui->kembalianLineEdit->setText(locale().toString(nv - tp));
     ui->bayarButton->setEnabled(true);
     ui->simpanButton->setEnabled(true);
-    ui->kembalianLineEdit->setText(locale().toString(t - nv));
+    ui->cashBackLabel->setText("Kembalian");
+    return;
   } else {
+    ui->kembalianLineEdit->setText(locale().toString(tp - nv));
     ui->bayarButton->setEnabled(false);
-    ui->kembalianLineEdit->setText("N/A");
+    ui->simpanButton->setEnabled(true);
+    ui->cashBackLabel->setText("Sisa");
+    return;
   }
+}
+
+int CreateInvoiceDialog::totalPrice() const {
+  int tt = 0;
+  for(int r=0; r < notaModel->rowCount(); ++r) {
+    tt += notaModel->index(r, 4).data(Qt::EditRole).toInt();
+  }
+  return tt;
+}
+
+void CreateInvoiceDialog::notaModelRowCountChanged() {
+  int tp = totalPrice(), by = ui->spinBoxBayar->value();
+  ui->totalLineEdit->setText(locale().toString(tp));
+  if(tp == 0) {
+    ui->kembalianLineEdit->setText("N/A");
+    ui->bayarButton->setEnabled(false);
+    ui->simpanButton->setEnabled(false);
+    return;
+  }
+  
+  if(by >= tp) {
+    ui->kembalianLineEdit->setText(locale().toString(by - tp));
+    ui->bayarButton->setEnabled(true);
+    ui->simpanButton->setEnabled(true);
+    ui->cashBackLabel->setText("Kembalian");
+    return;
+  } else {
+    ui->kembalianLineEdit->setText(locale().toString(tp - by));
+    ui->bayarButton->setEnabled(false);
+    ui->simpanButton->setEnabled(true);
+    return;
+  }
+}
+
+void CreateInvoiceDialog::on_simpanButton_clicked() {
+  InvoiceData ida;
+  ida.adminName = ui->adminLineEdit->text().trimmed();
+  ida.customerName = ui->customerLineEdit->text().trimmed();
+  ida.customerPhone = ui->customerPhoneLineEdit->text().trimmed();
+  ida.dateString = ui->tanggalDateEdit->date().toString("yyyy-MM-dd");
+  for(int i=0; i < notaModel->rowCount(); ++i) {
+    ida.itemList << InvoiceData::ItemData { notaModel->index(i, 1).data().toString(), 
+                                            notaModel->index(i, 2).data(Qt::EditRole).toInt(), 
+                                            notaModel->index(i, 3).data(Qt::EditRole).toInt(), 
+                                            notaModel->index(i, 4).data(Qt::EditRole).toInt(), };
+  }
+  if (ida.adminName.isEmpty()) {
+    QMessageBox::information(this, "Periksa Input", "Nama Admin tidak boleh kosong");
+    return;
+  }
+  if (ida.customerName.isEmpty()) {
+    QMessageBox::information(this, "Periksa Input", "Nama Konsumen tidak boleh kosong");
+    return;
+  }
+  if (ida.itemList.count() < 1) {
+    QMessageBox::information(this, "Periksa Input", "Tidak ada item yang disertakan");
+    return;  
+  }
+  
+  emit saveNotaRequest(ida);
+}
+
+void CreateInvoiceDialog::onNotaSaveDone(bool state) {
+  QMessageBox::information(this, "Selesai", state ? "Nota berhasil disimpan" : "Nota gagal disimpan");
 }

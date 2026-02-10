@@ -17,13 +17,13 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="leftMargin">
-      <number>6</number>
+      <number>0</number>
      </property>
      <property name="topMargin">
       <number>6</number>
      </property>
      <property name="rightMargin">
-      <number>6</number>
+      <number>0</number>
      </property>
      <property name="bottomMargin">
       <number>6</number>
@@ -35,6 +35,9 @@
          <width>200</width>
          <height>16777215</height>
         </size>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Shape::StyledPanel</enum>
        </property>
        <layout class="QFormLayout" name="formLayout_2">
         <item row="0" column="0">
@@ -71,6 +74,9 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="frameShape">
+        <enum>QFrame::Shape::StyledPanel</enum>
+       </property>
        <layout class="QFormLayout" name="formLayout">
         <item row="0" column="0">
          <widget class="QLabel" name="konsumenLabel">
@@ -80,7 +86,7 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="konsumenLineEdit_2"/>
+         <widget class="QLineEdit" name="customerLineEdit"/>
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="konsumenLabel_2">
@@ -90,7 +96,7 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="konsumenLineEdit"/>
+         <widget class="QLineEdit" name="customerPhoneLineEdit"/>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="tanggalLabel">
@@ -181,7 +187,7 @@
         <enum>QFrame::Shape::StyledPanel</enum>
        </property>
        <property name="frameShadow">
-        <enum>QFrame::Shadow::Raised</enum>
+        <enum>QFrame::Shadow::Plain</enum>
        </property>
        <layout class="QFormLayout" name="formLayout_3">
         <property name="leftMargin">
@@ -212,6 +218,12 @@
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="cashBackLabel">
+          <property name="minimumSize">
+           <size>
+            <width>56</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="text">
            <string>Kembalian</string>
           </property>
@@ -237,6 +249,9 @@
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
           </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="0" column="1">
@@ -251,6 +266,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
           </property>
           <property name="totalValue" stdset="0">
            <number>0</number>
@@ -271,6 +289,9 @@
            <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
           </property>
           <property name="accelerated">
+           <bool>true</bool>
+          </property>
+          <property name="showGroupSeparator" stdset="0">
            <bool>true</bool>
           </property>
           <property name="maximum">

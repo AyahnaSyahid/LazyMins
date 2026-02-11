@@ -1,0 +1,84 @@
+CREATE TABLE invoices (
+    id INTEGER PRIMARY KEY, 
+    code TEXT, 
+    invoice_date TEXT NOT NULL, 
+    admin TEXT NOT NULL COLLATE NOCASE, 
+    customer TEXT NOT NULL COLLATE NOCASE, 
+    customer_phone TEXT, 
+    total INTEGER NOT NULL DEFAULT (0), 
+    paid INTEGER DEFAULT (0), 
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP), 
+    updated_at TEXT DEFAULT (CURRENT_TIMESTAMP), 
+    status TEXT DEFAULT ('active'), 
+    created_by TEXT, 
+    revision_ref INTEGER REFERENCES invoices (id) ON DELETE SET NULL ON UPDATE CASCADE );
+    
+CREATE TABLE invoice_item (
+    id INTEGER PRIMARY KEY, 
+    invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE, 
+    order_name TEXT NOT NULL CHECK (order_name != ''), 
+    price INTEGER NOT NULL CHECK (price > 0), 
+    qty INTEGER NOT NULL DEFAULT (1), 
+    subTotal INTEGER GENERATED ALWAYS AS (price * qty) STORED, 
+    notes TEXT, 
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+    updated_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL );
+    
+CREATE TABLE payments (
+    id INTEGER PRIMARY KEY, 
+    invoice_id INTEGER REFERENCES invoices (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL, 
+    admin TEXT NOT NULL COLLATE NOCASE, 
+    amount INTEGER NOT NULL CHECK (amount > 0), 
+    payment_time TEXT, 
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP), 
+    updated_at TEXT DEFAULT (CURRENT_TIMESTAMP), 
+    received_by TEXT NOT NULL COLLATE NOCASE );
+
+CREATE TABLE store_data (
+    key TEXT PRIMARY KEY,
+    val TEXT NOT NULL );
+
+CREATE TRIGGER invoice_item_after_insert
+AFTER INSERT ON invoice_item
+FOR EACH ROW
+BEGIN
+    UPDATE invoices
+    SET 
+        total = (
+            SELECT COALESCE(SUM(subTotal), 0)
+            FROM invoice_item
+            WHERE invoice_id = NEW.invoice_id
+        ),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.invoice_id;
+END;
+CREATE TRIGGER invoice_item_after_update
+AFTER UPDATE ON invoice_item
+FOR EACH ROW
+BEGIN
+    -- Hanya jalankan jika invoice_id tidak berubah (normalnya tidak berubah)
+    -- atau jika subTotal berubah (SQLite generated column otomatis update)
+    UPDATE invoices
+    SET 
+        total = (
+            SELECT COALESCE(SUM(subTotal), 0)
+            FROM invoice_item
+            WHERE invoice_id = NEW.invoice_id
+        ),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.invoice_id;
+END;
+CREATE TRIGGER invoice_item_after_delete
+AFTER DELETE ON invoice_item
+FOR EACH ROW
+BEGIN
+    UPDATE invoices
+    SET 
+        total = (
+            SELECT COALESCE(SUM(subTotal), 0)
+            FROM invoice_item
+            WHERE invoice_id = OLD.invoice_id
+        ),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = OLD.invoice_id;
+END;

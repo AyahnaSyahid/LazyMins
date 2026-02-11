@@ -2,6 +2,7 @@
 #define INVOICEPRINTER_H
 
 #include <QObject>
+#include "invoicedatatype.h"
 
 class InvoicePrinter : public QObject
 {

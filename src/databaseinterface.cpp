@@ -55,3 +55,30 @@ bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
   emit saveDone(true);
   return true;
 }
+
+StoreInfoData DatabaseInterface::getStoreInfo(QSqlDatabase &db) const {
+  StoreInfoData storeInfo{};
+  QSqlQuery q(db);
+  
+  if (!q.exec("SELECT key, val FROM store_data WHERE key IN ('storeName', 'storeAddr', 'storePhone')")) {
+    qWarning() << "Query failed:" << q.lastError().text();
+    return storeInfo;
+  }
+  
+  while (q.next()) {
+    const QString key = q.value(0).toString();
+    const QString val = q.value(1).toString();
+    
+    if (key == "storeName") storeInfo.storeName = val;
+    else if (key == "storeAddr") storeInfo.storeAddr = val;
+    else if (key == "storePhone") storeInfo.storePhone = val;
+  }
+  
+  return storeInfo;
+}
+
+PrintInvoiceParams DatabaseInterface::getInvoiceParams(int invoice_id) const {
+  auto db = QSqlDatabase::database("JUST-INV_DB", true);
+  QSqlQuery q(db);
+  
+}

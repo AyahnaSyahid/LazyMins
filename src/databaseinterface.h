@@ -12,6 +12,8 @@ class DatabaseInterface : public QObject
   Q_OBJECT
   public:
     static DatabaseInterface &instance();
+    PrintInvoiceParams getInvoiceParams(int invoice_id) const;
+    StoreInfoData getStoreInfo(QSqlDatabase &db) const;
   
   public slots:
     // bool saveInvoiceData(const QVariant &va);

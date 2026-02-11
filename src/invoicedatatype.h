@@ -22,15 +22,34 @@ struct InvoiceData {
   QList<ItemData> itemList;
 };
 
-struct PrintInvoiceParams {
+struct PaymentData {
+  QString adminName,
+          method;
+  int amount;
+  QDateTime paymentTime;
+};
+
+struct StoreInfoData {
   QString storeName,
           storeAddr,
-          storePhone,
-          invoiceCode;
+          storePhone;
+};
+
+struct PrintInvoiceParams {
+  // store info
+  StoreInfoData storeInfo;
+  
+  // Invoice Data
   QDateTime printTime;
-  QString adminName,
+  QString invoiceCode,
+          adminName,
           customerName;
   
+  // Items Data
+  QList<ItemData> itemList;
+  
+  // Payments Data
+  QList<PaymentData> paymentList;
 };
 
 #endif

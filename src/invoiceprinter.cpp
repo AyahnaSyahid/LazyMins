@@ -1,6 +1,8 @@
 #include "invoiceprinter.h"
 #include "databaseinterface.h"
 #include <QSerialPort>
+#include <QFile>
+#include <QApplication>
 #include "escposprinter.h"
 
 
@@ -20,12 +22,14 @@ void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
   port.setStopBits(QSerialPort::OneStop);
   port.setFlowControl(QSerialPort::HardwareControl);  // Direkomendasikan DTR/DSR untuk stabilitas
   
-  if(!port.open(QIODevice::ReadWrite)) {
+  QFile wtf(qApp->applicationDirPath() + "/wtf.bin");
+  
+  if(!wtf.open(QIODevice::ReadWrite)) {
     qDebug() << "Tidak dapat membuka koneksi ke printer";
     return ;
   }
   
-  EscPosPrinter printer(&port);
+  EscPosPrinter printer(&wtf);
   printer << EscPosPrinter::init
           << EscPosPrinter::EncodingPC850
           << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
@@ -37,17 +41,17 @@ void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
           << "\n"
           << pip.storeInfo.storePhone
           << "\n"
-          << QString("=================================\n").toUtf8()
-          << QString("Print Time: %1\n").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss").toUtf8()
-          << QString("---------------------------------\n").toUtf8()
+          << QString("=================================\n")
+          << QString("Print Time: %1\n").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"))
+          << QString("---------------------------------\n")
           << EscPosPrinter::JustificationLeft
-          << QString("Tanggal : %1\n").arg(pip.invoiceDate).toUtf8()
-          << QString("No      : %1\n").arg(pip.invoiceCode).toUtf8()
-          << QString("Konsumen: %1\n").arg(pip.customerName).toUtf8()
-          << QString("Admin   : %1\n").arg(pip.adminName).toUtf8()
-          << QString("=================================\n").toUtf8()
-          << QString("  Nama Barang           Harga    \n").toUtf8()
-          << QString("---------------------------------\n").toUtf8();
+          << QString("Tanggal : %1\n").arg(pip.invoiceDate)
+          << QString("No      : %1\n").arg(pip.invoiceCode)
+          << QString("Konsumen: %1\n").arg(pip.customerName)
+          << QString("Admin   : %1\n").arg(pip.adminName)
+          << QString("=================================\n")
+          << QString("  Nama Barang           Harga    \n")
+          << QString("---------------------------------\n");
   printer << EscPosPrinter::feed(8);
   
   port.waitForBytesWritten(1000);

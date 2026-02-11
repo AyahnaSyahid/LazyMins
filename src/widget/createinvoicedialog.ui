@@ -181,7 +181,7 @@
       <widget class="QFrame" name="sumFrame">
        <property name="maximumSize">
         <size>
-         <width>260</width>
+         <width>270</width>
          <height>16777215</height>
         </size>
        </property>
@@ -209,53 +209,13 @@
         </property>
         <item row="0" column="0">
          <widget class="QLabel" name="label">
-          <property name="text">
-           <string>Total</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Bayar</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="cashBackLabel">
-          <property name="minimumSize">
-           <size>
-            <width>56</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Kembalian</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0" colspan="2">
-         <widget class="Line" name="line">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLineEdit" name="kembalianLineEdit">
           <property name="font">
            <font>
-            <family>Consolas</family>
+            <pointsize>12</pointsize>
            </font>
           </property>
           <property name="text">
-           <string>N/A</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
+           <string>Total</string>
           </property>
          </widget>
         </item>
@@ -264,6 +224,7 @@
           <property name="font">
            <font>
             <family>Consolas</family>
+            <pointsize>12</pointsize>
            </font>
           </property>
           <property name="text">
@@ -277,33 +238,6 @@
           </property>
           <property name="totalValue" stdset="0">
            <number>0</number>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QSpinBox" name="spinBoxBayar">
-          <property name="font">
-           <font>
-            <family>Consolas</family>
-           </font>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-          </property>
-          <property name="buttonSymbols">
-           <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
-          </property>
-          <property name="accelerated">
-           <bool>true</bool>
-          </property>
-          <property name="showGroupSeparator" stdset="0">
-           <bool>true</bool>
-          </property>
-          <property name="maximum">
-           <number>100000000</number>
-          </property>
-          <property name="singleStep">
-           <number>1000</number>
           </property>
          </widget>
         </item>

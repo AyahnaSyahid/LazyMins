@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QResizeEvent>
 #include <QStandardItemModel>
+#include <QSqlQueryModel>
 
 #include "../invoicedatatype.h"
 
@@ -16,17 +17,20 @@ class CreateInvoiceDialog : public QDialog {
   public:
     static void RegisterMetaType();
     explicit CreateInvoiceDialog(QWidget *parent=nullptr);
+    InvoiceData getInvoiceData() const;
+
     ~CreateInvoiceDialog();
   
   private slots:
     void on_tableActionInsert_triggered();
     void on_tableActionDelete_triggered();
-    void on_spinBoxBayar_valueChanged(int);
     void on_simpanButton_clicked();
+    void on_bayarButton_clicked();
     void inputDialogAccepted();
-    void notaDataChanged(const QModelIndex& t, const QModelIndex& b, const QList<int> &roles);
-    void notaModelRowCountChanged();
     void onNotaSaveDone(bool);
+    void onPaymentDialogFinished(int);
+    void updateTotalPrice();
+    void resetUi();
 
   protected:
     void resizeEvent(QResizeEvent *re) override;
@@ -34,13 +38,15 @@ class CreateInvoiceDialog : public QDialog {
   
   signals:
     void saveNotaRequest(const InvoiceData &ida);
+    void invoiceSaved();
+    void paymentSaved();
   
   private:
     int totalPrice() const;
+    bool verifyInvoiceData(const InvoiceData& ida, QString &err) const;
     Ui::CreateInvoiceDialog *ui;
-    QStandardItemModel *notaModel;    
+    QStandardItemModel *notaModel;
+    QSqlQueryModel *konsumenModel;
+    QSqlQueryModel *adminModel;
 };
-
-Q_DECLARE_METATYPE(InvoiceData::ItemData);
-Q_DECLARE_METATYPE(InvoiceData);
 #endif

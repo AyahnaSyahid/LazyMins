@@ -40,16 +40,18 @@ struct PrintInvoiceParams {
   StoreInfoData storeInfo;
   
   // Invoice Data
-  QDateTime printTime;
   QString invoiceCode,
           adminName,
-          customerName;
-  
+          customerName,
+          invoiceDate;
+
   // Items Data
-  QList<ItemData> itemList;
+  QList<InvoiceData::ItemData> itemList;
   
   // Payments Data
   QList<PaymentData> paymentList;
 };
 
+Q_DECLARE_METATYPE(InvoiceData::ItemData);
+Q_DECLARE_METATYPE(InvoiceData);
 #endif

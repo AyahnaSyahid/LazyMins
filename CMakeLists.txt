@@ -26,6 +26,11 @@ qt_add_library(JINV STATIC
             src/invoiceprinter.cpp
             src/databaseinterface.h
             src/databaseinterface.cpp
+            src/widget/customerview.h
+            src/widget/customerview.cpp
+            src/widget/invoiceviews.h
+            src/widget/invoiceviews.ui
+            src/widget/invoiceviews.cpp
             )
             
 target_link_libraries(JINV PUBLIC Qt6::Widgets Qt6::Sql Qt6::SerialPort EscPosQt)

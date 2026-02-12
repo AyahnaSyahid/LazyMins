@@ -15,24 +15,26 @@ class CustomerView : public QTableView
     ~CustomerView();
   
   private:
-    CustomerContactModel *c_model
+    CustomerContactModel *c_model;
 };
-
 
 class CustomerContactModel : public QSqlQueryModel
 {
   public:
     explicit CustomerContactModel(QObject *parent=nullptr) : QSqlQueryModel(parent) {}
     ~CustomerContactModel() {}
+    bool setData(const QModelIndex& mi, const QVariant &val, int role=Qt::EditRole) override;
     Qt::ItemFlags flags(const QModelIndex& mi) const override;
 };
 
+/**
 class CustomerEditorDelegate : public QStyledItemDelegate
 {
   public:
-    CustomerEditorDelegate(QObject *parent=nullptr) : QStyledItemDelegate(parent);
+    CustomerEditorDelegate(QObject *parent=nullptr) : QStyledItemDelegate(parent) {};
     ~CustomerEditorDelegate() {}
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex& ix) const override;
-}
+    // void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex& ix) const override;
+};
+**/
 
 #endif

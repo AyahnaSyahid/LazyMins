@@ -1,4 +1,7 @@
 #include "receiptpreviewdialog.h"
+#include "ui_receiptpreviewdialog.h"
+#include "../invoicedatatype.h"
+#include "../databaseinterface.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -7,223 +10,105 @@
 #include <QPen>
 #include <QGraphicsLineItem>
 #include <QLocale>
+#include <QRectF>
 
-ReceiptPreviewDialog::ReceiptPreviewDialog(const PrintInvoiceParams &params, QWidget *parent)
-    : QDialog(parent),
-      m_params(params)
-{
-    setWindowTitle("Pratinjau Struk");
-    resize(480, 680);           // ukuran jendela awal – bisa di-resize user
-    setupUi();
-    populateScene();
-}
-
-ReceiptPreviewDialog::~ReceiptPreviewDialog()
-{
-}
-
-void ReceiptPreviewDialog::setupUi()
-{
-    m_scene = new QGraphicsScene(this);
-    m_view = new QGraphicsView(m_scene, this);
-
-    m_view->setRenderHint(QPainter::TextAntialiasing, false);
-    m_view->setRenderHint(QPainter::SmoothPixmapTransform, false);
-    m_view->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-    m_view->setBackgroundBrush(QColor(245, 245, 240));  // mirip kertas thermal
-
-    // Scene rect – lebar sesuai kertas, tinggi sementara (akan diupdate)
-    m_scene->setSceneRect(0, 0, PAPER_WIDTH_PX, 2000);
-
-    // Layout utama
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(8, 8, 8, 8);
-    mainLayout->addWidget(m_view);
-
-    // Tombol kontrol di bawah
-    QHBoxLayout *btnLayout = new QHBoxLayout();
-    QPushButton *btnClose = new QPushButton("Tutup", this);
-    QPushButton *btnZoomIn = new QPushButton("Zoom +", this);
-    QPushButton *btnZoomOut = new QPushButton("Zoom –", this);
-
-    btnLayout->addStretch();
-    btnLayout->addWidget(btnZoomIn);
-    btnLayout->addWidget(btnZoomOut);
-    btnLayout->addWidget(btnClose);
-
-    mainLayout->addLayout(btnLayout);
-
-    connect(btnClose,   &QPushButton::clicked, this, &QDialog::accept);
-    connect(btnZoomIn,  &QPushButton::clicked, this, [=](){ m_view->scale(1.25, 1.25); });
-    connect(btnZoomOut, &QPushButton::clicked, this, [=](){ m_view->scale(0.80, 0.80); });
-}
-
-void ReceiptPreviewDialog::populateScene()
-{
-    m_currentY = 10.0;
-
-    QFont headerFont("Courier New", 12, QFont::Bold);
-    QFont normalFont("Courier New", 10);
-    QFont smallFont("Courier New", 9);
-
-    headerFont.setStyleHint(QFont::TypeWriter);
-    normalFont.setStyleHint(QFont::TypeWriter);
-    smallFont.setStyleHint(QFont::TypeWriter);
-
-    // ── Header ───────────────────────────────────────────────
-    drawHeader();
-
-    // ── Daftar Item ──────────────────────────────────────────
-    drawItems();
-
-    // ── Pembayaran ───────────────────────────────────────────
-    drawPayments();
-
-    // ── Footer ───────────────────────────────────────────────
-    drawFooter();
-
-    // Update tinggi scene sesuai konten
-    m_scene->setSceneRect(0, 0, PAPER_WIDTH_PX, m_currentY + 60);
-}
-
-void ReceiptPreviewDialog::drawHeader()
-{
-    QFont titleFont("Courier New", 13, QFont::Bold);
-    titleFont.setStyleHint(QFont::TypeWriter);
-
-    addCenteredText(m_params.storeInfo.storeName, titleFont, m_currentY);
-    m_currentY += 24;
-
-    addCenteredText(m_params.storeInfo.storeAddr,  QFont("Courier New", 9), m_currentY);
-    m_currentY += 16;
-    addCenteredText(m_params.storeInfo.storePhone, QFont("Courier New", 9), m_currentY);
-    m_currentY += 20;
-
-    addCenteredText("====================================", QFont("Courier New", 10), m_currentY);
-    m_currentY += 18;
-
-    addLeftText("No. Invoice : " + m_params.invoiceCode, QFont("Courier New", 10), m_currentY);
-    m_currentY += 16;
-
-    addLeftText("Kasir       : " + m_params.adminName, QFont("Courier New", 10), m_currentY);
-    m_currentY += 16;
-
-    if (!m_params.customerName.isEmpty()) {
-        addLeftText("Pelanggan   : " + m_params.customerName, QFont("Courier New", 10), m_currentY);
-        m_currentY += 16;
+namespace {
+  QMap<QString, QFont> m_font;
+  
+  void initFont() {
+    static bool initialized;
+    if (!initialized) {
+      m_font["normal"] = QFont("Consolas", 9);
+      m_font["bold"] = QFont("Consolas", 9);
+      m_font["bold"].setBold(true);
+      m_font["big"] = QFont("Consolas", 14);
+      m_font["big"].setBold(true);
+      initialized = true;
     }
+  }
+  
+  PrintInvoiceParams getParam(qlonglong inv) {
+    return DatabaseInterface::instance().getPrintInvoiceParams(inv);
+  }
 
-    addCenteredText("------------------------------------", QFont("Courier New", 10), m_currentY);
-    m_currentY += 18;
+  QRectF drawHeader(QGraphicsScene *scn, const StoreInfo &si) {
+    qreal y;
+    QRecF g1rect;
+    auto &font = m_font;
+    auto g1 = scn->addSimpleText("================================", font["normal"]);
+    g1rect = g1->boundingRect();
+    g1 = scn->addSimpleText(si.storeName, font("big"));
+    auto r1 = g1.boundingRect();
+    r1.moveCenter(g1rect.center());
+    r1.top(g1rect.bottom());
+    g1->setPos(r1.topLeft());
+    g1 = scn->addSimpleText(si.storeAddr, font["normal"]);
+    
+    g1->setY(r1.bottom());
+    r1 = g1.boundingRect();
+    g1 = scn->addSimpleText(si.storePhone, font["normal"]);
+    g1->setY(r1.bottom());
+    r1 = g1.boundingRect();
+    g1 = scn->addSimpleText("================================", font["normal"]);
+    g1->setY(r1.bottom());
+  }
 }
 
-void ReceiptPreviewDialog::drawItems()
+ReceiptPreviewDialog::ReceiptPreviewDialog(qlonglong inv, QWidget *parent)
+: ui(new Ui::ReceiptPreviewDialog), scene(new QGraphicsScene), m_ready(false), param(getParam(inv)), QDialog(parent)
 {
-    if (m_params.itemList.isEmpty()) return;
-
-    addLeftText("Item",                  QFont("Courier New", 10, QFont::Bold), m_currentY);
-    addRightText("Subtotal",            QFont("Courier New", 10, QFont::Bold), m_currentY);
-    m_currentY += 20;
-
-    QLocale locale(QLocale::Indonesian);  // untuk format Rupiah
-
-    for (const auto &item : m_params.itemList)
-    {
-        QString line = QString("%1 x %2")
-                           .arg(item.unitQty)
-                           .arg(item.productName);
-
-        addLeftText(line, QFont("Courier New", 10), m_currentY);
-
-        QString priceStr = locale.toString(item.subTotal);
-        addRightText("Rp " + priceStr, QFont("Courier New", 10), m_currentY);
-
-        m_currentY += 18;
-    }
-
-    m_currentY += 8;
-    drawDashedLine(m_currentY);
-    m_currentY += 18;
+  ui->setupUi(this);
+  ui->rView->setScene(scene);
+  auto &di = DatabaseInterface::instance();
+  m_ready = !param.adminName.isEmpty();
+  initFont();
+  draw();
 }
 
-void ReceiptPreviewDialog::drawPayments()
+ReceiptPreviewDialog::~ReceiptPreviewDialog() { delete ui; }
+
+void ReceiptPreviewDialog::draw()
 {
-    if (m_params.paymentList.isEmpty()) return;
-
-    addLeftText("Pembayaran",           QFont("Courier New", 10, QFont::Bold), m_currentY);
-    addRightText("Jumlah",              QFont("Courier New", 10, QFont::Bold), m_currentY);
-    m_currentY += 20;
-
-    QLocale locale(QLocale::Indonesian);
-    int totalPaid = 0;
-
-    for (const auto &pay : m_params.paymentList)
-    {
-        QString method = pay.method;
-        if (!pay.paymentTime.isNull()) {
-            method += "  " + pay.paymentTime.toString("dd/MM/yy HH:mm");
-        }
-
-        addLeftText(method, QFont("Courier New", 10), m_currentY);
-
-        QString amountStr = locale.toString(pay.amount);
-        addRightText("Rp " + amountStr, QFont("Courier New", 10), m_currentY);
-
-        totalPaid += pay.amount;
-        m_currentY += 18;
-    }
-
-    m_currentY += 12;
-    drawDashedLine(m_currentY);
-    m_currentY += 18;
-}
-
-void ReceiptPreviewDialog::drawFooter()
-{
-    addCenteredText("====================================", QFont("Courier New", 10), m_currentY);
-    m_currentY += 20;
-
-    addCenteredText("Terima Kasih", QFont("Courier New", 11, QFont::Bold), m_currentY);
-    m_currentY += 24;
-
-    addCenteredText("Barang yang sudah dibeli tidak dapat", QFont("Courier New", 9), m_currentY);
-    m_currentY += 16;
-    addCenteredText("ditukar / dikembalikan",              QFont("Courier New", 9), m_currentY);
-    m_currentY += 24;
-}
-
-void ReceiptPreviewDialog::drawDashedLine(double y)
-{
-    QPen pen(Qt::black);
-    pen.setStyle(Qt::DashLine);
-    pen.setWidth(1);
-
-    double contentWidth = PAPER_WIDTH_PX - LEFT_MARGIN - RIGHT_MARGIN;
-    m_scene->addLine(LEFT_MARGIN, y, LEFT_MARGIN + contentWidth, y, pen);
-}
-
-QGraphicsTextItem* ReceiptPreviewDialog::addCenteredText(const QString &text, const QFont &font, double y)
-{
-    auto *item = m_scene->addText(text, font);
-    item->setDefaultTextColor(Qt::black);
-    double x = (PAPER_WIDTH_PX - item->boundingRect().width()) / 2.0;
-    item->setPos(x, y);
-    return item;
-}
-
-QGraphicsTextItem* ReceiptPreviewDialog::addLeftText(const QString &text, const QFont &font, double y, double margin)
-{
-    auto *item = m_scene->addText(text, font);
-    item->setDefaultTextColor(Qt::black);
-    item->setPos(margin, y);
-    return item;
-}
-
-QGraphicsTextItem* ReceiptPreviewDialog::addRightText(const QString &text, const QFont &font, double y, double margin)
-{
-    auto *item = m_scene->addText(text, font);
-    item->setDefaultTextColor(Qt::black);
-    double x = PAPER_WIDTH_PX - item->boundingRect().width() - margin;
-    item->setPos(x, y);
-    return item;
+  scene->clear();
+  if (!m_ready) return ;
+  boldFont.setBold(true);
+  bigFont.setBold(true);
+  QRectF sr(1,1,1,1);
+  auto g1 = scene->addSimpleText("================================", normalFont);
+  auto g2 = scene->addSimpleText(param.storeInfo.storeName, bigFont);
+  g2->setY(g1->boundingRect().bottomLeft().y());
+  auto r1 = g1->boundingRect();
+  sr.setTopLeft(r1.topLeft());
+  sr.setRight(r1.right());
+  auto r2 = g2->boundingRect();
+  r2.moveCenter(r1.center());
+  r2.moveTop(r1.bottom());
+  g2->setPos(r2.topLeft());
+  g1 = scene->addSimpleText(param.storeInfo.storeAddr, normalFont);
+  r1 = g1->boundingRect();
+  r1.moveCenter(r2.center());
+  r1.moveTop(r2.bottom());
+  g1->setPos(r1.topLeft());
+  g2 = scene->addSimpleText(param.storeInfo.storePhone, normalFont);
+  r2 = g2->boundingRect();
+  r2.moveCenter(r1.center());
+  r2.moveTop(r1.bottom());
+  g2->setPos(r2.topLeft());
+  g1 = scene->addSimpleText("================================", normalFont);
+  r1 = g1->boundingRect();
+  r1.moveCenter(r2.center());
+  r1.moveTop(r2.bottom());
+  g1->setPos(r1.topLeft());
+  g2 = scene->addSimpleText("Nama Barang", normalFont);
+  r2 = g2->boundingRect();
+  r2.setTopLeft(r1.bottomLeft());
+  g2->setPos(r2.topLeft());
+  g1 = scene->addSimpleText("Harga", normalFont);
+  r1 = g1->boundingRect();
+  r1.moveTop(r2.top());
+  r1.moveRight(sr.right());
+  g1->setPos(r1.topLeft());
+  g1 = scene->addSimpleText("-----------------------------------", normalFont);
+  g1->setPos(r2.bottomLeft());
+  drawInvoiceItems()
 }

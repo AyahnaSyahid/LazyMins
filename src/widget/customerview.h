@@ -27,14 +27,4 @@ class CustomerContactModel : public QSqlQueryModel
     Qt::ItemFlags flags(const QModelIndex& mi) const override;
 };
 
-/**
-class CustomerEditorDelegate : public QStyledItemDelegate
-{
-  public:
-    CustomerEditorDelegate(QObject *parent=nullptr) : QStyledItemDelegate(parent) {};
-    ~CustomerEditorDelegate() {}
-    // void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex& ix) const override;
-};
-**/
-
 #endif

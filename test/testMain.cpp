@@ -1,4 +1,5 @@
 #include "src/widget/customerview.h"
+#include "src/widget/invoiceviews.h"
 #include <QApplication>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -23,7 +24,7 @@ int main(int argc, char** argv)
   
   // auto d = CreateInvoiceDialog();
   // d.open();
-  CustomerView cv;
+  InvoiceViews cv;
   cv.adjustSize();
   cv.show();
   

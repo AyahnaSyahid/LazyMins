@@ -1,5 +1,6 @@
 #include "invoiceprinter.h"
 #include "databaseinterface.h"
+#include "widget/receiptpreviewdialog.h"
 #include <QSerialPort>
 #include <QFile>
 #include <QApplication>
@@ -149,4 +150,10 @@ void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
  
   port.waitForBytesWritten(1000);
   port.close();
+}
+
+QDialog *InvoicePrinter::receiptPreview(qlonglong invoice_id, QWidget *parent) const
+{
+  auto *rd = new ReceiptPreviewDialog(invoice_id, parent);
+  return rd;
 }

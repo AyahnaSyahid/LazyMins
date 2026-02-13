@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>invoiceViews</class>
- <widget class="QWidget" name="invoiceViews">
+ <class>InvoiceViews</class>
+ <widget class="QWidget" name="InvoiceViews">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>449</width>
-    <height>468</height>
+    <height>252</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="filterEdit"/>
       </item>
       <item>
        <spacer name="horizontalSpacer">
@@ -116,11 +116,20 @@
      <property name="contextMenuPolicy">
       <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
      </property>
-     <attribute name="horizontalHeaderStretchLastSection">
+     <property name="sortingEnabled">
       <bool>true</bool>
+     </property>
+     <attribute name="horizontalHeaderDefaultSectionSize">
+      <number>80</number>
      </attribute>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderMinimumSectionSize">
+      <number>20</number>
+     </attribute>
+     <attribute name="verticalHeaderDefaultSectionSize">
+      <number>22</number>
      </attribute>
     </widget>
    </item>

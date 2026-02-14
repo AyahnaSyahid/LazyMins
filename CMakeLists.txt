@@ -21,6 +21,9 @@ qt_add_library(JINV STATIC
             src/widget/paymentinputdialog.ui
             src/widget/paymentinputdialog.cpp
             src/widget/receiptpreviewdialog.h
+            src/widget/jinvmainwindow.h
+            src/widget/jinvmainwindow.ui
+            src/widget/jinvmainwindow.cpp
             src/widget/receiptpreviewdialog.ui
             src/widget/receiptpreviewdialog.cpp
             src/invoiceprinter.h

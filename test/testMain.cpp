@@ -1,9 +1,9 @@
-#include "src/widget/customerview.h"
-#include "src/widget/invoiceviews.h"
 #include <QApplication>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QLocale>
+
+#include "src/widget/jinvmainwindow.h"
 
 int main(int argc, char** argv)
 {
@@ -17,16 +17,8 @@ int main(int argc, char** argv)
   }
   QSqlQuery(db).exec("PRAGMA foreign_keys = ON;");
   
-  // auto &di = DatabaseInterface::instance();
-  // auto &ip = InvoicePrinter::instance();
-  
-  // ip.drawInvoice(di.getPrintInvoiceParams(12));
-  
-  // auto d = CreateInvoiceDialog();
-  // d.open();
-  InvoiceViews cv;
-  cv.adjustSize();
-  cv.show();
+  JINVMainWindow jinvm;
+  jinvm.show();
   
   return app.exec();
 }

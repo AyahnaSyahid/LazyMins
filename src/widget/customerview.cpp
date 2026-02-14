@@ -55,7 +55,6 @@ Qt::ItemFlags CustomerContactModel::flags(const QModelIndex &mi) const
 
 bool CustomerContactModel::setData(const QModelIndex& mi, const QVariant &val, int role)
 {
-  // qDebug() << "Setting Index :" << mi;
   if (role != Qt::EditRole) return false;
   if (!mi.isValid()) return false;
   

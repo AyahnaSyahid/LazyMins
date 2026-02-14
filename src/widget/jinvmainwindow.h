@@ -14,8 +14,12 @@ class JINVMainWindow : public QMainWindow
     JINVMainWindow(QWidget *parent=nullptr);
     ~JINVMainWindow();
   
+  private slots:
+    void openInvoiceMaker();
+  
   private:
+    void installDockable(QWidget *widget, const Qt::DockWidgetArea a, const QString& name);
     Ui::JINVMainWindow *ui;
-} 
+};
 
 #endif

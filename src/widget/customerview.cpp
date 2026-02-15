@@ -1,9 +1,13 @@
+#include "../databaseinterface.h"
 #include "customerview.h"
 #include <QSortFilterProxyModel>
 #include <QLineEdit>
+#include <QLabel>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QHeaderView>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QStyledItemDelegate>
 
 namespace {
@@ -22,28 +26,46 @@ namespace {
 
 CustomerView::CustomerView(QWidget *p) 
   : c_model(new CustomerContactModel(this)),
-    QTableView(p)
+    c_view(new QTableView(this)),
+    filterEdit(new QLineEdit(this)),
+    RealTimeDataWidget(p)
 {
   c_model->setQuery(R"--(
-    SELECT customer AS Nama, 
-           customer_phone AS CP 
-      FROM invoices 
-  GROUP BY customer, 
-           customer_phone 
-  ORDER BY customer;
-    )--", QSqlDatabase::database("JUST-INV_DB", true));
+    SELECT customer,
+       customer_phone
+  FROM invoices
+ WHERE created_at = (
+        SELECT MAX(created_at) 
+          FROM invoices t2
+         WHERE t2.customer = invoices.customer )
+ GROUP BY customer;
+    )--", DatabaseInterface::instance().database());
   
   auto sortModel = new QSortFilterProxyModel(this);
   sortModel->setSourceModel(c_model);
-  setModel(sortModel);
-  horizontalHeader()->setStretchLastSection(true);
-  verticalHeader()->hide();
-  adjustSize();
-  auto pal = palette();
+  sortModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+  sortModel->setFilterKeyColumn(-1);
+  c_view->setModel(sortModel);
+  c_view->horizontalHeader()->setStretchLastSection(true);
+  c_view->verticalHeader()->hide();
+  c_view->verticalHeader()->setMinimumSectionSize(20);
+  c_view->verticalHeader()->setDefaultSectionSize(22);
+  auto pal = c_view->palette();
   pal.setColor(QPalette::AlternateBase, QColor(228, 227, 235));
-  setPalette(pal);
-  setAlternatingRowColors(true);
-  setItemDelegate(new Delegate(this));
+  c_view->setPalette(pal);
+  c_view->setAlternatingRowColors(true);
+  c_view->setItemDelegate(new Delegate(this));
+  auto lay = new QVBoxLayout();
+  auto fl = new QHBoxLayout();
+  fl->addWidget(new QLabel("Filter", this), 0);
+  fl->addWidget(filterEdit, 0);
+  fl->addStretch(1);
+  lay->addLayout(fl, 0);
+  lay->addWidget(c_view, 1);
+  setLayout(lay);
+  connect(filterEdit, &QLineEdit::textChanged, sortModel, &QSortFilterProxyModel::setFilterFixedString);
+  connect(&DatabaseInterface::instance(), &DatabaseInterface::tableUpdate, this, &CustomerView::reloadModelData);
+  adjustSize();
 }
 
 CustomerView::~CustomerView() {}
@@ -61,8 +83,7 @@ bool CustomerContactModel::setData(const QModelIndex& mi, const QVariant &val, i
   QString newData = val.toString();
   if(newData.toLower() == mi.data().toString().toLower()) return false;
   if (newData.isEmpty()) return false;
-  auto db = QSqlDatabase::database("JUST-INV_DB", true);
-  QSqlQuery q(db);
+  QSqlQuery q(DatabaseInterface::instance().database());
   
   if (mi.column() == 0) {
     // Edit Name
@@ -79,9 +100,16 @@ bool CustomerContactModel::setData(const QModelIndex& mi, const QVariant &val, i
   }
   
   if (q.exec()) {
-    setQuery(query().lastQuery(), db);
+    setQuery(query().lastQuery(), DatabaseInterface::instance().database());
     emit dataChanged(mi, mi, QList<int> {Qt::EditRole, Qt::DisplayRole});
     return true;
   }
   return false;
+}
+
+void CustomerView::reloadModelData(const QList<QString> &tables)
+{
+  if(tables.indexOf("invoices") == -1 || tables.count() < 1) return;
+  QString query(c_model->query().lastQuery());
+  c_model->setQuery(query, DatabaseInterface::instance().database());
 }

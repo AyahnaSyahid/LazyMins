@@ -9,9 +9,15 @@ qt_standard_project_setup()
 add_subdirectory(external/escpos-qt)
 
 qt_add_library(JINV STATIC 
+            src/invoiceprinter.h
+            src/invoiceprinter.cpp
+            src/databaseinterface.h
+            src/databaseinterface.cpp
             src/widget/createinvoicedialog.h
             src/widget/createinvoicedialog.ui                
             src/widget/createinvoicedialog.cpp                
+            src/widget/editinvoicedialog.h
+            src/widget/editinvoicedialog.cpp
             src/widget/notacolumndelegate.h
             src/widget/notacolumndelegate.cpp
             src/widget/orderinputdialog.h
@@ -26,15 +32,14 @@ qt_add_library(JINV STATIC
             src/widget/jinvmainwindow.cpp
             src/widget/receiptpreviewdialog.ui
             src/widget/receiptpreviewdialog.cpp
-            src/invoiceprinter.h
-            src/invoiceprinter.cpp
-            src/databaseinterface.h
-            src/databaseinterface.cpp
+            src/widget/storeinfoeditordialog.h
+            src/widget/storeinfoeditordialog.cpp
             src/widget/customerview.h
             src/widget/customerview.cpp
             src/widget/invoiceviews.h
             src/widget/invoiceviews.ui
             src/widget/invoiceviews.cpp
+            src/widget/realtimedatawidget.h
             )
             
 target_link_libraries(JINV PUBLIC Qt6::Widgets Qt6::Sql Qt6::SerialPort EscPosQt)

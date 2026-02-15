@@ -16,6 +16,8 @@ class JINVMainWindow : public QMainWindow
   
   private slots:
     void openInvoiceMaker();
+    void openStoreInfoEditor();
+    void openInvoiceEditor(int invoice_id);
   
   private:
     void installDockable(QWidget *widget, const Qt::DockWidgetArea a, const QString& name);

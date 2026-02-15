@@ -35,18 +35,17 @@ class CreateInvoiceDialog : public QDialog {
   protected:
     void resizeEvent(QResizeEvent *re) override;
     void showEvent(QShowEvent *se) override;
-  
+    Ui::CreateInvoiceDialog *ui;
+    int totalPrice() const;
+    QStandardItemModel *notaModel;
+    QSqlQueryModel *konsumenModel;
+    QSqlQueryModel *adminModel;
+    bool verifyInvoiceData(const InvoiceData& ida, QString &err) const;
+
   signals:
     void saveNotaRequest(const InvoiceData &ida);
     void invoiceSaved();
     void paymentSaved();
   
-  private:
-    int totalPrice() const;
-    bool verifyInvoiceData(const InvoiceData& ida, QString &err) const;
-    Ui::CreateInvoiceDialog *ui;
-    QStandardItemModel *notaModel;
-    QSqlQueryModel *konsumenModel;
-    QSqlQueryModel *adminModel;
 };
 #endif

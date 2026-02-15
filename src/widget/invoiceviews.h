@@ -1,7 +1,7 @@
 #ifndef INVOICEVIEWS_H
 #define INVOICEVIEWS_H
 
-#include <QWidget>
+#include "realtimedatawidget.h"
 
 namespace Ui {
   class InvoiceViews;
@@ -9,7 +9,7 @@ namespace Ui {
 
 class QSqlQueryModel;
 class QSortFilterProxyModel;
-class InvoiceViews : public QWidget
+class InvoiceViews : public RealTimeDataWidget
 {
   Q_OBJECT
   public:
@@ -22,13 +22,15 @@ class InvoiceViews : public QWidget
     void showPreview();
     void on_view_customContextMenuRequested(const QPoint &p);
     void on_checkBox_toggled(bool);
-    
+    void reloadModelData(const QList<QString> &tables) override;
+  
+  signals:
+    void editInvoiceRequest(int inv_id) const;
   
   private:
     Ui::InvoiceViews *ui;
     QSqlQueryModel *queryModel;
     QSortFilterProxyModel *proxy;
-    
 };
 
 #endif

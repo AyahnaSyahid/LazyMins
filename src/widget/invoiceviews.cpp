@@ -1,6 +1,7 @@
 #include "invoiceviews.h"
 #include "ui_invoiceviews.h"
 #include "../invoiceprinter.h"
+#include "../databaseinterface.h"
 #include <QSqlQueryModel>
 #include <QSqlError>
 #include <QMenu>
@@ -44,7 +45,7 @@ InvoiceViews::InvoiceViews(QWidget *p)
   : ui(new Ui::InvoiceViews), 
     queryModel(new QSqlQueryModel(this)),
     proxy(new QSortFilterProxyModel(this)),
-    QWidget(p)
+    RealTimeDataWidget(p)
 {
   ui->setupUi(this);
   auto db = QSqlDatabase::database("JUST-INV_DB", true);
@@ -58,6 +59,8 @@ InvoiceViews::InvoiceViews(QWidget *p)
   auto dlg = new Delegate(this);
   ui->view->setItemDelegate(dlg);
   ui->view->resizeColumnsToContents();
+  ui->view->sortByColumn(4, Qt::DescendingOrder);
+  connect(&DatabaseInterface::instance(), &DatabaseInterface::tableUpdate, this, &InvoiceViews::reloadModelData);
 }
 
 InvoiceViews::~InvoiceViews() { delete ui; }
@@ -66,7 +69,18 @@ void InvoiceViews::on_view_customContextMenuRequested(const QPoint &p) {
   auto six = proxy->mapToSource(ui->view->indexAt(p));
   QMenu menu;
   auto invoiceMenu = menu.addMenu("Invoice");
-  auto showInvoice = invoiceMenu->addAction("Lihat Receipt");
+  invoiceMenu->addSeparator();
+  auto reload = invoiceMenu->addAction("&Refresh");
+  auto showInvoice = invoiceMenu->addAction("Struk");
+  auto e = invoiceMenu->addAction("Edit");
+  
+  if(six.siblingAtColumn(4).data(Qt::EditRole).toInt() > 0) {
+    invoiceMenu->addSeparator();
+    auto a = invoiceMenu->addAction("Bayar");  
+  }
+  auto del = invoiceMenu->addAction("Hapus");
+  connect(e, &QAction::triggered, [this, &six]() { emit editInvoiceRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
+  connect(reload, &QAction::triggered, [this]() { reloadModelData( {"invoices"} ); });
   connect(showInvoice, &QAction::triggered, this, &InvoiceViews::showPreview);
   menu.exec(ui->view->viewport()->mapToGlobal(p));
 }
@@ -98,6 +112,7 @@ QString InvoiceViews::modelQuery(bool viewLunas) const {
 void InvoiceViews::on_checkBox_toggled(bool l) {
   auto db = QSqlDatabase::database("JUST-INV_DB", true);
   queryModel->setQuery(modelQuery(l), db);
+  proxy->invalidate();
   // qDebug() << queryModel->lastError().text();
   ui->view->resizeColumnsToContents();
 }
@@ -112,3 +127,14 @@ void InvoiceViews::showPreview() {
     rd->deleteLater();
   }
 }
+
+void InvoiceViews::reloadModelData(const QList<QString> &tables) {
+  if ( tables.indexOf("invoices") != -1 || 
+       tables.indexOf("payments") != -1 ||
+       tables.indexOf("konsumen") != -1 ||
+       tables.count() < 1) {
+         on_checkBox_toggled(ui->checkBox->isChecked());
+       }
+}
+
+

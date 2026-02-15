@@ -4,35 +4,25 @@
 #include <QDateTime>
 
 struct InvoiceData {
-  QString adminName, 
-          customerName, 
-          customerPhone, 
-          dateString;
-  
-  int total;
-  
   struct ItemData {
     QString productName;
-  
-    int unitPrice, 
-        unitQty, 
-        subTotal;
+    int unitPrice, unitQty, subTotal;
   };
   
+  QString adminName, customerName, customerPhone, dateString;
+  int total, paid;
+
   QList<ItemData> itemList;
 };
 
 struct PaymentData {
-  QString adminName,
-          method;
-  int amount;
+  QString adminName, method;
+  int amount, cashback;
   QDateTime paymentTime;
 };
 
 struct StoreInfoData {
-  QString storeName,
-          storeAddr,
-          storePhone;
+  QString storeName, storeAddr, storePhone;
 };
 
 struct PrintInvoiceParams {
@@ -40,10 +30,7 @@ struct PrintInvoiceParams {
   StoreInfoData storeInfo;
   
   // Invoice Data
-  QString invoiceCode,
-          adminName,
-          customerName,
-          invoiceDate;
+  QString invoiceCode, adminName, customerName, invoiceDate;
 
   // Items Data
   QList<InvoiceData::ItemData> itemList;

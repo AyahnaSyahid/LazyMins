@@ -39,12 +39,30 @@ CreateInvoiceDialog::CreateInvoiceDialog(QWidget *parent) :
   ui->notaTable->addAction(ui->tableActionDelete);
   
   adminModel->setQuery("SELECT DISTINCT admin FROM invoices ORDER BY admin", QSqlDatabase::database("JUST-INV_DB", true));
-  konsumenModel->setQuery("SELECT DISTINCT customer FROM invoices ORDER BY customer", QSqlDatabase::database("JUST-INV_DB", true));
+  konsumenModel->setQuery(R"--(
+    SELECT customer,
+       customer_phone
+  FROM invoices
+ WHERE created_at = (
+        SELECT MAX(created_at) 
+          FROM invoices t2
+         WHERE t2.customer = invoices.customer )
+ GROUP BY customer; )--", 
+      QSqlDatabase::database("JUST-INV_DB", true));
   
   auto comp1 = new QCompleter(this);
   auto comp2 = new QCompleter(this);
+  
   comp1->setModel(adminModel);
   comp2->setModel(konsumenModel);
+  
+  // LAMDAS SET PHONE HERE
+ connect(comp2, QOverload<const QModelIndex &>::of(&QCompleter::activated),
+   [=](const QModelIndex &index) {
+     if (!index.siblingAtColumn(1).data(Qt::EditRole).isNull()) {
+       ui->customerPhoneLineEdit->setText(index.siblingAtColumn(1).data(Qt::EditRole).toString());
+     }
+   });
   
   ui->adminLineEdit->setCompleter(comp1);
   ui->customerLineEdit->setCompleter(comp2);
@@ -206,16 +224,15 @@ InvoiceData CreateInvoiceDialog::getInvoiceData() const {
   ida.dateString = ui->tanggalDateEdit->date().toString("yyyy-MM-dd");
   ida.total = totalPrice();
   for(int i=0; i < notaModel->rowCount(); ++i) {
-    ida.itemList << InvoiceData::ItemData { notaModel->index(i, 1).data().toString(), 
-                                            notaModel->index(i, 2).data(Qt::EditRole).toInt(), 
-                                            notaModel->index(i, 3).data(Qt::EditRole).toInt(), 
-                                            notaModel->index(i, 4).data(Qt::EditRole).toInt(), };
-  }
+    ida.itemList << InvoiceData::ItemData { 
+      notaModel->index(i, 1).data().toString(), 
+      notaModel->index(i, 2).data(Qt::EditRole).toInt(), 
+      notaModel->index(i, 3).data(Qt::EditRole).toInt(), 
+      notaModel->index(i, 4).data(Qt::EditRole).toInt(), }; }
   return ida;
 }
 
 bool CreateInvoiceDialog::verifyInvoiceData(const InvoiceData &ida, QString &err) const {
-  
   if (ida.adminName.isEmpty()) {
     err = "Nama Admin Kosong";
     return false;

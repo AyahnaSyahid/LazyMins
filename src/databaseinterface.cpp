@@ -48,7 +48,7 @@ namespace {
     return true;
   }
   
-  QSqlRecord createPayment(const QSqlRecord& inv, int amount, const QString& method, QSqlDatabase &db) {
+  QSqlRecord createPayment(const QSqlRecord& inv, int amount, const QString& method, QSqlDatabase  db) {
     QSqlQuery q(db);
     q.prepare(R"--(
       INSERT INTO payments (invoice_id, admin, amount, method, payment_time, received_by)
@@ -96,6 +96,7 @@ bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
     return false;
   }
   emit saveDone(true);
+  emit tableUpdate( {"invoices", "invoice_item"});
   return true;
 }
 
@@ -190,24 +191,82 @@ bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount
   db.transaction();
   auto invr = createInvoice(ida, db);
   if(invr.isEmpty()) {
-    db.rollback();
     return false;
   }
   
   if(!appendInvoiceItems(invr, ida.itemList, db)) {
-    db.rollback();
     return false;
   }
   
   if (createPayment(invr, amount, method, db).isEmpty()) {
-    db.rollback();
     return false;
   }
   ref = invr;
+  emit tableUpdate( {"payments"} );
   return db.commit();
 }
 
 bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, int amount, const QString& method) {
-  auto db = QSqlDatabase::database("JUST-INV_DB", true);
-  return !createPayment(invoiceRecord, amount, method, db).isEmpty();
+  return !createPayment(invoiceRecord, amount, method, database()).isEmpty();
+}
+
+QSqlDatabase DatabaseInterface::database()
+{
+  return QSqlDatabase::database("JUST-INV_DB", true);
+}
+
+bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
+  auto db = database();
+  db.transaction();
+  int affected = 0;
+  QVariantList keys {"storeName", "storeAddr", "storePhone"};
+  QVariantList values { d.storeName, d.storeAddr, d.storePhone};  
+  QSqlQuery q(db);
+  q.prepare(R"--(
+    INSERT INTO store_data (key, val) VALUES (:config_key, :new_value)
+        ON CONFLICT(key) DO UPDATE SET val = :new_value
+        WHERE val != excluded.val;
+      )--");
+  q.bindValue(":config_key", keys);
+  q.bindValue(":new_value", values);
+  
+  if( !q.execBatch() ) {
+    qDebug() << "execBatch failed" << q.lastError().text();
+    db.rollback();
+    return false;
+  }
+  db.commit();
+  return true;
+}
+
+InvoiceData DatabaseInterface::getInvoiceData(int invoice_id)
+{
+  QSqlQuery q(database());
+  q.prepare("SELECT * FROM invoices WHERE id = :iid");
+  q.bindValue(":iid", invoice_id);
+  if (q.exec() && q.next()) {
+    InvoiceData invd;
+    invd.adminName = q.value("admin").toString();
+    invd.customerName = q.value("customer").toString();
+    invd.customerPhone = q.value("customer_phone").toString();
+    invd.dateString = q.value("invoice_date").toString();
+    invd.total = q.value("total").toInt();
+    invd.paid = q.value("paid").toInt();
+
+    QSqlRecord invoiceRecord = q.record();
+    q.prepare("SELECT * FROM invoice_item WHERE invoice_id = :iid");
+    q.bindValue(":iid", invoice_id);
+    if (q.exec()) {
+      while (q.next()) {
+        InvoiceData::ItemData a;
+        a.productName = q.value("order_name").toString();
+        a.unitPrice = q.value("price").toInt();
+        a.unitQty = q.value("qty").toInt();
+        a.subTotal = q.value("subTotal").toInt();
+        invd.itemList << a;
+      }
+      return invd;
+    }
+  }
+  return InvoiceData {};
 }

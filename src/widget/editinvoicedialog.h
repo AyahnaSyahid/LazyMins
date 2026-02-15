@@ -13,9 +13,13 @@ class EditInvoiceDialog : public CreateInvoiceDialog
   public:
     explicit EditInvoiceDialog(int invoice_id, QWidget *p=nullptr);
     ~EditInvoiceDialog();
-  
+
+  protected slots:
+    void on_simpanButton_clicked() override;  
+
   private:
     InvoiceData m_old;
+    int targetInvoice;
 };
 
 #endif

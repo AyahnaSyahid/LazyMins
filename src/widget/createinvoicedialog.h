@@ -21,11 +21,13 @@ class CreateInvoiceDialog : public QDialog {
 
     ~CreateInvoiceDialog();
   
+  protected slots:
+    virtual void on_simpanButton_clicked();
+    virtual void on_bayarButton_clicked();
+  
   private slots:
     void on_tableActionInsert_triggered();
     void on_tableActionDelete_triggered();
-    void on_simpanButton_clicked();
-    void on_bayarButton_clicked();
     void inputDialogAccepted();
     void onNotaSaveDone(bool);
     void onPaymentDialogFinished(int);

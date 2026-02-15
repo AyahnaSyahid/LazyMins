@@ -13,9 +13,10 @@ class DatabaseInterface : public QObject
   public:
     static DatabaseInterface &instance();
     PrintInvoiceParams getPrintInvoiceParams(int invoice_id) const;
-    InvoiceData getInvoiceData(int invoice_id);
+    InvoiceData getInvoiceData(int invoice_id) const;
     StoreInfoData getStoreInfo(QSqlDatabase &db) const;
-    QSqlDatabase database();
+    QList<QSqlRecord> getPaymentRecords(int invoice_id) const;
+    QSqlDatabase database() const;
     
   public slots:
     // bool saveInvoiceData(const QVariant &va);
@@ -23,6 +24,7 @@ class DatabaseInterface : public QObject
     bool saveInvoiceAndPayment(const InvoiceData&, int amount, const QString& method, QSqlRecord &ref);
     bool savePayment(const QSqlRecord&, int amount, const QString& method);
     bool saveStoreInfoData(const StoreInfoData& si);
+    bool updateInvoice(int invoice_id, const InvoiceData &newData);
   
   signals:
     void saveDone(bool ok);

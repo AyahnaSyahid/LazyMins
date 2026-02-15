@@ -210,7 +210,7 @@ bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, int amount,
   return !createPayment(invoiceRecord, amount, method, database()).isEmpty();
 }
 
-QSqlDatabase DatabaseInterface::database()
+QSqlDatabase DatabaseInterface::database() const
 {
   return QSqlDatabase::database("JUST-INV_DB", true);
 }
@@ -239,7 +239,7 @@ bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
   return true;
 }
 
-InvoiceData DatabaseInterface::getInvoiceData(int invoice_id)
+InvoiceData DatabaseInterface::getInvoiceData(int invoice_id) const
 {
   QSqlQuery q(database());
   q.prepare("SELECT * FROM invoices WHERE id = :iid");
@@ -270,3 +270,36 @@ InvoiceData DatabaseInterface::getInvoiceData(int invoice_id)
   }
   return InvoiceData {};
 }
+
+bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData)
+{
+  auto db = database();
+  db.transaction();
+  QSqlRecord ir = createInvoice(newData, db);
+  if (ir.isEmpty()) {
+    db.rollback();
+    return false;
+  }
+  if ( !appendInvoiceItems(ir, newData.itemList, db) ) {
+    db.rollback();
+    return false;
+  }
+  QSqlQuery q(db);
+  q.prepare("UPDATE invoices SET (status, revision_ref) = ('revised', :old_id) WHERE id = :old_id");
+  q.bindValue(":old_id", invoice_id);
+  if ( !q.exec()) {
+    db.rollback();
+    return false;
+  }
+  if (q.numRowsAffected() == 0) {
+    db.rollback();
+    return false;
+  }
+  if (!db.commit()) {
+    db.rollback();
+    return false;
+  }
+  emit tableUpdate( {"invoices"} );
+  return true;
+}
+

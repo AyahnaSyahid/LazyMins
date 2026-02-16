@@ -59,7 +59,7 @@ void PaymentInputDialog::on_dealButton_clicked() {
     // add another payment
     int total = m_record.value("total").toInt();
     int minimum = total <= bayar ? total : bayar;
-    if (!di.savePayment(m_record, minimum, ui->methodLineEdit->text())) {
+    if (!di.savePayment(m_record, m_record.value("admin").toString(), minimum, ui->methodLineEdit->text())) {
       QMessageBox::warning(this, "Peringatan", "Data Pembayaran gagal disimpan");
       return ;
     }

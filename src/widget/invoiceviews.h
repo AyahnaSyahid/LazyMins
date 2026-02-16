@@ -26,6 +26,7 @@ class InvoiceViews : public RealTimeDataWidget
   
   signals:
     void editInvoiceRequest(int inv_id) const;
+    void repaymentRequest(int inv_id) const;
   
   private:
     Ui::InvoiceViews *ui;

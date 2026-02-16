@@ -48,14 +48,14 @@ namespace {
     return true;
   }
   
-  QSqlRecord createPayment(const QSqlRecord& inv, int amount, const QString& method, QSqlDatabase  db) {
+  QSqlRecord createPayment(const QSqlRecord& inv, const QString& by, int amount, const QString& method, QSqlDatabase  db) {
     QSqlQuery q(db);
     q.prepare(R"--(
       INSERT INTO payments (invoice_id, admin, amount, method, payment_time, received_by)
       VALUES (:invoice_id, :admin, :amount, :method, CURRENT_TIMESTAMP, :admin); 
       )--");
     q.bindValue(":invoice_id", inv.value("id"));
-    q.bindValue(":admin", inv.value("admin"));
+    q.bindValue(":admin", by);
     q.bindValue(":amount", amount);
     q.bindValue(":method", method);
     if ( q.exec() ) {
@@ -198,7 +198,7 @@ bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount
     return false;
   }
   
-  if (createPayment(invr, amount, method, db).isEmpty()) {
+  if (createPayment(invr, ida.adminName, amount, method, db).isEmpty()) {
     return false;
   }
   ref = invr;
@@ -206,8 +206,20 @@ bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount
   return db.commit();
 }
 
-bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, int amount, const QString& method) {
-  return !createPayment(invoiceRecord, amount, method, database()).isEmpty();
+bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, const QString &by, int amount, const QString& method) {
+  auto db = database();
+  db.transaction();
+  bool fail = createPayment(invoiceRecord, by, amount, method, db).isEmpty();
+  if (fail) {
+    db.rollback();
+    return false;
+  }
+  if (!db.commit()) {
+    db.rollback();
+    return false;
+  }
+  emit tableUpdate ( { "invoices", "payments" });
+  return true;
 }
 
 QSqlDatabase DatabaseInterface::database() const
@@ -271,23 +283,41 @@ InvoiceData DatabaseInterface::getInvoiceData(int invoice_id) const
   return InvoiceData {};
 }
 
-bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData)
+QSqlRecord DatabaseInterface::getInvoiceRecord(int invoice_id) const {
+  QSqlQuery q(database());
+  q.prepare("SELECT * FROM invoices WHERE id = :id");
+  q.bindValue(":id", invoice_id);
+  if (q.exec() && q.next()) {
+    return q.record();
+  }
+  return QSqlRecord();
+}
+
+bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> pd, int cashback, UpdateInvoiceStrategy s)
 {
+  // Assisted by Claude Sonet 4.5
   auto db = database();
   db.transaction();
+  
+  // Create new invoice record
   QSqlRecord ir = createInvoice(newData, db);
   if (ir.isEmpty()) {
     db.rollback();
     return false;
   }
-  if ( !appendInvoiceItems(ir, newData.itemList, db) ) {
+  
+  // Add items to new invoice
+  if (!appendInvoiceItems(ir, newData.itemList, db)) {
     db.rollback();
     return false;
   }
+  
+  // Mark old invoice as revised - do this after new invoice is successfully created
   QSqlQuery q(db);
-  q.prepare("UPDATE invoices SET (status, revision_ref) = ('revised', :old_id) WHERE id = :old_id");
+  q.prepare("UPDATE invoices SET status = 'revised', revision_ref = :new_id WHERE id = :old_id");
+  q.bindValue(":new_id", ir.value("id"));
   q.bindValue(":old_id", invoice_id);
-  if ( !q.exec()) {
+  if (!q.exec()) {
     db.rollback();
     return false;
   }
@@ -295,12 +325,127 @@ bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData
     db.rollback();
     return false;
   }
-  if (!db.commit()) {
-    db.rollback();
-    return false;
+  
+  // Handle different payment strategies
+  if (s == UpdateInvoiceStrategy::UpdateInvoiceSimple) {
+    // Just update invoice - no payment changes
+    if (!db.commit()) {
+      db.rollback();
+      return false;
+    }
+    emit tableUpdate({"invoices", "invoice_item"});
+    return true;
+    
+  } else if (s == UpdateInvoiceStrategy::UpdateAndRemovePayments) {
+    // Cancel all payments associated with old invoice
+    q.prepare("UPDATE payments SET status = 'canceled' WHERE invoice_id = :invid");
+    q.bindValue(":invid", invoice_id);
+    if (!q.exec()) {
+      db.rollback();
+      return false;
+    }
+    if (q.numRowsAffected() < 1) {
+      db.rollback();
+      return false;
+    }
+    if (!db.commit()) {
+      db.rollback();
+      return false;
+    }
+    emit tableUpdate({"invoices", "invoice_item", "payments"});
+    return true;
+    
+  } else if (s == UpdateInvoiceStrategy::UpdateAndMakeCashBack) {
+    // Transfer payments to new invoice and create cashback payment
+    q.prepare("UPDATE payments SET invoice_id = :new_id WHERE invoice_id = :old_id");
+    q.bindValue(":new_id", ir.value("id"));
+    q.bindValue(":old_id", invoice_id);
+    if (!q.exec() || q.numRowsAffected() == 0) {
+      db.rollback();
+      return false;
+    }
+    
+    // Create cashback payment record
+    q.prepare(R"--(
+      INSERT INTO payments (
+          invoice_id, 
+          admin, 
+          amount, 
+          method, 
+          payment_time, 
+          received_by)
+      VALUES (
+          :invoice_id, 
+          :admin, 
+          :amount, 
+          :method, 
+          CURRENT_TIMESTAMP, 
+          :admin); )--");
+    q.bindValue(":invoice_id", ir.value("id"));
+    q.bindValue(":admin", ir.value("admin"));
+    q.bindValue(":amount", -cashback); // Negative for cashback
+    q.bindValue(":method", "CASH");
+    
+    if (!q.exec()) {
+      db.rollback();
+      return false;
+    }
+    if (!db.commit()) {
+      db.rollback();
+      return false;
+    }
+    emit tableUpdate({"invoices", "invoice_item", "payments"});
+    return true;
+    
+  } else if (s == UpdateInvoiceStrategy::UpdateInvoiceAndPayments) {
+    // Cancel old payments
+    q.prepare("UPDATE payments SET status = 'canceled' WHERE invoice_id = :old_id");
+    q.bindValue(":old_id", invoice_id);
+    if (!q.exec()) {
+      db.rollback();
+      return false;
+    }
+    
+    // Create new payments for the revised invoice
+    for (const auto& payment : pd) {
+      q.prepare(R"--(
+        INSERT INTO payments (
+            invoice_id, 
+            admin, 
+            amount, 
+            method, 
+            payment_time, 
+            received_by)
+        VALUES (
+            :invoice_id, 
+            :admin, 
+            :amount, 
+            :method, 
+            :payment_time, 
+            :admin); )--");
+      q.bindValue(":invoice_id", ir.value("id"));
+      q.bindValue(":admin", payment.adminName);
+      q.bindValue(":amount", payment.amount);
+      q.bindValue(":method", payment.method);
+      q.bindValue(":payment_time", payment.paymentTime);
+      
+      if (!q.exec()) {
+        db.rollback();
+        return false;
+      }
+    }
+    
+    if (!db.commit()) {
+      db.rollback();
+      return false;
+    }
+    emit tableUpdate({"invoices", "invoice_item", "payments"});
+    return true;
   }
-  emit tableUpdate( {"invoices"} );
-  return true;
+  
+  // Should never reach here - all strategies handled above
+  db.rollback();
+  return false;
 }
 
 QList<QSqlRecord> DatabaseInterface::getPaymentRecords(int invoice_id) const 

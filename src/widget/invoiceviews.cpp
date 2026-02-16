@@ -67,6 +67,7 @@ InvoiceViews::~InvoiceViews() { delete ui; }
 
 void InvoiceViews::on_view_customContextMenuRequested(const QPoint &p) {
   auto six = proxy->mapToSource(ui->view->indexAt(p));
+  if ( !six.isValid() ) return ;
   QMenu menu;
   auto invoiceMenu = menu.addMenu("Invoice");
   invoiceMenu->addSeparator();
@@ -76,7 +77,8 @@ void InvoiceViews::on_view_customContextMenuRequested(const QPoint &p) {
   
   if(six.siblingAtColumn(4).data(Qt::EditRole).toInt() > 0) {
     invoiceMenu->addSeparator();
-    auto a = invoiceMenu->addAction("Bayar");  
+    auto a = invoiceMenu->addAction("Bayar");
+    connect(a, &QAction::triggered, [this, &six]() { emit repaymentRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); });
   }
   auto del = invoiceMenu->addAction("Hapus");
   connect(e, &QAction::triggered, [this, &six]() { emit editInvoiceRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
@@ -93,6 +95,7 @@ QString InvoiceViews::modelQuery(bool viewLunas) const {
        invoice_date AS [Tanggal Invoice],
        total - paid AS Sisa
   FROM invoices
+ WHERE status = 'active'
  ORDER BY Sisa DESC,
           invoice_date ASC;
   )--";
@@ -103,7 +106,7 @@ QString InvoiceViews::modelQuery(bool viewLunas) const {
        invoice_date AS [Tanggal Invoice],
        total - paid AS Sisa
   FROM invoices
- WHERE COALESCE(total - paid, 0) != 0
+ WHERE COALESCE(total - paid, 0) != 0 AND status = 'active'
  ORDER BY Sisa DESC,
           invoice_date ASC;
   )--";

@@ -13,8 +13,9 @@ QString NotaHPDelegate::displayText(const QVariant& value, const QLocale& locale
 QWidget *NotaHPDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex& mi) const {
   auto sp = new QSpinBox(parent);
   sp->setButtonSymbols(QSpinBox::NoButtons);
-  sp->setRange(0,1000000);
+  sp->setRange(0,1'000'000);
   sp->setGroupSeparatorShown(true);
+  sp->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   if(mi.column() == 2) {
     sp->setProperty("indexColumn", 2);
     sp->setSingleStep(1000);

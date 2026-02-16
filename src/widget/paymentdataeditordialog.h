@@ -1,6 +1,7 @@
 #ifndef PAYMENTDATAEDITORDIALOG_H
 #define PAYMENTDATAEDITORDIALOG_H
 
+#include "../invoicedatatype.h"
 namespace Ui {
   class PaymentDataEditorDialog;
 }
@@ -13,14 +14,17 @@ namespace Ui {
 class PaymentDataEditorDialog : public QDialog
 {
   public:
-    explicit PaymentDataEditorDialog(const QList<QSqlRecord> &r, QWidget *parent) ;
+    explicit PaymentDataEditorDialog(int required, const QList<QSqlRecord> &r, QWidget *parent) ;
     ~PaymentDataEditorDialog() ;
-  
+    
+    QList<PaymentData> getPaymentsData() const;
+    void on_tableView_customContextMenuRequested(const QPoint &p);
   private:
     QList<QSqlRecord> recs;
     QList<QSqlRecord> recs_update;
     QStandardItemModel *itemModel;
     Ui::PaymentDataEditorDialog *ui;
+    int m_req;
 };
 
 #endif

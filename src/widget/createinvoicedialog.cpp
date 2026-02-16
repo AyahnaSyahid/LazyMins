@@ -218,6 +218,7 @@ void CreateInvoiceDialog::resetUi() {
 
 InvoiceData CreateInvoiceDialog::getInvoiceData() const {
   InvoiceData ida;
+  ida.paid = 0;
   ida.adminName = ui->adminLineEdit->text().trimmed();
   ida.customerName = ui->customerLineEdit->text().trimmed();
   ida.customerPhone = ui->customerPhoneLineEdit->text().trimmed();

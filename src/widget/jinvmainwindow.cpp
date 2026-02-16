@@ -7,6 +7,7 @@
 #include "../databaseinterface.h"
 #include "realtimedatawidget.h"
 #include "storeinfoeditordialog.h"
+#include "repaymentinputdialog.h"
 
 #include <QDockWidget>
 #include <QMenu>
@@ -30,6 +31,7 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto invoiceView = new InvoiceViews();
   
   connect(invoiceView, &InvoiceViews::editInvoiceRequest, this, &JINVMainWindow::openInvoiceEditor);
+  connect(invoiceView, &InvoiceViews::repaymentRequest, this, &JINVMainWindow::openRepaymentDialog);
   
   auto pengaturan = mbar->addMenu("Pengaturan");
   auto storeInfo = pengaturan->addAction("Toko");
@@ -67,5 +69,12 @@ void JINVMainWindow::openStoreInfoEditor() {
 
 void JINVMainWindow::openInvoiceEditor(int invoice_id) {
   auto eid = new EditInvoiceDialog(invoice_id, this);
+  eid->setAttribute(Qt::WA_DeleteOnClose);
   eid->open();
+}
+
+void JINVMainWindow::openRepaymentDialog(int invoice_id) {
+  auto rep = new RepaymentInputDialog(invoice_id, this);
+  rep->setAttribute(Qt::WA_DeleteOnClose);
+  rep->open();
 }

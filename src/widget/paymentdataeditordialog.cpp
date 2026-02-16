@@ -1,6 +1,8 @@
 #include "paymentdataeditordialog.h"
 #include "ui_paymentdataeditordialog.h"
 
+#include <QDate>
+
 PaymentDataEditorDialog::PaymentDataEditorDialog(const QList<QSqlRecord> &_r, QWidget *p):
   recs(_r),
   recs_update {}, 
@@ -21,11 +23,12 @@ PaymentDataEditorDialog::PaymentDataEditorDialog(const QList<QSqlRecord> &_r, QW
     method->setData(r.value("method"), Qt::EditRole);
     method->setEditable(true);
     auto paytime = new QStandardItem();
-    paytime->setData(r.value("payment_time").toDate("yyyy-MM-dd"), Qt::EditRole);
+    paytime->setData(r.value("payment_time").toDate(), Qt::EditRole);
     paytime->setEditable(true);
     row << admin << amount << method << paytime;
     itemModel->appendRow(row);
   }
+  ui->tableView->setModel(itemModel);
 }
 
-PaymentDataEditorDialog::~PaymentDataEditorDialog { delete ui; }
+PaymentDataEditorDialog::~PaymentDataEditorDialog() { delete ui; }

@@ -303,3 +303,17 @@ bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData
   return true;
 }
 
+QList<QSqlRecord> DatabaseInterface::getPaymentRecords(int invoice_id) const 
+{
+  QSqlQuery q(database());
+  q.prepare("SELECT * FROM payments WHERE invoice_id = :iid ");
+  q.bindValue(":iid", invoice_id);
+  if (q.exec()) {
+    QList<QSqlRecord> recs;
+    while (q.next()) {
+      recs << q.record();
+    }
+    return recs;
+  }
+  return QList<QSqlRecord> {};
+}

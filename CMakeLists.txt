@@ -40,6 +40,9 @@ qt_add_library(JINV STATIC
             src/widget/invoiceviews.ui
             src/widget/invoiceviews.cpp
             src/widget/realtimedatawidget.h
+            src/widget/paymentdataeditordialog.h
+            src/widget/paymentdataeditordialog.ui
+            src/widget/paymentdataeditordialog.cpp
             )
             
 target_link_libraries(JINV PUBLIC Qt6::Widgets Qt6::Sql Qt6::SerialPort EscPosQt)

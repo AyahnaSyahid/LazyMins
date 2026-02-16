@@ -7,6 +7,8 @@ namespace Ui {
 
 #include <QDialog>
 #include <QStandardItemModel>
+#include <QSqlRecord>
+#include <QStandardItem>
 
 class PaymentDataEditorDialog : public QDialog
 {
@@ -18,6 +20,7 @@ class PaymentDataEditorDialog : public QDialog
     QList<QSqlRecord> recs;
     QList<QSqlRecord> recs_update;
     QStandardItemModel *itemModel;
+    Ui::PaymentDataEditorDialog *ui;
 };
 
 #endif

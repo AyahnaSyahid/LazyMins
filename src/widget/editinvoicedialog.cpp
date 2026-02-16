@@ -1,5 +1,6 @@
 #include "editinvoicedialog.h"
 #include "ui_createinvoicedialog.h"
+#include "paymentdataeditordialog.h"
 
 #include "../databaseinterface.h"
 #include <QMessageBox>
@@ -41,14 +42,17 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
     return;
   }
   // payment check
-  auto paymentRecords = DatabaseInterface::instance().getPaymentRecords();
+  auto paymentRecords = DatabaseInterface::instance().getPaymentRecords(targetInvoice);
   if (paymentRecords.count() > 0) {
-    int paid = 0;
+    int total_paid = 0;
     for(const auto &rec : paymentRecords) {
-      paid += rec.value("amount").toInt();
+      total_paid += rec.value("amount").toInt();
     }
-    if (paid > ida.total) {
-      
+    if (total_paid > ida.total) {
+      PaymentDataEditorDialog pde(paymentRecords, this);
+      if (QDialog::Rejected == pde.exec()) {
+        return ;
+      }
     }
   }
   

@@ -31,8 +31,8 @@ CustomerView::CustomerView(QWidget *p)
     RealTimeDataWidget(p)
 {
   c_model->setQuery(R"--(
-    SELECT customer,
-       customer_phone
+    SELECT customer AS Konsumen,
+       customer_phone AS [Nomor Telepon]
   FROM invoices
  WHERE created_at = (
         SELECT MAX(created_at) 

@@ -15,6 +15,7 @@ class RepaymentInputDialog : public QDialog {
     RepaymentInputDialog(int invoice_id, QWidget *p=nullptr);
     ~RepaymentInputDialog();
     
+    bool dataLoaded() const { return m_dataLoaded; }
     
   private slots:
     void on_bayarBox_valueChanged(int);
@@ -23,6 +24,7 @@ class RepaymentInputDialog : public QDialog {
   private:
     Ui::RepaymentInputDialog *ui;
     int m_invoice;
+    bool m_dataLoaded;
 };
 
 #endif

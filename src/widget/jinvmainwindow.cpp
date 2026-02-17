@@ -40,7 +40,8 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto &di = DatabaseInterface::instance();
   auto db = QSqlDatabase::database("JUST-INV_DB", true);
   auto si = di.getStoreInfo(db);
-  setWindowTitle(QString("%1 - Just Invoice").arg(si.storeName));
+  
+  setWindowTitle(QString("%1 - Just Invoice").arg((*si).storeName));
   
   installDockable(customerView, Qt::LeftDockWidgetArea, "Konsumen");
   installDockable(invoiceView, Qt::RightDockWidgetArea, "Invoice");

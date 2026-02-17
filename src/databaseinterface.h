@@ -1,29 +1,27 @@
 #ifndef DATABASEINTEFACE_H
 #define DATABASEINTEFACE_H
 
+#include "databasetransaction.h"
 #include "invoicedatatype.h"
 
 #include <QObject>
 #include <QSqlDatabase>
 #include <QVariant>
+#include <optional>
+
 
 class DatabaseInterface : public QObject
 {
   Q_OBJECT
   public:
-    enum class UpdateInvoiceStrategy {
-      UpdateInvoiceSimple,
-      UpdateAndRemovePayments,
-      UpdateAndMakeCashBack,
-      UpdateInvoiceAndPayments
-    };
+    
     static DatabaseInterface &instance();
-    PrintInvoiceParams getPrintInvoiceParams(int invoice_id) const;
-    InvoiceData getInvoiceData(int invoice_id) const;
-    StoreInfoData getStoreInfo(QSqlDatabase &db) const;
+    std::optional<PrintInvoiceParams> getPrintInvoiceParams(int invoice_id) const;
+    std::optional<InvoiceData> getInvoiceData(int invoice_id) const;
+    std::optional<StoreInfoData> getStoreInfo(QSqlDatabase &db) const;
     QList<QSqlRecord> getPaymentRecords(int invoice_id) const;
     QSqlDatabase database() const;
-    QSqlRecord getInvoiceRecord(int invoice_id) const;
+    std::optional<QSqlRecord> getInvoiceRecord(int invoice_id) const;
     
   public slots:
     // bool saveInvoiceData(const QVariant &va);
@@ -31,7 +29,7 @@ class DatabaseInterface : public QObject
     bool saveInvoiceAndPayment(const InvoiceData&, int amount, const QString& method, QSqlRecord &ref);
     bool savePayment(const QSqlRecord&, const QString& by, int amount, const QString& method);
     bool saveStoreInfoData(const StoreInfoData& si);
-    bool updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> pd, int cashBack, UpdateInvoiceStrategy s);
+    bool updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> payments, int cashBack);
   
   signals:
     void saveDone(bool ok);

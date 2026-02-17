@@ -14,7 +14,7 @@
 #include <QRectF>
 
 namespace {
-  PrintInvoiceParams getParam(qlonglong inv) {
+  std::optional<PrintInvoiceParams> getParam(qlonglong inv) {
     return DatabaseInterface::instance().getPrintInvoiceParams(inv);
   }
 
@@ -87,7 +87,7 @@ namespace {
 }
 
 ReceiptPreviewDialog::ReceiptPreviewDialog(qlonglong inv, QWidget *parent)
-: ui(new Ui::ReceiptPreviewDialog), scene(new QGraphicsScene), m_ready(false), param(getParam(inv)), QDialog(parent)
+: ui(new Ui::ReceiptPreviewDialog), scene(new QGraphicsScene), m_ready(false), param(*getParam(inv)), QDialog(parent)
 {
   ui->setupUi(this);
   ui->rView->setScene(scene);
@@ -139,7 +139,7 @@ void ReceiptPreviewDialog::draw()
   g2->setY(g1->sceneBoundingRect().bottom());
   g1 = scene->addSimpleText(QString("Konsumen : %1").arg(param.customerName), normalFont);
   g1->setY(g2->sceneBoundingRect().bottom());
-  g2 = scene->addSimpleText(QString("         - %1").arg("XXXXXXX"), normalFont);
+  g2 = scene->addSimpleText(QString("         - %1").arg(param.customerPhone.isEmpty() ? "N/A" : param.customerPhone), normalFont);
   g2->setY(g1->sceneBoundingRect().bottom());
   g1 = scene->addSimpleText(QString("Admin    : %1").arg(param.adminName), normalFont);
   g1->setY(g2->sceneBoundingRect().bottom());

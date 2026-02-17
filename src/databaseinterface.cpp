@@ -4,7 +4,7 @@
 #include <QSqlError>
 
 namespace {
-  QSqlRecord createInvoice(const InvoiceData& ida, QSqlDatabase &db) {
+  std::optional<QSqlRecord> createInvoice(const InvoiceData& ida, QSqlDatabase &db) {
     QSqlQuery qi(db);
     qi.prepare( R"--( 
       INSERT INTO invoices ( invoice_date, admin, customer, customer_phone, total, created_by)
@@ -14,13 +14,16 @@ namespace {
     qi.bindValue(":customer", ida.customerName);
     qi.bindValue(":customer_phone", ida.customerPhone.isEmpty() ? QVariant(QMetaType::fromType<QString>()): ida.customerPhone);
     qi.bindValue(":total", ida.total);
-    if (qi.exec()) {
-      int invId = qi.lastInsertId().toInt();
-      qi.exec(QString("SELECT * FROM invoices WHERE id = %1").arg(invId)) && qi.next();
+    if (!qi.exec()) {
+      return std::nullopt;
+    }
+    int invId = qi.lastInsertId().toInt();
+    qi.prepare("SELECT * FROM invoices WHERE id = :id");
+    qi.bindValue(":id", invId);
+    if(qi.exec() && qi.next()) {
       return qi.record();
     }
-    qDebug() << "createInvoice" << qi.lastError().text();
-    return QSqlRecord();
+    return std::nullopt;
   }
   
   bool appendInvoiceItems(const QSqlRecord inv, const QList<InvoiceData::ItemData>& dataList, QSqlDatabase &db) {
@@ -48,7 +51,7 @@ namespace {
     return true;
   }
   
-  QSqlRecord createPayment(const QSqlRecord& inv, const QString& by, int amount, const QString& method, QSqlDatabase  db) {
+  std::optional<QSqlRecord> createPayment(const QSqlRecord& inv, const QString& by, int amount, const QString& method, QSqlDatabase  db) {
     QSqlQuery q(db);
     q.prepare(R"--(
       INSERT INTO payments (invoice_id, admin, amount, method, payment_time, received_by)
@@ -66,7 +69,8 @@ namespace {
         return q.record();
       }
     }
-    return QSqlRecord();
+    qDebug() << "create payment failed" << q.lastError().text();
+    return std::nullopt;
   };
 
 }; // namespace END
@@ -77,36 +81,28 @@ DatabaseInterface &DatabaseInterface::instance() {
 };
 
 bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
-  auto db = QSqlDatabase::database("JUST-INV_DB", true);
-  db.transaction();
-  QSqlRecord inv_record = createInvoice(ida, db);
-  if (inv_record.isEmpty()) {
-    db.rollback();
-    emit saveDone(false);
-    return false;
+  auto db = database();
+  Transaction tr(db);
+  auto createResult = createInvoice(ida, db);
+  if (createResult) {
+    if(appendInvoiceItems(createResult.value(), ida.itemList, db)) {
+      tr.commit();
+      emit saveDone(true);
+      emit tableUpdate( {"invoices", "invoice_item"});
+      return true;
+    }
   }
-  if(!appendInvoiceItems(inv_record, ida.itemList, db)) {
-    db.rollback();
-    emit saveDone(false);
-    return false;
-  }
-  if(!db.commit()) {
-    db.rollback();
-    emit saveDone(false);
-    return false;
-  }
-  emit saveDone(true);
-  emit tableUpdate( {"invoices", "invoice_item"});
-  return true;
+  emit saveDone(false);
+  return false;
 }
 
-StoreInfoData DatabaseInterface::getStoreInfo(QSqlDatabase &db) const {
+std::optional<StoreInfoData> DatabaseInterface::getStoreInfo(QSqlDatabase &db) const {
   StoreInfoData storeInfo {};
-  QSqlQuery q(db);
   
+  QSqlQuery q(db);
   if (!q.exec("SELECT key, val FROM store_data WHERE key IN ('storeName', 'storeAddr', 'storePhone')")) {
     qWarning() << "Query failed:" << q.lastError().text();
-    return storeInfo;
+    return std::nullopt;
   }
   
   while (q.next()) {
@@ -117,15 +113,20 @@ StoreInfoData DatabaseInterface::getStoreInfo(QSqlDatabase &db) const {
     else if (key == "storeAddr") storeInfo.storeAddr = val;
     else if (key == "storePhone") storeInfo.storePhone = val;
   }
-  
   return storeInfo;
 }
 
-PrintInvoiceParams DatabaseInterface::getPrintInvoiceParams(int invoice_id) const {
+std::optional<PrintInvoiceParams> DatabaseInterface::getPrintInvoiceParams(int invoice_id) const {
+
   PrintInvoiceParams params {};
-  auto db = QSqlDatabase::database("JUST-INV_DB", true);
-  db.transaction();
-  params.storeInfo = getStoreInfo(db);
+  auto db = database();
+  Transaction tr(db);
+  auto optStoreInfo = getStoreInfo(db);
+  if (!optStoreInfo) {
+    return std::nullopt;
+  }
+  
+  params.storeInfo = optStoreInfo.value();
   
   QSqlQuery q(db);
   q.prepare("SELECT * FROM invoices WHERE id = :id");
@@ -134,8 +135,7 @@ PrintInvoiceParams DatabaseInterface::getPrintInvoiceParams(int invoice_id) cons
   if (q.exec() && q.next()) {
     invRec = q.record();
   } else {
-    db.rollback();
-    return PrintInvoiceParams {};
+    return std::nullopt;
   }
   
   params.invoiceCode = invRec.value("code").isNull() ? 
@@ -145,14 +145,14 @@ PrintInvoiceParams DatabaseInterface::getPrintInvoiceParams(int invoice_id) cons
           invRec.value("code").toString();
   params.adminName = invRec.value("admin").toString();
   params.customerName = invRec.value("customer").toString();
+  params.customerPhone = invRec.value("customer_phone").toString();
   params.invoiceDate = invRec.value("invoice_date").toString();
   
   q.prepare("SELECT * FROM invoice_item WHERE invoice_id = :invoice_id");
   q.bindValue(":invoice_id", invoice_id);
   
   if (!q.exec()) {
-    db.rollback();
-    return PrintInvoiceParams {};
+    return std::nullopt;
   }
   
   while (q.next()) {
@@ -168,8 +168,7 @@ PrintInvoiceParams DatabaseInterface::getPrintInvoiceParams(int invoice_id) cons
   q.bindValue(":invoice_id", invoice_id);
   
   if (!q.exec()) {
-    db.rollback();
-    return PrintInvoiceParams {};
+    return std::nullopt;
   }
   
   while (q.next()) {
@@ -178,58 +177,52 @@ PrintInvoiceParams DatabaseInterface::getPrintInvoiceParams(int invoice_id) cons
     pdt.method = q.value("method").toString();
     pdt.amount = q.value("amount").toInt();
     pdt.paymentTime = q.value("payment_time").toDateTime();
-    
     params.paymentList << pdt;
   }
-  
-  db.rollback();
   return params;
 }
 
 bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount, const QString& method, QSqlRecord &ref) {
-  auto db = QSqlDatabase::database("JUST-INV_DB", true);
-  db.transaction();
+  auto db = database();
+  Transaction tr(db);
+  
   auto invr = createInvoice(ida, db);
-  if(invr.isEmpty()) {
+  if(!invr) {
     return false;
   }
   
-  if(!appendInvoiceItems(invr, ida.itemList, db)) {
+  if(!appendInvoiceItems(*invr, ida.itemList, db)) {
     return false;
   }
   
-  if (createPayment(invr, ida.adminName, amount, method, db).isEmpty()) {
+  if (!createPayment(*invr, ida.adminName, amount, method, db)) {
     return false;
   }
-  ref = invr;
+  tr.commit();
   emit tableUpdate( {"payments"} );
-  return db.commit();
+  return true;
 }
 
 bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, const QString &by, int amount, const QString& method) {
   auto db = database();
-  db.transaction();
-  bool fail = createPayment(invoiceRecord, by, amount, method, db).isEmpty();
-  if (fail) {
-    db.rollback();
+  Transaction tr(db);
+  
+  auto optPayment = createPayment(invoiceRecord, by, amount, method, db);
+  if ( !optPayment ) {
     return false;
   }
-  if (!db.commit()) {
-    db.rollback();
-    return false;
-  }
+  tr.commit();
   emit tableUpdate ( { "invoices", "payments" });
   return true;
 }
 
-QSqlDatabase DatabaseInterface::database() const
-{
+QSqlDatabase DatabaseInterface::database() const {
   return QSqlDatabase::database("JUST-INV_DB", true);
 }
 
 bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
   auto db = database();
-  db.transaction();
+  Transaction tr(db);
   int affected = 0;
   QVariantList keys {"storeName", "storeAddr", "storePhone"};
   QVariantList values { d.storeName, d.storeAddr, d.storePhone};  
@@ -241,19 +234,17 @@ bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
       )--");
   q.bindValue(":config_key", keys);
   q.bindValue(":new_value", values);
-  
   if( !q.execBatch() ) {
-    qDebug() << "execBatch failed" << q.lastError().text();
-    db.rollback();
     return false;
   }
-  db.commit();
+  tr.commit();
   return true;
 }
 
-InvoiceData DatabaseInterface::getInvoiceData(int invoice_id) const
-{
-  QSqlQuery q(database());
+std::optional<InvoiceData> DatabaseInterface::getInvoiceData(int invoice_id) const {
+  auto db = database();
+  Transaction tr(db);
+  QSqlQuery q(db);
   q.prepare("SELECT * FROM invoices WHERE id = :iid");
   q.bindValue(":iid", invoice_id);
   if (q.exec() && q.next()) {
@@ -277,179 +268,64 @@ InvoiceData DatabaseInterface::getInvoiceData(int invoice_id) const
         a.subTotal = q.value("subTotal").toInt();
         invd.itemList << a;
       }
+      tr.commit();
       return invd;
     }
   }
-  return InvoiceData {};
+  return std::nullopt;
 }
 
-QSqlRecord DatabaseInterface::getInvoiceRecord(int invoice_id) const {
+std::optional<QSqlRecord> DatabaseInterface::getInvoiceRecord(int invoice_id) const {
   QSqlQuery q(database());
   q.prepare("SELECT * FROM invoices WHERE id = :id");
   q.bindValue(":id", invoice_id);
   if (q.exec() && q.next()) {
     return q.record();
   }
-  return QSqlRecord();
+  return std::nullopt;
 }
 
-bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> pd, int cashback, UpdateInvoiceStrategy s)
-{
-  // Assisted by Claude Sonet 4.5
+bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> pd, int cashback) const {
   auto db = database();
-  db.transaction();
-  
-  // Create new invoice record
-  QSqlRecord ir = createInvoice(newData, db);
-  if (ir.isEmpty()) {
-    db.rollback();
-    return false;
-  }
-  
-  // Add items to new invoice
-  if (!appendInvoiceItems(ir, newData.itemList, db)) {
-    db.rollback();
-    return false;
-  }
-  
-  // Mark old invoice as revised - do this after new invoice is successfully created
-  QSqlQuery q(db);
-  q.prepare("UPDATE invoices SET status = 'revised', revision_ref = :new_id WHERE id = :old_id");
-  q.bindValue(":new_id", ir.value("id"));
-  q.bindValue(":old_id", invoice_id);
-  if (!q.exec()) {
-    db.rollback();
-    return false;
-  }
-  if (q.numRowsAffected() == 0) {
-    db.rollback();
-    return false;
-  }
-  
-  // Handle different payment strategies
-  if (s == UpdateInvoiceStrategy::UpdateInvoiceSimple) {
-    // Just update invoice - no payment changes
-    if (!db.commit()) {
-      db.rollback();
-      return false;
-    }
-    emit tableUpdate({"invoices", "invoice_item"});
-    return true;
-    
-  } else if (s == UpdateInvoiceStrategy::UpdateAndRemovePayments) {
-    // Cancel all payments associated with old invoice
-    q.prepare("UPDATE payments SET status = 'canceled' WHERE invoice_id = :invid");
-    q.bindValue(":invid", invoice_id);
-    if (!q.exec()) {
-      db.rollback();
-      return false;
-    }
-    if (q.numRowsAffected() < 1) {
-      db.rollback();
-      return false;
-    }
-    if (!db.commit()) {
-      db.rollback();
-      return false;
-    }
-    emit tableUpdate({"invoices", "invoice_item", "payments"});
-    return true;
-    
-  } else if (s == UpdateInvoiceStrategy::UpdateAndMakeCashBack) {
-    // Transfer payments to new invoice and create cashback payment
-    q.prepare("UPDATE payments SET invoice_id = :new_id WHERE invoice_id = :old_id");
-    q.bindValue(":new_id", ir.value("id"));
-    q.bindValue(":old_id", invoice_id);
-    if (!q.exec() || q.numRowsAffected() == 0) {
-      db.rollback();
-      return false;
-    }
-    
-    // Create cashback payment record
-    q.prepare(R"--(
-      INSERT INTO payments (
-          invoice_id, 
-          admin, 
-          amount, 
-          method, 
-          payment_time, 
-          received_by)
-      VALUES (
-          :invoice_id, 
-          :admin, 
-          :amount, 
-          :method, 
-          CURRENT_TIMESTAMP, 
-          :admin); )--");
-    q.bindValue(":invoice_id", ir.value("id"));
-    q.bindValue(":admin", ir.value("admin"));
-    q.bindValue(":amount", -cashback); // Negative for cashback
-    q.bindValue(":method", "CASH");
-    
-    if (!q.exec()) {
-      db.rollback();
-      return false;
-    }
-    if (!db.commit()) {
-      db.rollback();
-      return false;
-    }
-    emit tableUpdate({"invoices", "invoice_item", "payments"});
-    return true;
-    
-  } else if (s == UpdateInvoiceStrategy::UpdateInvoiceAndPayments) {
-    // Cancel old payments
-    q.prepare("UPDATE payments SET status = 'canceled' WHERE invoice_id = :old_id");
-    q.bindValue(":old_id", invoice_id);
-    if (!q.exec()) {
-      db.rollback();
-      return false;
-    }
-    
-    // Create new payments for the revised invoice
-    for (const auto& payment : pd) {
-      q.prepare(R"--(
-        INSERT INTO payments (
-            invoice_id, 
-            admin, 
-            amount, 
-            method, 
-            payment_time, 
-            received_by)
-        VALUES (
-            :invoice_id, 
-            :admin, 
-            :amount, 
-            :method, 
-            :payment_time, 
-            :admin); )--");
-      q.bindValue(":invoice_id", ir.value("id"));
-      q.bindValue(":admin", payment.adminName);
-      q.bindValue(":amount", payment.amount);
-      q.bindValue(":method", payment.method);
-      q.bindValue(":payment_time", payment.paymentTime);
-      
-      if (!q.exec()) {
-        db.rollback();
+  Transaction tr(db);
+  // get in-database invoice data
+  auto opt_invoiceData = getInvoiceData(invoice_id);
+  if (opt_invoiceData) {
+    InvoiceData oldInvoice = *opt_invoiceData;
+    if (oldInvoice.paid == 0) {
+      // this means invoice has not been issued
+      // just remove old item_data and place new item_data, it wont hurt anyone
+      QSqlQuery q(db);
+      q.prepare("DELETE FROM invoice_item WHERE invoice_id = :iid");
+      q.bindValue(":iid", invoice_id);
+      if (q.exec()) {
+        // all old invoice_item related to invoice_id has been deleted
+        q.prepare("SELECT * FROM invoices WHERE id=:iid");
+        q.bindValue(":iid", invoice_id);
+        if (q.exec() && q.next()) {
+          QSqlRecord invRec = q.record();
+          if ( appendInvoiceItems(invRec, newData::itemList, db) ) {
+            tr.commit();
+            emit tableUpdate ( {"invoices", "invoice_item"} );
+            return true;
+          }
+          qDebug() << "Update failed : tidak dapat menambahkan data";
+          return false;
+        }
+        qDebug() << "Update failed : tidak dapat menemukan invoice record";
         return false;
       }
-    }
-    
-    if (!db.commit()) {
-      db.rollback();
+      qDebug() << "Update failed : tidak dapat menghapus invoice_item";
       return false;
+    } else {
+      // payments exists
     }
-    emit tableUpdate({"invoices", "invoice_item", "payments"});
-    return true;
   }
-  
-  // Should never reach here - all strategies handled above
-  db.rollback();
+  qDebug() << "invoice data not found";
   return false;
 }
 
-QList<QSqlRecord> DatabaseInterface::getPaymentRecords(int invoice_id) const 
-{
+QList<QSqlRecord> DatabaseInterface::getPaymentRecords(int invoice_id) const {
   QSqlQuery q(database());
   q.prepare("SELECT * FROM payments WHERE invoice_id = :iid ");
   q.bindValue(":iid", invoice_id);

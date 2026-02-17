@@ -39,7 +39,8 @@ StoreInfoEditorDialog::~StoreInfoEditorDialog() {}
 
 void StoreInfoEditorDialog::initData() {
   auto db = DatabaseInterface::instance().database();
-  cachedStoreInfo = DatabaseInterface::instance().getStoreInfo(db);
+  auto optC = DatabaseInterface::instance().getStoreInfo(db);
+  cachedStoreInfo = *optC;
   le1->setText(cachedStoreInfo.storeName);
   le2->setText(cachedStoreInfo.storeAddr);
   le3->setText(cachedStoreInfo.storePhone);

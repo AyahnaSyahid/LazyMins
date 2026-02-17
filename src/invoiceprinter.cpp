@@ -14,64 +14,63 @@ namespace { // unnamed local-linkage
     int subTotal;
   };
 
-  void printItem(EscPosQt::EscPosPrinter &dev, const ItemLineParams &p)
-  {
-      const int MAX_NAME_WIDTH = 32;
-      
-      // Pecah nama jika lebih dari 32 karakter
-      QStringList nameLines;
-      QString remainingName = p.name;
-      
-      while (remainingName.length() > MAX_NAME_WIDTH) {
-          // Cari spasi terakhir sebelum posisi 32
-          int breakPos = remainingName.left(MAX_NAME_WIDTH).lastIndexOf(' ');
-          
-          if (breakPos == -1) {
-              // Tidak ada spasi, potong paksa di posisi 32
-              breakPos = MAX_NAME_WIDTH;
-          }
-          
-          nameLines.append(remainingName.left(breakPos).trimmed());
-          remainingName = remainingName.mid(breakPos).trimmed();
-      }
-      
-      // Tambahkan sisa nama
-      if (!remainingName.isEmpty()) {
-          nameLines.append(remainingName);
-      }
-      
-      dev << EscPosQt::EscPosPrinter::JustificationLeft;
-      
-      // Print semua baris nama
-      for (const QString &line : nameLines) {
-          dev << line.toUtf8() << "\n";
-      }
-      
-      // Format string qty dan subtotal
-      QString qtyStr = QString("%L1x @%L2")
-                          .arg(p.qty, 4)
-                          .arg(p.unitPrice);
-      QString subtotalStr = QString("Rp %L1\n")
-                              .arg(p.subTotal);
-      
-      // Baris terpisah untuk qty dan subtotal
-      // Set justifikasi left
-      dev << EscPosQt::EscPosPrinter::JustificationLeft;
-      
-      // Print qty info
-      dev << qtyStr.toUtf8();
-      
-      // Carriage return (kembali ke awal baris)
-      dev << "\r";
-      
-      // Set justifikasi right
-      dev << EscPosQt::EscPosPrinter::JustificationRight;
-      
-      // Print subtotal
-      dev << subtotalStr.toUtf8();
-      
-      // Reset ke left align
-      dev << EscPosQt::EscPosPrinter::JustificationLeft;
+  void printItem(EscPosQt::EscPosPrinter &dev, const ItemLineParams &p) {
+    const int MAX_NAME_WIDTH = 32;
+    
+    // Pecah nama jika lebih dari 32 karakter
+    QStringList nameLines;
+    QString remainingName = p.name;
+    
+    while (remainingName.length() > MAX_NAME_WIDTH) {
+        // Cari spasi terakhir sebelum posisi 32
+        int breakPos = remainingName.left(MAX_NAME_WIDTH).lastIndexOf(' ');
+        
+        if (breakPos == -1) {
+            // Tidak ada spasi, potong paksa di posisi 32
+            breakPos = MAX_NAME_WIDTH;
+        }
+        
+        nameLines.append(remainingName.left(breakPos).trimmed());
+        remainingName = remainingName.mid(breakPos).trimmed();
+    }
+    
+    // Tambahkan sisa nama
+    if (!remainingName.isEmpty()) {
+        nameLines.append(remainingName);
+    }
+    
+    dev << EscPosQt::EscPosPrinter::JustificationLeft;
+    
+    // Print semua baris nama
+    for (const QString &line : nameLines) {
+        dev << line.toUtf8() << "\n";
+    }
+    
+    // Format string qty dan subtotal
+    QString qtyStr = QString("%L1x @%L2")
+                        .arg(p.qty, 4)
+                        .arg(p.unitPrice);
+    QString subtotalStr = QString("Rp %L1\n")
+                            .arg(p.subTotal);
+    
+    // Baris terpisah untuk qty dan subtotal
+    // Set justifikasi left
+    dev << EscPosQt::EscPosPrinter::JustificationLeft;
+    
+    // Print qty info
+    dev << qtyStr.toUtf8();
+    
+    // Carriage return (kembali ke awal baris)
+    dev << "\r";
+    
+    // Set justifikasi right
+    dev << EscPosQt::EscPosPrinter::JustificationRight;
+    
+    // Print subtotal
+    dev << subtotalStr.toUtf8();
+    
+    // Reset ke left align
+    dev << EscPosQt::EscPosPrinter::JustificationLeft;
   }
 };
 
@@ -120,6 +119,7 @@ void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
           << QString("Tanggal : %1\n").arg(pip.invoiceDate).toUtf8()
           << QString("No      : %1\n").arg(pip.invoiceCode).toUtf8()
           << QString("Konsumen: %1\n").arg(pip.customerName).toUtf8()
+          << QString("        - %1\n").arg(pip.customerPhone.isEmpty() ? "  " : pip.customerPhone).toUtf8()
           << QString("Admin   : %1\n").arg(pip.adminName).toUtf8()
           << EscPosPrinter::JustificationCenter
           << QByteArray("=================================\n")

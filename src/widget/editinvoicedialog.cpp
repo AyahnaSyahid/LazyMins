@@ -8,7 +8,8 @@
 EditInvoiceDialog::EditInvoiceDialog(int invoice_id, QWidget *p) 
   : targetInvoice(invoice_id), CreateInvoiceDialog(p)
 {
-  m_old = DatabaseInterface::instance().getInvoiceData(invoice_id);
+  auto old = DatabaseInterface::instance().getInvoiceData(invoice_id);
+  m_old = *old;
   ui->customerLineEdit->setText(m_old.customerName);
   ui->customerPhoneLineEdit->setText(m_old.customerPhone);
   ui->tanggalDateEdit->setDate(QDate::fromString(m_old.dateString, "yyyy-MM-dd"));

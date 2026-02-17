@@ -28,7 +28,6 @@ struct InvoiceData {
            customerPhone  == ot.customerPhone &&
            itemList       == ot.itemList;
   }
-  
 };
 
 struct PaymentData {
@@ -46,7 +45,7 @@ struct PrintInvoiceParams {
   StoreInfoData storeInfo;
 
   // Invoice Data
-  QString invoiceCode, adminName, customerName, invoiceDate;
+  QString invoiceCode, adminName, customerName, customerPhone, invoiceDate;
 
   // Items Data
   QList<InvoiceData::ItemData> itemList;

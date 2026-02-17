@@ -67,7 +67,7 @@ void PaymentInputDialog::on_dealButton_clicked() {
   }
   auto &iptr = InvoicePrinter::instance();
   qDebug() << "Printing";
-  iptr.drawInvoice(di.getPrintInvoiceParams(invoice_id));
+  iptr.drawInvoice(*di.getPrintInvoiceParams(invoice_id));
   accept();
 }
 

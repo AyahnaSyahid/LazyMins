@@ -73,13 +73,14 @@ void InvoiceViews::on_view_customContextMenuRequested(const QPoint &p) {
   invoiceMenu->addSeparator();
   auto reload = invoiceMenu->addAction("&Refresh");
   auto showInvoice = invoiceMenu->addAction("Struk");
-  auto e = invoiceMenu->addAction("Edit");
   
   if(six.siblingAtColumn(4).data(Qt::EditRole).toInt() > 0) {
     invoiceMenu->addSeparator();
     auto a = invoiceMenu->addAction("Bayar");
     connect(a, &QAction::triggered, [this, &six]() { emit repaymentRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); });
   }
+  invoiceMenu->addSeparator();
+  auto e = invoiceMenu->addAction("Edit");
   auto del = invoiceMenu->addAction("Hapus");
   connect(e, &QAction::triggered, [this, &six]() { emit editInvoiceRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
   connect(reload, &QAction::triggered, [this]() { reloadModelData( {"invoices"} ); });

@@ -10,7 +10,7 @@ class RealTimeDataWidget : public QWidget
     ~RealTimeDataWidget() {}
   
   public slots:
-    virtual void reloadModelData(const QList<QString> &tables) {}
+    virtual void reloadModelData(const QList<QString> &tables) = 0;
 };
 
 #endif

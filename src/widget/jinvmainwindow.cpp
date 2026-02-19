@@ -2,6 +2,7 @@
 #include "ui_jinvmainwindow.h"
 #include "invoiceviews.h"
 #include "customerview.h"
+#include "cashflowview.h"
 #include "createinvoicedialog.h"
 #include "editinvoicedialog.h"
 #include "../databaseinterface.h"
@@ -9,6 +10,7 @@
 #include "storeinfoeditordialog.h"
 #include "repaymentinputdialog.h"
 #include "paymentdataeditordialog.h"
+#include "pencatatpengeluaran.h"
 
 #include <QDockWidget>
 #include <QMenu>
@@ -30,7 +32,8 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   dockMenu->setObjectName("dockMenu");
   
   auto customerView = new CustomerView();
-  auto invoiceView = new InvoiceViews();
+  auto invoiceView  = new InvoiceViews();
+  auto cashFlow     = new CashFlowDailyView();
   
   connect(invoiceView, &InvoiceViews::editInvoiceRequest, this, &JINVMainWindow::openInvoiceEditor);
   connect(invoiceView, &InvoiceViews::editPaymentRequest, this, &JINVMainWindow::openPaymentEditor);
@@ -44,9 +47,17 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto db = QSqlDatabase::database("JUST-INV_DB", true);
   auto si = di.getStoreInfo(db);
   
+  auto createCashLog = createMenu->addAction("Catatan Kas");
+  connect(createCashLog, &QAction::triggered, [this]() {
+    auto p = new PencatatPengeluaran(this);
+    p->setAttribute(Qt::WA_DeleteOnClose);
+    p->open();
+  });
+  
   setWindowTitle(QString("%1 - Just Invoice").arg((*si).storeName));
   
   installDockable(customerView, Qt::LeftDockWidgetArea, "Konsumen");
+  installDockable(cashFlow, Qt::LeftDockWidgetArea, "Kas");
   installDockable(invoiceView, Qt::RightDockWidgetArea, "Invoice");
 };
 

@@ -29,7 +29,8 @@ class DatabaseInterface : public QObject
     bool savePayment(const QSqlRecord&, const QString& by, int amount, const QString& method);
     bool saveStoreInfoData(const StoreInfoData& si);
     bool updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> payments, int cashBack) const;
-  
+    bool recordCashFlow(const QString& adm, const QString& tipe, qlonglong amount, const QString& detail) const;
+    
   signals:
     void saveDone(bool ok);
     void tableUpdate(const QList<QString> &tables) const;

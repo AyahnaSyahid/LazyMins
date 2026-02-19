@@ -39,6 +39,8 @@ qt_add_library(JINV STATIC
             src/widget/receiptpreviewdialog.cpp
             src/widget/storeinfoeditordialog.h
             src/widget/storeinfoeditordialog.cpp
+            src/widget/cashflowview.h
+            src/widget/cashflowview.cpp
             src/widget/customerview.h
             src/widget/customerview.cpp
             src/widget/invoiceviews.h
@@ -48,6 +50,9 @@ qt_add_library(JINV STATIC
             src/widget/paymentdataeditordialog.h
             src/widget/paymentdataeditordialog.ui
             src/widget/paymentdataeditordialog.cpp
+            src/widget/pencatatpengeluaran.h
+            src/widget/pencatatpengeluaran.ui
+            src/widget/pencatatpengeluaran.cpp
             src/widget/advancedqueryview.cpp
             src/widget/advancedqueryview.h
             src/widget/advancedqueryview.cpp

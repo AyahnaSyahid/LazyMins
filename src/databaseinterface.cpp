@@ -417,3 +417,19 @@ QList<QSqlRecord> DatabaseInterface::getPaymentRecords(int invoice_id) const {
   }
   return QList<QSqlRecord> {};
 }
+
+bool DatabaseInterface::recordCashFlow(const QString& adm, const QString& tipe, qlonglong amount, const QString& detail) const {
+  QSqlQuery q(database());
+  q.prepare("INSERT INTO catatan_keluar_masuk_cash (admin, tipe, amount, detail) "
+            "VALUES (:adm, :tip, :amt, :det) ;");
+  q.bindValue(":adm", adm);
+  q.bindValue(":tip", tipe);
+  q.bindValue(":amt", amount);
+  q.bindValue(":det", detail);
+  
+  if (q.exec()) {
+    emit tableUpdate({"catatan_keluar_masuk_cash"});
+    return true;
+  }
+  return false;
+}

@@ -18,6 +18,7 @@ class JINVMainWindow : public QMainWindow
     void openInvoiceMaker();
     void openStoreInfoEditor();
     void openInvoiceEditor(int invoice_id);
+    void openPaymentEditor(int invoice_id);
     void openRepaymentDialog(int invoice_id);
   
   private:

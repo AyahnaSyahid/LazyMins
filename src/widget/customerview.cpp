@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QStyledItemDelegate>
+#include <QTimer>
 
 namespace {
   class Delegate : public QStyledItemDelegate
@@ -16,6 +17,7 @@ namespace {
     public:
       Delegate(QObject *parent=nullptr) : QStyledItemDelegate(parent) {}
       ~Delegate() {}
+      
     protected:
       void initStyleOption(QStyleOptionViewItem *opt, const QModelIndex& ix) const override {
         QStyledItemDelegate::initStyleOption(opt, ix);
@@ -43,8 +45,9 @@ CustomerView::CustomerView(QWidget *p)
   
   auto sortModel = new QSortFilterProxyModel(this);
   sortModel->setSourceModel(c_model);
-  sortModel->setSortCaseSensitivity(Qt::CaseInsensitive);
   sortModel->setFilterKeyColumn(-1);
+  sortModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+  sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   c_view->setModel(sortModel);
   c_view->horizontalHeader()->setStretchLastSection(true);
   c_view->verticalHeader()->hide();
@@ -83,7 +86,8 @@ bool CustomerContactModel::setData(const QModelIndex& mi, const QVariant &val, i
   QString newData = val.toString();
   if(newData.toLower() == mi.data().toString().toLower()) return false;
   if (newData.isEmpty()) return false;
-  QSqlQuery q(DatabaseInterface::instance().database());
+  auto &dbi = DatabaseInterface::instance();
+  QSqlQuery q(dbi.database());
   
   if (mi.column() == 0) {
     // Edit Name
@@ -99,12 +103,16 @@ bool CustomerContactModel::setData(const QModelIndex& mi, const QVariant &val, i
     q.bindValue(":customer", mi.siblingAtColumn(0).data(Qt::EditRole).toString());
   }
   
-  if (q.exec()) {
-    setQuery(query().lastQuery(), DatabaseInterface::instance().database());
-    emit dataChanged(mi, mi, QList<int> {Qt::EditRole, Qt::DisplayRole});
-    return true;
+  if (!q.exec()) {
+    return false;
   }
-  return false;
+  emit dataChanged(mi, mi, QList<int> {Qt::EditRole, Qt::DisplayRole});
+  QTimer::singleShot(0, [&dbi]() { emit dbi.tableUpdate( {"invoices"} ); });
+  return true;
+}
+
+void CustomerContactModel::refresh () {
+  setQuery(query().lastQuery(), DatabaseInterface::instance().database());
 }
 
 void CustomerView::reloadModelData(const QList<QString> &tables)

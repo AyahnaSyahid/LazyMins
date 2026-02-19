@@ -52,14 +52,13 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
   // Case 1: No existing payments - simple update
   if (paymentRecords.count() == 0) {
     auto updateOk = DatabaseInterface::instance().updateInvoice(
-        targetInvoice, ida, {}, 0, 
-        DatabaseInterface::UpdateInvoiceStrategy::UpdateInvoiceSimple);
+        targetInvoice, ida, {}, 0);
     if (updateOk) {
       accept();
       return;
     }
     QMessageBox::information(this, "Operasi gagal", 
-                            "Update invoice tidak berjalan dengan baik.\nERR [EIDUIS]");
+                            "Update invoice tidak berjalan dengan benar.\nERR [EIDUIS]");
     return;
   }
   
@@ -77,8 +76,7 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
   if (ask == QMessageBox::Yes) {
     // User wants to remove all payments
     auto updateOk = DatabaseInterface::instance().updateInvoice(
-        targetInvoice, ida, {}, 0, 
-        DatabaseInterface::UpdateInvoiceStrategy::UpdateAndRemovePayments);
+        targetInvoice, ida, {}, 0);
     if (updateOk) {
       accept();
       return;
@@ -102,8 +100,7 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
     if (ask2 == QMessageBox::Yes) {
       // Record cashback
       auto updateOk = DatabaseInterface::instance().updateInvoice(
-          targetInvoice, ida, {}, cashback_amount, 
-          DatabaseInterface::UpdateInvoiceStrategy::UpdateAndMakeCashBack);
+          targetInvoice, ida, {}, cashback_amount);
       if (updateOk) {
         accept();
         return;
@@ -126,7 +123,7 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
   // If total_paid == ida.total, payments are balanced - just need to update
   
   // Open payment editor for manual adjustment
-  PaymentDataEditorDialog pde(ida.total, paymentRecords, this);
+  PaymentDataEditorDialog pde(targetInvoice, this);
   if (pde.exec() == QDialog::Rejected) {
     return;
   }
@@ -134,14 +131,11 @@ void EditInvoiceDialog::on_simpanButton_clicked() {
   // Get edited payment data and update
   QList<PaymentData> pd = pde.getPaymentsData();
   auto updateOk = DatabaseInterface::instance().updateInvoice(
-      targetInvoice, ida, pd, 0, 
-      DatabaseInterface::UpdateInvoiceStrategy::UpdateInvoiceAndPayments);
-  
+      targetInvoice, ida, pd, 0);
   if (updateOk) {
     accept();
     return;
   }
-  
   QMessageBox::information(this, "Operasi gagal", 
                           "Update invoice tidak berjalan dengan baik.\nERR [EIDUIAP]");
 }

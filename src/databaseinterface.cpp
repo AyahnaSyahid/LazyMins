@@ -2,6 +2,7 @@
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QSqlError>
+#include <cmath>
 
 namespace {
   std::optional<QSqlRecord> createInvoice(const InvoiceData& ida, QSqlDatabase &db) {
@@ -82,7 +83,7 @@ DatabaseInterface &DatabaseInterface::instance() {
 
 bool DatabaseInterface::saveInvoiceData(const InvoiceData &ida){
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   auto createResult = createInvoice(ida, db);
   if (createResult) {
     if(appendInvoiceItems(createResult.value(), ida.itemList, db)) {
@@ -120,7 +121,7 @@ std::optional<PrintInvoiceParams> DatabaseInterface::getPrintInvoiceParams(int i
 
   PrintInvoiceParams params {};
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   auto optStoreInfo = getStoreInfo(db);
   if (!optStoreInfo) {
     return std::nullopt;
@@ -184,7 +185,7 @@ std::optional<PrintInvoiceParams> DatabaseInterface::getPrintInvoiceParams(int i
 
 bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount, const QString& method, QSqlRecord &ref) {
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   
   auto invr = createInvoice(ida, db);
   if(!invr) {
@@ -205,7 +206,7 @@ bool DatabaseInterface::saveInvoiceAndPayment(const InvoiceData& ida, int amount
 
 bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, const QString &by, int amount, const QString& method) {
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   
   auto optPayment = createPayment(invoiceRecord, by, amount, method, db);
   if ( !optPayment ) {
@@ -222,7 +223,7 @@ QSqlDatabase DatabaseInterface::database() const {
 
 bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   int affected = 0;
   QVariantList keys {"storeName", "storeAddr", "storePhone"};
   QVariantList values { d.storeName, d.storeAddr, d.storePhone};  
@@ -243,7 +244,7 @@ bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {
 
 std::optional<InvoiceData> DatabaseInterface::getInvoiceData(int invoice_id) const {
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   QSqlQuery q(db);
   q.prepare("SELECT * FROM invoices WHERE id = :iid");
   q.bindValue(":iid", invoice_id);
@@ -287,7 +288,7 @@ std::optional<QSqlRecord> DatabaseInterface::getInvoiceRecord(int invoice_id) co
 
 bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> pd, int cashback) const {
   auto db = database();
-  Transaction tr(db);
+  Transaction tr(db, __func__);
   // get in-database invoice data
   auto opt_invoiceData = getInvoiceData(invoice_id);
   if (opt_invoiceData) {
@@ -304,7 +305,7 @@ bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData
         q.bindValue(":iid", invoice_id);
         if (q.exec() && q.next()) {
           QSqlRecord invRec = q.record();
-          if ( appendInvoiceItems(invRec, newData::itemList, db) ) {
+          if ( appendInvoiceItems(invRec, newData.itemList, db) ) {
             tr.commit();
             emit tableUpdate ( {"invoices", "invoice_item"} );
             return true;
@@ -318,8 +319,86 @@ bool DatabaseInterface::updateInvoice(int invoice_id, const InvoiceData &newData
       qDebug() << "Update failed : tidak dapat menghapus invoice_item";
       return false;
     } else {
-      // payments exists
+      // baik, sampai sini invoice ternyata telah memiliki data pembayaran
+      // kita akan membuat invoice baru, kemudian mengubah status invoice lama juga menerapkan referensinya (superseeded)
+      auto optNewInvoice = createInvoice(newData, db);
+      if (optNewInvoice) {
+        QSqlRecord newInvoice = *optNewInvoice;
+        if (appendInvoiceItems(newInvoice, newData.itemList, db)) {
+          int totalPaid = 0;
+          if (pd.isEmpty()) {
+            QSqlQuery movePayment(db);
+            movePayment.prepare("UPDATE payments SET invoice_id = :newInvoiceId WHERE invoice_id = :oldInvoiceId AND status = 'active'");
+            movePayment.bindValue(":newInvoiceId", newInvoice.value("id"));
+            movePayment.bindValue(":oldInvoiceId", invoice_id);
+            if (!movePayment.exec()) {
+              qDebug() << "Update gagal : Pemindahan payment (invoice_id) gagal";
+              return false;
+            }
+            QSqlQuery getPaidTotal(db);
+            getPaidTotal.prepare("SELECT SUM(amount) FROM payments WHERE invoice_id = :newInvoiceId");
+            getPaidTotal.bindValue(":newInvoiceId", newInvoice.value("id"));
+            if (getPaidTotal.exec() && getPaidTotal.next()) {
+              totalPaid = getPaidTotal.value(0).toInt();
+            } else {
+              qDebug() << "Update gagal : Pemindahan payment (invoice_id) gagal";
+              return false;
+            }
+          } else {
+            int paymentEnum = 0;
+            for (const auto &p : pd) {
+              auto optPaymentRecord = createPayment(newInvoice, p.adminName, p.amount, p.method, db);
+              if (!optPaymentRecord) {
+                qDebug() << "Update gagal : payment no " << paymentEnum ;
+                return false;
+              }
+              totalPaid += p.amount;
+              paymentEnum += 1;
+            }
+          }
+          // apakah kita harus menerima parameter cashback ?
+          // hanya terima cashback jika balance + cashback == 0
+          int balance = newData.total - totalPaid;
+          if (balance < 0) { // overpaid
+            if (cashback == 0) {
+              qDebug() << "Update gagal : diperlukan cashback untuk melanjutkan";
+              return false;
+            }
+            if (balance + cashback != 0) {
+              qDebug() << "Update gagal : jumlah cashback tidak terpenuhi";
+              return false;
+            }
+            // add negative payment for cashback
+            if (!createPayment(newInvoice, newData.adminName, -cashback, "CASH", db)) {
+              qDebug() << "Update gagal : gagal mencatat cashback";
+              return false;
+            }
+            // cashback added
+          } else if (cashback != 0) {
+            qDebug() << "Update gagal : unexpected cashback param";
+            return false;
+          }
+          // sekarang kita buat referensi ke nota baru
+          QSqlQuery ed(db);
+          ed.prepare("UPDATE invoices SET status = 'revised', revision_ref = :newid WHERE id = :oldId");
+          ed.bindValue(":newid", newInvoice.value("id"));
+          ed.bindValue(":oldId", invoice_id);
+          if (ed.exec()) {
+            tr.commit();
+            emit tableUpdate( {"invoices", "invoice_item", "payments"});
+            return true;
+          }
+          qDebug() << "Update gagal : Gagal meng update status invoices lama";
+          return false;
+        }
+        qDebug() << "Update gagal : Tidak dapat menambahkan data ke invoice baru";
+        return false;
+      }
+      qDebug() << "Update gagal : Tidak dapat membuat invoice baru";
+      return false;
     }
+    qDebug() << "Error : Undefined Error";
+    return false;
   }
   qDebug() << "invoice data not found";
   return false;

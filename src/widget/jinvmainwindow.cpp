@@ -8,11 +8,13 @@
 #include "realtimedatawidget.h"
 #include "storeinfoeditordialog.h"
 #include "repaymentinputdialog.h"
+#include "paymentdataeditordialog.h"
 
 #include <QDockWidget>
 #include <QMenu>
 #include <QAction>
 #include <QMenuBar>
+#include <QMessageBox>
 
 JINVMainWindow::JINVMainWindow(QWidget *p) :
   ui(new Ui::JINVMainWindow), QMainWindow(p)
@@ -31,6 +33,7 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto invoiceView = new InvoiceViews();
   
   connect(invoiceView, &InvoiceViews::editInvoiceRequest, this, &JINVMainWindow::openInvoiceEditor);
+  connect(invoiceView, &InvoiceViews::editPaymentRequest, this, &JINVMainWindow::openPaymentEditor);
   connect(invoiceView, &InvoiceViews::repaymentRequest, this, &JINVMainWindow::openRepaymentDialog);
   
   auto pengaturan = mbar->addMenu("Pengaturan");
@@ -69,12 +72,38 @@ void JINVMainWindow::openStoreInfoEditor() {
 }
 
 void JINVMainWindow::openInvoiceEditor(int invoice_id) {
+  auto prs = DatabaseInterface::instance().getInvoiceData(invoice_id);
+  if (!prs) {
+    QMessageBox::information(this, "Kesalahan", "Data invoice tidak ditemukan");
+    return;
+  }
   auto eid = new EditInvoiceDialog(invoice_id, this);
   eid->setAttribute(Qt::WA_DeleteOnClose);
   eid->open();
 }
 
+void JINVMainWindow::openPaymentEditor(int invoice_id) {
+  auto prs = DatabaseInterface::instance().getPaymentRecords(invoice_id);
+  if (prs.isEmpty()) {
+    QMessageBox::information(this, "Kesalahan", "Tidak ditemukan pembayaran untuk invoice ini");
+    return;
+  }
+  auto pde = new PaymentDataEditorDialog(invoice_id, this);
+  pde->setAttribute(Qt::WA_DeleteOnClose);
+  pde->open();
+}
+
 void JINVMainWindow::openRepaymentDialog(int invoice_id) {
+  auto prs = DatabaseInterface::instance().getInvoiceData(invoice_id);
+  if (!prs) {
+    QMessageBox::information(this, "Kesalahan", "Data invoice tidak ditemukan");
+    return;
+  }
+  auto ind = *prs;
+  if (ind.total == ind.paid) {
+    QMessageBox::information(this, "Kesalahan", "Maaf, Invoice ini telah lunas");
+    return ;
+  }
   auto rep = new RepaymentInputDialog(invoice_id, this);
   rep->setAttribute(Qt::WA_DeleteOnClose);
   rep->open();

@@ -20,6 +20,8 @@ struct InvoiceData {
 
   QList<ItemData> itemList;
   
+  bool balance() const { return total - paid; }
+  
   inline bool operator==(const InvoiceData &ot) const {
     return total == ot.total &&
            paid  == ot.paid  &&

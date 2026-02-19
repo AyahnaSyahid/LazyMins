@@ -1,6 +1,6 @@
 #include "paymentdataeditordialog.h"
 #include "ui_paymentdataeditordialog.h"
-
+#include "../databaseinterface.h"
 #include <QDateTime>
 #include <QStyledItemDelegate>
 #include <QSpinBox>
@@ -25,6 +25,8 @@ namespace {
           led->setGroupSeparatorShown(true);
           led->setMinimum(-100'000'000);
           led->setMaximum(100'000'000);
+          led->setSingleStep(1'000);
+          led->setAccelerated(true);
           led->setValue(mi.data(Qt::EditRole).toLongLong());
           return ;
         }
@@ -56,48 +58,38 @@ namespace {
           return ;
         }
       }
-      
+
     protected:
       void initStyleOption(QStyleOptionViewItem *opt, const QModelIndex &mi) const override {
         QStyledItemDelegate::initStyleOption(opt, mi);
         opt->displayAlignment = Qt::AlignCenter;
       }
+      
   };
 }
 
-PaymentDataEditorDialog::PaymentDataEditorDialog(int required, const QList<QSqlRecord> &_r, QWidget *p):
-  recs(_r),
-  recs_update {}, 
-  itemModel(new QStandardItemModel), 
+PaymentDataEditorDialog::PaymentDataEditorDialog(int invoice_id, QWidget *p):
   ui(new Ui::PaymentDataEditorDialog),
-  m_req(required), 
+  m_id(invoice_id),
+  itemModel(new PaymentDataEditorModel(this)),
   QDialog(p)
 {
   ui->setupUi(this);
-  for(const auto &r : recs) {
-    QList<QStandardItem*> row;
-    auto admin = new QStandardItem();
-    admin->setData(r.value("admin"), Qt::EditRole);
-    admin->setEditable(true);
-    auto amount = new QStandardItem();
-    amount->setData(r.value("amount").toLongLong(), Qt::EditRole);
-    amount->setEditable(true);
-    auto method = new QStandardItem();
-    method->setData(r.value("method"), Qt::EditRole);
-    method->setEditable(true);
-    auto paytime = new QStandardItem();
-    paytime->setData(r.value("payment_time").toDateTime(), Qt::EditRole);
-    paytime->setEditable(true);
-    row << admin << amount << method << paytime;
-    itemModel->appendRow(row);
-  }
+  itemModel->setQueryArgs(
+  "SELECT id, admin, method, amount, payment_time "
+    "FROM payments WHERE invoice_id = :i_id AND status = 'active'", 
+    {{":i_id", invoice_id}},
+    DatabaseInterface::instance().database()
+    );
+  itemModel->setReadOnlyColumn(0);
   ui->tableView->setModel(itemModel);
-  itemModel->setHorizontalHeaderLabels( {"Admin", "Jumlah", "Metode", "Stamp"} );
-  ui->tableView->setItemDelegateForColumn(1, new AmountDelegate(this));
-  ui->tableView->setItemDelegateForColumn(3, new DatetimeDelegate(this));
+  ui->tableView->setItemDelegateForColumn(4, new DatetimeDelegate(this));
+  ui->tableView->setItemDelegateForColumn(3, new AmountDelegate(this));
+  ui->tableView->hideColumn(0);
 }
 
 PaymentDataEditorDialog::~PaymentDataEditorDialog() { delete ui; }
+
 
 QList<PaymentData> PaymentDataEditorDialog::getPaymentsData() const
 {
@@ -121,4 +113,11 @@ void PaymentDataEditorDialog::on_tableView_customContextMenuRequested(const QPoi
   auto actInsert = cmenu.addAction("Baru");
   auto actDelete = cmenu.addAction("Hapus");
   cmenu.exec(ui->tableView->viewport()->mapToGlobal(p));
+}
+
+void PaymentDataEditorDialog::on_simpanButton_clicked() {
+  if (itemModel->submitAll()) {
+    accept();
+  }
+  qDebug() << itemModel->lastError();
 }

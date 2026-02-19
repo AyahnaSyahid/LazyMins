@@ -9,7 +9,6 @@
 #include <QVariant>
 #include <optional>
 
-
 class DatabaseInterface : public QObject
 {
   Q_OBJECT
@@ -29,11 +28,11 @@ class DatabaseInterface : public QObject
     bool saveInvoiceAndPayment(const InvoiceData&, int amount, const QString& method, QSqlRecord &ref);
     bool savePayment(const QSqlRecord&, const QString& by, int amount, const QString& method);
     bool saveStoreInfoData(const StoreInfoData& si);
-    bool updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> payments, int cashBack);
+    bool updateInvoice(int invoice_id, const InvoiceData &newData, const QList<PaymentData> payments, int cashBack) const;
   
   signals:
     void saveDone(bool ok);
-    void tableUpdate(const QList<QString> &tables);
+    void tableUpdate(const QList<QString> &tables) const;
   
   private:
     DatabaseInterface() : QObject(nullptr) {}

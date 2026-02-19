@@ -4,6 +4,8 @@ project(LazyMins_JustInvoice LANGUAGES CXX)
 
 find_package(Qt6 COMPONENTS Widgets Sql Core5Compat SerialPort)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 qt_standard_project_setup()
 
 add_subdirectory(external/escpos-qt)
@@ -46,8 +48,15 @@ qt_add_library(JINV STATIC
             src/widget/paymentdataeditordialog.h
             src/widget/paymentdataeditordialog.ui
             src/widget/paymentdataeditordialog.cpp
+            src/widget/advancedqueryview.cpp
+            src/widget/advancedqueryview.h
+            src/widget/advancedqueryview.cpp
+            src/models/advancedquerymodel.h
+            src/models/advancedquerymodel.cpp 
             )
             
+# target_include_directories(JINV PUBLIC ${CMAKE_SOURCE_DIR})
+
 target_link_libraries(JINV PUBLIC Qt6::Widgets Qt6::Sql Qt6::SerialPort EscPosQt)
 
 qt_add_executable(testJINV test/testMain.cpp)

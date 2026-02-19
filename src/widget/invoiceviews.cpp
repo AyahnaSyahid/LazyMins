@@ -13,7 +13,7 @@
 namespace {
   class Delegate : public QStyledItemDelegate {
     public:
-      Delegate(QObject *parent=nullptr) : QStyledItemDelegate(parent) {}
+      using QStyledItemDelegate::QStyledItemDelegate;
       QString displayText(const QVariant& val, const QLocale& loc) const override {
         if (val.metaType() == QMetaType::fromType<qlonglong>()) {
           return QLocale().toString(val.toLongLong());
@@ -80,9 +80,13 @@ void InvoiceViews::on_view_customContextMenuRequested(const QPoint &p) {
     connect(a, &QAction::triggered, [this, &six]() { emit repaymentRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); });
   }
   invoiceMenu->addSeparator();
-  auto e = invoiceMenu->addAction("Edit");
+  auto em = invoiceMenu->addMenu("Edit");
+  auto emi = em->addAction("Items");
+  auto emp = em->addAction("Pembayaran");
   auto del = invoiceMenu->addAction("Hapus");
-  connect(e, &QAction::triggered, [this, &six]() { emit editInvoiceRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
+  del->setDisabled(true);
+  connect(emi, &QAction::triggered, [this, &six]() { emit editInvoiceRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
+  connect(emp, &QAction::triggered, [this, &six]() { emit editPaymentRequest(six.siblingAtColumn(0).data(Qt::EditRole).toInt()); } );
   connect(reload, &QAction::triggered, [this]() { reloadModelData( {"invoices"} ); });
   connect(showInvoice, &QAction::triggered, this, &InvoiceViews::showPreview);
   menu.exec(ui->view->viewport()->mapToGlobal(p));
@@ -117,7 +121,6 @@ void InvoiceViews::on_checkBox_toggled(bool l) {
   auto db = QSqlDatabase::database("JUST-INV_DB", true);
   queryModel->setQuery(modelQuery(l), db);
   proxy->invalidate();
-  // qDebug() << queryModel->lastError().text();
   ui->view->resizeColumnsToContents();
 }
 

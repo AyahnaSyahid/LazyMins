@@ -25,6 +25,7 @@ class InvoiceViews : public RealTimeDataWidget
     void reloadModelData(const QList<QString> &tables) override;
   
   signals:
+    void editPaymentRequest(int inv_id) const;
     void editInvoiceRequest(int inv_id) const;
     void repaymentRequest(int inv_id) const;
   

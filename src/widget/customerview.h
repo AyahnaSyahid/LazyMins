@@ -33,6 +33,7 @@ class CustomerContactModel : public QSqlQueryModel
     ~CustomerContactModel() {}
     bool setData(const QModelIndex& mi, const QVariant &val, int role=Qt::EditRole) override;
     Qt::ItemFlags flags(const QModelIndex& mi) const override;
+    void refresh();
 };
 
 #endif

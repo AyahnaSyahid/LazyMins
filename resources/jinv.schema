@@ -12,6 +12,7 @@ CREATE TABLE invoices (
     status TEXT DEFAULT ('active'), 
     created_by TEXT, 
     revision_ref INTEGER REFERENCES invoices (id) ON DELETE SET NULL ON UPDATE CASCADE );
+--ENDSTATEMENT
 CREATE TABLE invoice_item (
     id INTEGER PRIMARY KEY, 
     invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE, 
@@ -22,9 +23,13 @@ CREATE TABLE invoice_item (
     notes TEXT, 
     created_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
     updated_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL );
+--ENDSTATEMENT
 CREATE TABLE store_data (
     key TEXT PRIMARY KEY,
     val TEXT NOT NULL );
+--ENDSTATEMENT
+CREATE TABLE payments (id INTEGER PRIMARY KEY, invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE NOT NULL, admin TEXT NOT NULL COLLATE NOCASE, amount INTEGER NOT NULL CHECK (amount != 0), method TEXT NOT NULL DEFAULT ('cash'), payment_time TEXT, created_at TEXT DEFAULT (CURRENT_TIMESTAMP), updated_at TEXT DEFAULT (CURRENT_TIMESTAMP), received_by TEXT NOT NULL COLLATE NOCASE, status REAL DEFAULT ('active'));
+--ENDSTATEMENT
 CREATE TRIGGER invoice_item_after_insert
 AFTER INSERT ON invoice_item
 FOR EACH ROW
@@ -39,6 +44,7 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.invoice_id;
 END;
+--ENDSTATEMENT
 CREATE TRIGGER invoice_item_after_update
 AFTER UPDATE ON invoice_item
 FOR EACH ROW
@@ -55,6 +61,7 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.invoice_id;
 END;
+--ENDSTATEMENT
 CREATE TRIGGER invoice_item_after_delete
 AFTER DELETE ON invoice_item
 FOR EACH ROW
@@ -69,7 +76,19 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = OLD.invoice_id;
 END;
-CREATE TABLE payments (id INTEGER PRIMARY KEY, invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE NOT NULL, admin TEXT NOT NULL COLLATE NOCASE, amount INTEGER NOT NULL CHECK (amount != 0), method TEXT NOT NULL DEFAULT ('cash'), payment_time TEXT, created_at TEXT DEFAULT (CURRENT_TIMESTAMP), updated_at TEXT DEFAULT (CURRENT_TIMESTAMP), received_by TEXT NOT NULL COLLATE NOCASE, status REAL DEFAULT ('active'));
+--ENDSTATEMENT
 CREATE TRIGGER payments_after_insert_update_invoice AFTER INSERT ON payments BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = NEW.invoice_id), 0) WHERE id = NEW.invoice_id; END;
+--ENDSTATEMENT
 CREATE TRIGGER payments_after_delete_update_invoice AFTER DELETE ON payments BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = OLD.invoice_id), 0) WHERE id = OLD.invoice_id; END;
+--ENDSTATEMENT
 CREATE TRIGGER payments_after_update_amount AFTER UPDATE OF amount ON payments WHEN OLD.amount <> NEW.amount BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = NEW.invoice_id), 0) WHERE id = NEW.invoice_id; END;
+--ENDSTATEMENT
+CREATE TRIGGER payments_after_invoiceId_changed AFTER UPDATE OF invoice_id ON payments BEGIN UPDATE invoices
+   SET paid = COALESCE( (
+                            SELECT SUM(amount) 
+                              FROM payments
+                             WHERE invoice_id = NEW.invoice_id
+                        ), 0) 
+ WHERE id = NEW.invoice_id;
+END;
+--ENDSTATEMENT

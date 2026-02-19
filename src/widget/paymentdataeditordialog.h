@@ -7,24 +7,32 @@ namespace Ui {
 }
 
 #include <QDialog>
-#include <QStandardItemModel>
 #include <QSqlRecord>
-#include <QStandardItem>
+
+#include "../models/advancedquerymodel.h"
 
 class PaymentDataEditorDialog : public QDialog
 {
+  Q_OBJECT
   public:
-    explicit PaymentDataEditorDialog(int required, const QList<QSqlRecord> &r, QWidget *parent) ;
+    explicit PaymentDataEditorDialog(int invoice_id, QWidget *p=nullptr) ;
     ~PaymentDataEditorDialog() ;
-    
+
     QList<PaymentData> getPaymentsData() const;
+  
+  private slots:
     void on_tableView_customContextMenuRequested(const QPoint &p);
+    void on_simpanButton_clicked();
+    
   private:
-    QList<QSqlRecord> recs;
-    QList<QSqlRecord> recs_update;
-    QStandardItemModel *itemModel;
+    AdvancedQueryModel *itemModel;
     Ui::PaymentDataEditorDialog *ui;
-    int m_req;
+    int m_id;
+};
+
+class PaymentDataEditorModel : public AdvancedQueryModel {
+  public:
+    PaymentDataEditorModel(QObject *p=nullptr) : AdvancedQueryModel(p) {}
 };
 
 #endif

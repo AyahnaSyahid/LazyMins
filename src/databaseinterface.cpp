@@ -426,7 +426,6 @@ bool DatabaseInterface::recordCashFlow(const QString& adm, const QString& tipe, 
   q.bindValue(":tip", tipe);
   q.bindValue(":amt", amount);
   q.bindValue(":det", detail);
-  
   if (q.exec()) {
     emit tableUpdate({"catatan_keluar_masuk_cash"});
     return true;

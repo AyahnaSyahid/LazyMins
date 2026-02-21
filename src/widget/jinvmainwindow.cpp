@@ -36,13 +36,6 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto invoiceView  = new InvoiceViews();
   auto cashFlow     = new CashFlowDailyView();
   auto summary      = new SummaryWidget();
-  for (int i=0;i<5; ++i) {
-    auto dit = DashboardItem::make(DashboardItem::ItemTypes::Big)
-                .setTitle("Pendapatan")
-                .setValue("1.200.000")
-                .setSubText("Yes !!");
-    summary->addItem(dit);
-  }
   
   connect(invoiceView, &InvoiceViews::editInvoiceRequest, this, &JINVMainWindow::openInvoiceEditor);
   connect(invoiceView, &InvoiceViews::editPaymentRequest, this, &JINVMainWindow::openPaymentEditor);

@@ -15,8 +15,9 @@ class InvoicePrinter : public QObject
     QDialog *receiptPreview(qlonglong invoice_id, QWidget *parent=nullptr) const;
 
   private:
-    explicit InvoicePrinter(QObject *parent=nullptr) : QObject(parent) {}
+    explicit InvoicePrinter(QObject *parent=nullptr);
     ~InvoicePrinter() {}
+    QString m_serialPort;
 };
 
 #endif

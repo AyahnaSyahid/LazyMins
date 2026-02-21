@@ -4,6 +4,7 @@
 #include <QSerialPort>
 #include <QFile>
 #include <QApplication>
+#include <QSettings>
 #include "escposprinter.h"
 
 namespace { // unnamed local-linkage
@@ -80,10 +81,20 @@ InvoicePrinter &InvoicePrinter::instance() {
 }
 
 using EscPosQt::EscPosPrinter;
+InvoicePrinter::InvoicePrinter(QObject *parent) : QObject(parent)
+{
+  QSettings s;
+  if (s.contains("pos_printer/serial_port")) {
+    m_serialPort = s.value("pos_printer/serial_port").toString();
+  } else {
+    m_serialPort = "COM4";
+    qDebug() << "Menggunakan serial port \"COM4\" sebagai default";
+  }
+}
 
 void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
   QSerialPort port;
-  port.setPortName("COM4");  // Sesuaikan dengan Device Manager (Windows) atau /dev/ttyUSBx (Linux)
+  port.setPortName(m_serialPort);  // Sesuaikan dengan Device Manager (Windows) atau /dev/ttyUSBx (Linux)
   port.setBaudRate(QSerialPort::Baud9600);
   port.setDataBits(QSerialPort::Data8);
   port.setParity(QSerialPort::NoParity);
@@ -151,6 +162,9 @@ void InvoicePrinter::drawInvoice(const PrintInvoiceParams& pip) const {
   port.waitForBytesWritten(1000);
   port.close();
 }
+
+
+
 
 QDialog *InvoicePrinter::receiptPreview(qlonglong invoice_id, QWidget *parent) const
 {

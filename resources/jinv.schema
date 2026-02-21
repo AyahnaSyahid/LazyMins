@@ -12,6 +12,7 @@ CREATE TABLE invoices (
     status TEXT DEFAULT ('active'), 
     created_by TEXT, 
     revision_ref INTEGER REFERENCES invoices (id) ON DELETE SET NULL ON UPDATE CASCADE );
+XXXXXX
 CREATE TABLE invoice_item (
     id INTEGER PRIMARY KEY, 
     invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE, 
@@ -22,10 +23,13 @@ CREATE TABLE invoice_item (
     notes TEXT, 
     created_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
     updated_at TEXT DEFAULT (CURRENT_TIMESTAMP) NOT NULL );
+XXXXXX
 CREATE TABLE store_data (
     key TEXT PRIMARY KEY,
     val TEXT NOT NULL );
+XXXXXX
 CREATE TABLE payments (id INTEGER PRIMARY KEY, invoice_id INTEGER REFERENCES invoices (id) ON DELETE RESTRICT ON UPDATE CASCADE NOT NULL, admin TEXT NOT NULL COLLATE NOCASE, amount INTEGER NOT NULL CHECK (amount != 0), method TEXT NOT NULL DEFAULT ('cash'), payment_time TEXT, created_at TEXT DEFAULT (CURRENT_TIMESTAMP), updated_at TEXT DEFAULT (CURRENT_TIMESTAMP), received_by TEXT NOT NULL COLLATE NOCASE, status REAL DEFAULT ('active'));
+XXXXXX
 CREATE TRIGGER invoice_item_after_insert
 AFTER INSERT ON invoice_item
 FOR EACH ROW
@@ -40,6 +44,7 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.invoice_id;
 END;
+XXXXXX
 CREATE TRIGGER invoice_item_after_update
 AFTER UPDATE ON invoice_item
 FOR EACH ROW
@@ -56,6 +61,7 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.invoice_id;
 END;
+XXXXXX
 CREATE TRIGGER invoice_item_after_delete
 AFTER DELETE ON invoice_item
 FOR EACH ROW
@@ -70,9 +76,13 @@ BEGIN
         updated_at = CURRENT_TIMESTAMP
     WHERE id = OLD.invoice_id;
 END;
+XXXXXX
 CREATE TRIGGER payments_after_insert_update_invoice AFTER INSERT ON payments BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = NEW.invoice_id), 0) WHERE id = NEW.invoice_id; END;
+XXXXXX
 CREATE TRIGGER payments_after_delete_update_invoice AFTER DELETE ON payments BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = OLD.invoice_id), 0) WHERE id = OLD.invoice_id; END;
+XXXXXX
 CREATE TRIGGER payments_after_update_amount AFTER UPDATE OF amount ON payments WHEN OLD.amount <> NEW.amount BEGIN UPDATE invoices SET paid = COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = NEW.invoice_id), 0) WHERE id = NEW.invoice_id; END;
+XXXXXX
 CREATE TRIGGER payments_after_invoiceId_changed AFTER UPDATE OF invoice_id ON payments BEGIN UPDATE invoices
    SET paid = COALESCE( (
                             SELECT SUM(amount) 
@@ -81,6 +91,20 @@ CREATE TRIGGER payments_after_invoiceId_changed AFTER UPDATE OF invoice_id ON pa
                         ), 0) 
  WHERE id = NEW.invoice_id;
 END;
+XXXXXX
 CREATE TABLE catatan_keluar_masuk_cash (id INTEGER PRIMARY KEY, admin TEXT NOT NULL, tipe TEXT CONSTRAINT chek_tipe CHECK (tipe IN ('pemasukan', 'pengeluaran') COLLATE NOCASE) DEFAULT ('pengeluaran') COLLATE NOCASE NOT NULL, amount INTEGER NOT NULL, detail TEXT NOT NULL, created_at TEXT, modified_at TEXT);
+XXXXXX
 CREATE TRIGGER trg_save_insert_date AFTER INSERT ON catatan_keluar_masuk_cash BEGIN UPDATE catatan_keluar_masuk_cash SET created_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
+XXXXXX
 CREATE TRIGGER trg_save_update_date AFTER UPDATE OF admin, tipe, amount, detail ON catatan_keluar_masuk_cash BEGIN UPDATE catatan_keluar_masuk_cash SET modified_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
+XXXXXX
+CREATE VIEW omsetBulanan AS SELECT COALESCE(SUM(p.amount), 0) AS monthlyOmzet, STRFTIME('%Y-%m', 'now') AS month
+  FROM payments p
+ WHERE STRFTIME('%Y-%m', p.payment_time) = STRFTIME('%Y-%m', 'now')
+/* omsetBulanan(monthlyOmzet,month) */;
+XXXXXX
+CREATE VIEW omsetHarian AS SELECT COALESCE(SUM(p.amount), 0) AS dailyOmzet,
+       STRFTIME('%Y-%m-%d', 'now') AS day -- Gunakan %Y (besar)
+  FROM payments p
+ WHERE date(p.payment_time) = date('now')
+/* omsetHarian(dailyOmzet,day) */;

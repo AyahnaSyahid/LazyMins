@@ -1,28 +1,27 @@
 #include "summarywidget.h"
 #include "ui_summarywidget.h"
-#include "../../databaseinterface.h"
-#include "dashboarditemdelegate.h"
+#include "src/databaseinterface.h"
+#include <QTimer>
 
-SummaryWidget::SummaryWidget(QWidget *parent) 
-: ui(new Ui::SummaryWidget), model(new DashboardModel(this)), RealTimeDataWidget(parent)
+SummaryWidget::SummaryWidget(QWidget *p) :
+  ui(new Ui::SummaryWidget), RealTimeDataWidget(p)
 {
   ui->setupUi(this);
-  ui->listView->setModel(model);
-  auto dlg = new DashboardItemDelegate(this);
-  ui->listView->setItemDelegate(dlg);
+  QTimer::singleShot(0, [this]() { reloadModelData({"invoices"}); });
+  connect(&DatabaseInterface::instance(), &DatabaseInterface::tableUpdate, this, &SummaryWidget::reloadModelData);
+};
+
+SummaryWidget::~SummaryWidget() {
+  delete ui;
 }
 
-SummaryWidget::~SummaryWidget()  { delete ui; }
-
-void SummaryWidget::reloadModelData(const QStringList& tn)
-{
-  if ( tn.contains("invoices") ||
-       tn.contains("payments") ) {
-    auto &di = DatabaseInterface::instance();
-    auto db = di.database();
+void SummaryWidget::reloadModelData(const QStringList &tables) {
+  if(tables.contains("invoices") || tables.contains("payments")) {    
+    auto db = DatabaseInterface::instance().database();
+    QSqlQuery q("SELECT * FROM omsetHarian", db);
+    if (q.next()) {
+      ui->value1->setText(QString("Rp. %L1").arg(q.value(0).toInt()));
+      ui->frame->hide();
+    }
   }
-}
-
-void SummaryWidget::addItem(const DashboardItem& d) {
-  model->addItem(d);
 }

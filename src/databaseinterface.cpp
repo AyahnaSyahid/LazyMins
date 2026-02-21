@@ -218,7 +218,7 @@ bool DatabaseInterface::savePayment(const QSqlRecord& invoiceRecord, const QStri
 }
 
 QSqlDatabase DatabaseInterface::database() const {
-  return QSqlDatabase::database("JUST-INV_DB", true);
+  return QSqlDatabase::database();
 }
 
 bool DatabaseInterface::saveStoreInfoData(const StoreInfoData &d) {

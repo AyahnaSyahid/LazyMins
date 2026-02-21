@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="def">
+    <file>jinv.schema</file>
+  </qresource>
+</RCC>

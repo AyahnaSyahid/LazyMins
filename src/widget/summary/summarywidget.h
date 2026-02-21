@@ -1,25 +1,22 @@
 #pragma once
 
 #include "../realtimedatawidget.h"
-#include "dashboardmodel.h"
 
 namespace Ui {
   class SummaryWidget;
 };
 
-class SummaryWidget : public RealTimeDataWidget {
-    Q_OBJECT
-
-public:
-  explicit SummaryWidget(QWidget *parent = nullptr);
-  ~SummaryWidget();
-  void addItem(const DashboardItem& item);
+class SummaryWidget : public RealTimeDataWidget
+{
+  Q_OBJECT
   
-public slots:
-  void reloadModelData(const QStringList& tables) override;
+  public:
+    explicit SummaryWidget(QWidget *p=nullptr);
+    ~SummaryWidget();
   
+  public slots:
+    void reloadModelData(const QStringList& tn) override;
   
-private:
-  Ui::SummaryWidget *ui;
-  DashboardModel *model;
+  private:
+    Ui::SummaryWidget *ui;
 };

@@ -11,6 +11,7 @@
 #include "repaymentinputdialog.h"
 #include "paymentdataeditordialog.h"
 #include "pencatatpengeluaran.h"
+#include "summarywidget.h"
 
 #include <QDockWidget>
 #include <QMenu>
@@ -34,6 +35,7 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   auto customerView = new CustomerView();
   auto invoiceView  = new InvoiceViews();
   auto cashFlow     = new CashFlowDailyView();
+  auto summary      = new SummaryWidget();  
   
   connect(invoiceView, &InvoiceViews::editInvoiceRequest, this, &JINVMainWindow::openInvoiceEditor);
   connect(invoiceView, &InvoiceViews::editPaymentRequest, this, &JINVMainWindow::openPaymentEditor);
@@ -56,6 +58,7 @@ JINVMainWindow::JINVMainWindow(QWidget *p) :
   
   setWindowTitle(QString("%1 - Just Invoice").arg((*si).storeName));
   
+  installDockable(summary, Qt::LeftDockWidgetArea, "Ringkasan");
   installDockable(customerView, Qt::LeftDockWidgetArea, "Konsumen");
   installDockable(cashFlow, Qt::LeftDockWidgetArea, "Kas");
   installDockable(invoiceView, Qt::RightDockWidgetArea, "Invoice");

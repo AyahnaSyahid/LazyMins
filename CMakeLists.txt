@@ -50,6 +50,8 @@ qt_add_library(JINV STATIC
             src/widget/paymentdataeditordialog.h
             src/widget/paymentdataeditordialog.ui
             src/widget/paymentdataeditordialog.cpp
+            src/widget/summarywidget.h
+            src/widget/summarywidget.cpp
             src/widget/pencatatpengeluaran.h
             src/widget/pencatatpengeluaran.ui
             src/widget/pencatatpengeluaran.cpp

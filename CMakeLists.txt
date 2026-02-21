@@ -50,8 +50,6 @@ qt_add_library(JINV STATIC
             src/widget/paymentdataeditordialog.h
             src/widget/paymentdataeditordialog.ui
             src/widget/paymentdataeditordialog.cpp
-            src/widget/summarywidget.h
-            src/widget/summarywidget.cpp
             src/widget/pencatatpengeluaran.h
             src/widget/pencatatpengeluaran.ui
             src/widget/pencatatpengeluaran.cpp
@@ -59,7 +57,15 @@ qt_add_library(JINV STATIC
             src/widget/advancedqueryview.h
             src/widget/advancedqueryview.cpp
             src/models/advancedquerymodel.h
-            src/models/advancedquerymodel.cpp 
+            src/models/advancedquerymodel.cpp
+            
+            src/widget/summary/summarywidget.cpp
+            src/widget/summary/summarywidget.h
+            src/widget/summary/summarywidget.ui
+            src/widget/summary/dashboardmodel.h
+            src/widget/summary/dashboardmodel.cpp
+            src/widget/summary/dashboarditemdelegate.h
+            src/widget/summary/dashboarditemdelegate.cpp
             )
             
 # target_include_directories(JINV PUBLIC ${CMAKE_SOURCE_DIR})

@@ -17,7 +17,8 @@ CREATE TABLE roles (
     id INTEGER PRIMARY KEY,
     role_name TEXT NOT NULL UNIQUE,  -- Nama role: super_admin, kasir, operator
     description TEXT,                 -- Deskripsi role
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Data awal roles

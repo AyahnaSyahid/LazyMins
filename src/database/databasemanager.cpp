@@ -11,6 +11,10 @@ DatabaseManager &DatabaseManager::instance() {
   return dbm;
 }
 
+void DatabaseManager::setDatabase(QSqlDatabase &db) {
+  m_database = db;
+}
+
 DatabaseManager::DatabaseManager() : m_databaseReady(false)
 {
   QSettings settings;
@@ -124,18 +128,6 @@ DatabaseManager::~DatabaseManager()
   if(m_database.isValid() && m_database.isOpen()) {
     m_database.close();
   }
-}
-
-bool DatabaseManager::transaction() {
-  return m_database.transaction();
-}
-
-bool DatabaseManager::commit() {
-  return m_database.commit();
-}
-
-bool DatabaseManager::rollback() {
-  return m_database.rollback();
 }
 
 bool DatabaseManager::isOpen() const {

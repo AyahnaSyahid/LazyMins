@@ -1,8 +1,10 @@
 #include "konsumenmanager.h"
+#include <QDateTime>
 
-std::optional<QSqlRecord> KonsumenManager::create(const QVariantMap& map) {
-  if(!map.contains("nama_lengkap")) {
-    return std::nullopt;
-  }
-  return BaseManager::create(map);
+void KonsumenManager::beforeCreate(QVariantMap &vm) {
+  vm["created_at"] = QDateTime::currentDateTimeUtc();
+}
+
+void KonsumenManager::beforeUpdate(QVariantMap &vm) {
+  vm["updated_at"] = QDateTime::currentDateTimeUtc();
 }

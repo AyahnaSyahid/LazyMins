@@ -20,16 +20,19 @@ BaseManager::~BaseManager()
 std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
 {
   resetErrorString();
-  QVariantMap validatedParams = validateParams(params);
   
-  // BELUM DIPERLUKAN KARENA SUDAH AUTO DI SQLITE3
-  // Add timestamps if not exists
-  // if (!validatedParams.contains("created_at")) {
-      // validatedParams["created_at"] = QDateTime::currentDateTime();
-  // }
-  // if (!validatedParams.contains("updated_at")) {
-      // validatedParams["updated_at"] = QDateTime::currentDateTime();
-  // }
+  QVariantMap validatedParams = validateParams(params);
+
+  if (!validatedParams.contains("created_at")) {
+      validatedParams["created_at"] = QDateTime::currentDateTimeUtc();
+  }
+  if (!validatedParams.contains("updated_at")) {
+      validatedParams["updated_at"] = QDateTime::currentDateTimeUtc();
+  }
+
+  if (validatedParams.isEmpty()) {
+    return std::nullopt;
+  }
   
   // Hook before create
   beforeCreate(validatedParams);

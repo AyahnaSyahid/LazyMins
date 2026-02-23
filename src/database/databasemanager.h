@@ -1,5 +1,4 @@
-#ifndef DATABASEMANAGER_H
-#define DATABASEMANAGER_H
+#pargma once
 
 #include <QSqlDatabase>
 class DatabaseManager
@@ -9,12 +8,9 @@ class DatabaseManager
     DatabaseManager(const DatabaseManager &) = delete;
     DatabaseManager &operator=(DatabaseManager &) = delete;
     bool initialize(const QHash<QString, QVariant> &settings);
-    
+    void setDatabase(QSqlDatabase &db);
     bool isOpen() const;
     QSqlDatabase &database() { return m_database;}
-    bool transaction();
-    bool commit();
-    bool rollback();
     
     QSqlError lastError() const;
     
@@ -26,5 +22,3 @@ class DatabaseManager
     bool initSchema(QSqlDatabase &db);
     bool verifySchema(QSqlDatabase &db);
 };
-
-#endif

@@ -4,6 +4,7 @@
 
 class ProductCategoriesManager : public BaseManager
 {
-public:
-  ProductCategoriesManager ();
+  public:
+    ProductCategoriesManager() : BaseManager("product_categories", false) {};
+    ~ProductCategoriesManager() {}
 };

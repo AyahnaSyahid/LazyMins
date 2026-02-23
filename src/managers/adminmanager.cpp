@@ -1,18 +1,8 @@
 #include "adminmanager.h"
 #include "src/utils/authmanager.h"
 #include <QSqlQuery>
+#include <QDateTime>
 
-std::optional<QSqlRecord> AdminManager::create(const QVariantMap &map) {
-  QStringList required_keys = { "username", "literal_password", "nama_lengkap" };
-  for (const QString& key : required_keys) {
-    if (!map.contains(key)) {
-      qDebug() << "Missing required field :" << key;
-      return std::nullopt;
-    }
-  }
-  QVariantMap param(map);
-  return BaseManager::create(param);
-}
 
 bool AdminManager::exists(const QString& username) {
   QSqlQuery query(BaseManager::connection);
@@ -32,6 +22,11 @@ void AdminManager::beforeCreate(QVariantMap &param) {
   param.remove("literal_password");
   param["salt"] = salt;
   param["password_hash"] = hash;
+  param["created_at"] = QDateTime::currentDateTimeUtc();
+  param["updated_at"] = QDateTime::currentDateTimeUtc();
 }
 
-bool AdminManager::hasRole()
+void AdminManager::beforeUpdate(QVariantMap &param) {
+  param.remove("created_at");
+  param["updated_at"] = QDateTime::currentDateTimeUtc();
+}

@@ -6,7 +6,7 @@ class ProductPricesManager : public BaseManager {
   public:
     ProductPricesManager() : BaseManager("product_prices", false) {}
     ~ProductPricesManager() {}
-  
+
     bool exists(int pid, int levid) const;
-    bool setPrice(int pid, int levid, int newprice);
+    bool setPrice(int pid, int levid, int newprice) const;
 };

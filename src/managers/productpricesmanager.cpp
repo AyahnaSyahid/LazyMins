@@ -1,14 +1,11 @@
 #include "productpricesmanager.h"
 
 bool ProductPricesManager::exists(int prid, int lvid) const {
-  QSqlQuery q(BaseManager::connection);
-  q.prepare("SELECT COUNT(*) FROM product_prices WHERE product_id = :product_id AND price_level_id = :price_level_id");
-  q.bindValue(":product_id", prid);
-  q.bindValue(":price_level_id", lvid);
-  if(q.exec() && q.next()) {
-    return q.value(0).toInt() > 0;
-  }
-  return false;
+  auto found = getWhere("product_id = :prid AND price_level_id = :pli", 
+                        {{"prid", prid}, {"pli", lvid}}, 
+                        "",
+                        1).count();
+  return found > 0;
 }
 
 bool ProductPricesManager::setPrice(int pid, int levid, int newprice) {

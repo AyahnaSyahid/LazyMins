@@ -31,12 +31,12 @@ CREATE TABLE admins (
     id INTEGER PRIMARY KEY,
     role_id INTEGER NOT NULL DEFAULT 3, -- Mulai sebagai Operator
     username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
-    salt TEXT NOT NULL,      -- Password ter-hash (bcrypt/argon2)
+    password_hash TEXT NOT NULL,        -- Password ter-hash (bcrypt/argon2)
+    salt TEXT NOT NULL,                 -- Password ter-hash (bcrypt/argon2)
     nama_lengkap TEXT NOT NULL,
-    email TEXT,                       -- TAMBAHAN: Email admin
-    nomor_telp TEXT,                  -- TAMBAHAN: Nomor telepon admin
-    is_active INTEGER DEFAULT 1,      -- 1: Aktif, 0: Non-aktif
+    email TEXT,                         -- TAMBAHAN: Email admin
+    nomor_telp TEXT,                    -- TAMBAHAN: Nomor telepon admin
+    is_active INTEGER DEFAULT 1,        -- 1: Aktif, 0: Non-aktif
     last_login DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -89,7 +89,8 @@ CREATE TABLE product_categories (
     category_name TEXT NOT NULL UNIQUE,
     description TEXT,
     is_active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Data awal kategori produk
@@ -129,7 +130,8 @@ CREATE TABLE price_levels (
     level_name TEXT NOT NULL UNIQUE,
     discount_percentage REAL DEFAULT 0,  -- TAMBAHAN: Persentase diskon
     description TEXT,                     -- TAMBAHAN: Deskripsi level
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Data awal price levels
@@ -143,6 +145,7 @@ CREATE TABLE product_prices (
     product_id INTEGER,
     price_level_id INTEGER,
     price INTEGER NOT NULL CHECK(price >= 0),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (product_id, price_level_id),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
@@ -249,6 +252,7 @@ CREATE TABLE order_items (
     subtotal REAL NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
     notes TEXT,                       -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
 );
@@ -267,6 +271,7 @@ CREATE TABLE order_item_finishings (
     finishing_price REAL NOT NULL,    -- Harga finishing per unit
     subtotal REAL NOT NULL,           -- TAMBAHAN: Total = quantity * finishing_price
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
     FOREIGN KEY (finishing_id) REFERENCES finishing_services(id) ON DELETE RESTRICT
 );
@@ -284,7 +289,8 @@ CREATE TABLE payment_methods (
     method_code TEXT UNIQUE NOT NULL,
     method_name TEXT NOT NULL,
     is_active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Data awal payment methods
@@ -356,6 +362,7 @@ CREATE TABLE kategori_transaksi (
     description TEXT,                 -- TAMBAHAN: Deskripsi kategori
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES kategori_transaksi(id)
 );
 
@@ -425,6 +432,7 @@ CREATE TABLE stock_movements (
     admin_id INTEGER NOT NULL,
     movement_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id) REFERENCES admins(id)
@@ -451,6 +459,7 @@ CREATE TABLE activity_logs (
     ip_address TEXT,
     user_agent TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (admin_id) REFERENCES admins(id)
 );

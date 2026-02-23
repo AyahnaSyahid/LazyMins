@@ -4,9 +4,9 @@
 #include <QSqlTableModel>
 #include <QSettings>
 #include "src/database/databasemanager.h"
-#include "src/models/basemanager.h"
-#include "src/models/adminmanager.h"
-#include "src/models/konsumenmanager.h"
+#include "src/managers/basemanager.h"
+#include "src/managers/adminmanager.h"
+#include "src/managers/konsumenmanager.h"
 #include "src/utils/authmanager.h"
 
 #include <QtDebug>
@@ -30,8 +30,10 @@ int main(int argc, char **args)
     qDebug() << QString("%1 tables created").arg(sb.tables().count());
   }
   BaseManager::connection = QSqlDatabase::database("LMAdmins_db");
+  
   AdminManager am;
   KonsumenManager km;
+  
   QList<QSqlRecord> recordList;
   for(int i=1; i<201; ++i) {
     auto rc = km.create({{"nama_lengkap", QString("KONS-%1").arg(i, 4, 10, QChar('0'))}});
@@ -49,6 +51,5 @@ int main(int argc, char **args)
   for( const auto r : km.getAll()) {
     qDebug() << r.value("customer_code").toString() << r.value("nama_lengkap").toString();
   }
-  
   return 0;
 };

@@ -15,12 +15,14 @@ qt_standard_project_setup()
 qt_add_library(LAdmins resources/database_resources.qrc
                        src/database/databasemanager.cpp
                        src/utils/authmanager.cpp
-                       src/models/basemanager.cpp
-                       src/models/adminmanager.cpp
-                       src/models/konsumenmanager.cpp
-                       src/models/productcategoriesmanager.cpp
-                       src/models/productpricesmanager.cpp
-                       )    
+                       src/managers/basemanager.cpp
+                       src/managers/adminmanager.cpp
+                       src/managers/konsumenmanager.cpp
+                       src/managers/productcategoriesmanager.cpp
+                       src/managers/productpricesmanager.cpp
+                       src/managers/rolesmanager.cpp
+                       src/managers/productcategoriesmanager.h src/managers/productcategoriesmanager.cpp
+                       )
                        
 
 target_link_libraries(LAdmins PRIVATE Qt6::Sql Qt6::Widgets Qt6::Network)

@@ -23,7 +23,6 @@ class AuthManager : public QObject {
     inline const QString &passwordMatchError() const { return m_passwordMatchError; }
     inline const QString &setCurrentAdminError() const { return m_setCurrentAdminError; }
     inline const QSqlRecord &currentAdmin() const { return m_currentAdmin; }
-    
 
   private:
     AuthManager();

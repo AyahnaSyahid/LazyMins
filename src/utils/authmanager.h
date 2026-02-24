@@ -6,6 +6,7 @@
 
 class AuthManager : public QObject {
     Q_OBJECT
+  
   public:
     static AuthManager &instance();
     

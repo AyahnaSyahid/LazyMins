@@ -16,6 +16,8 @@ qt_standard_project_setup()
 
 qt_add_library(LAdmins resources/database_resources.qrc
                        src/utils/authmanager.cpp
+                       src/utils/sessionmanager.h
+                       src/utils/sessionmanager.cpp
                        src/database/databasemanager.cpp
                        src/managers/basemanager.cpp
                        src/managers/adminmanager.cpp

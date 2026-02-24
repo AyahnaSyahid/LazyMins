@@ -24,6 +24,7 @@ void AdminManager::beforeUpdate(int id, QVariantMap &param) {
   param["updated_at"] = QDateTime::currentDateTimeUtc();
 }
 
+
 bool AdminManager::changePassword(const QString& uname, const QString& newpass) {
   auto recordList = getWhere("username = :uname", {{"uname", uname}}, "", 1);
   if (recordList.isEmpty())     return false;
@@ -69,4 +70,13 @@ bool AdminManager::isActive(int id) {
     return (*opt).value("is_active").toBool();
   }
   return false;
+
+std::optional<QSqlRecord> AdminManager::getRecord(const QString& name) {
+  auto q = baseQuery();
+  q.prepare("SELECT * FROM admins WHERE username = :un");
+  q.bindValue(":un", name);
+  if (q.exec() && q.next()) {
+    return q.record();
+  }
+  return std::nullopt;
 }

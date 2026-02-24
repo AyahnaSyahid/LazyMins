@@ -3,15 +3,9 @@
 #include <QSqlQuery>
 #include <QDateTime>
 
-
 bool AdminManager::exists(const QString& username) {
-  QSqlQuery query(BaseManager::connection);
-  query.prepare("SELECT COUNT(*) AS total from admins WHERE username = :username");
-  query.bindValue(":username", username);
-  if(query.exec() && query.next()) {
-    return query.value("total").toInt() > 0;
-  }
-  return false;
+  auto found = getWhere("username = :uname", {{"uname", username}}, "", 1).count() > 0;
+  return found;
 }
 
 void AdminManager::beforeCreate(QVariantMap &param) {
@@ -26,7 +20,53 @@ void AdminManager::beforeCreate(QVariantMap &param) {
   param["updated_at"] = QDateTime::currentDateTimeUtc();
 }
 
-void AdminManager::beforeUpdate(QVariantMap &param) {
-  param.remove("created_at");
+void AdminManager::beforeUpdate(int id, QVariantMap &param) {
   param["updated_at"] = QDateTime::currentDateTimeUtc();
+}
+
+bool AdminManager::changePassword(const QString& uname, const QString& newpass) {
+  auto recordList = getWhere("username = :uname", {{"uname", uname}}, "", 1);
+  if (recordList.isEmpty())     return false;
+  if (recordList.count() > 1)   return false;
+  
+  auto &am     = AuthManager::instance();
+  auto newSalt = am.generateSalt();
+  auto newHash = am.generateHash(newpass, newSalt);
+  
+  QVariantMap param;
+  param["salt"] = newSalt;
+  param["password_hash"] = newHash;
+  param["updated_at"] = QDateTime::currentDateTimeUtc();
+  
+  return update(recordList[0].value("id").toInt(), param);
+}
+
+bool AdminManager::changeUsername(const QString& old, const QString& newname) {
+  auto recordList = getWhere("username = :uname", {{"uname", old}}, "", 1);
+  if (recordList.isEmpty())     return false;
+  if (recordList.count() > 1)   return false;
+  
+  QVariantMap p;
+  p["username"] = newname;
+  p["updated_at"] = QDateTime::currentDateTimeUtc();
+  return update(recordList[0].value("id").toInt(), p);
+}
+
+bool AdminManager::setActive(int id, bool what) {
+  if(!exists(id)) return false;
+  if(isActive(id) && what) {
+    return true;
+  }
+  QVariantMap var;
+  var["is_active"] = what;
+  var["updated_at"] = QDateTime::currentDateTimeUtc();
+  return update(id, var);
+}
+
+bool AdminManager::isActive(int id) {
+  auto opt = getById(id);
+  if(opt) {
+    return (*opt).value("is_active").toBool();
+  }
+  return false;
 }

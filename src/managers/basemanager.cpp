@@ -21,8 +21,10 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
 {
   resetErrorString();
   
-  QVariantMap validatedParams = validateParams(params);
-
+  QVariantMap validatedParams = validateParams(params); 
+  
+  if (validatedParams.isEmpty()) return std::nullopt;
+  
   if (!validatedParams.contains("created_at")) {
       validatedParams["created_at"] = QDateTime::currentDateTimeUtc();
   }

@@ -1,4 +1,4 @@
-#pargma once
+#pragma once
 
 #include <QSqlDatabase>
 class DatabaseManager

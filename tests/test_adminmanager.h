@@ -6,12 +6,10 @@
 class test_AdminManager : public QObject
 {
   Q_OBJECT
+
   QList<QVariantMap> users;
-  
+
   private slots:
     void initTestCase();
     void testCreate();
-    void testCreate_data();
-    void testLogin();
-    void testLogin_data();
 };

@@ -70,8 +70,9 @@ bool AdminManager::isActive(int id) {
     return (*opt).value("is_active").toBool();
   }
   return false;
+}
 
-std::optional<QSqlRecord> AdminManager::getRecord(const QString& name) {
+std::optional<QSqlRecord> AdminManager::getRecord(const QString& name) const {
   auto q = baseQuery();
   q.prepare("SELECT * FROM admins WHERE username = :un");
   q.bindValue(":un", name);

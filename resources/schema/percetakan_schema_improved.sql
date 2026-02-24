@@ -48,6 +48,39 @@ CREATE TABLE admins (
 CREATE INDEX idx_admins_username ON admins(username);
 CREATE INDEX idx_admins_role ON admins(role_id);
 
+--
+-- File generated with SQLiteStudio v3.4.17 on Wed Feb 25 00:04:13 2026
+--
+-- Text encoding used: System
+--
+
+-- Table: admins
+CREATE TABLE IF NOT EXISTS admins (
+    id            INTEGER  PRIMARY KEY,
+    role_id       INTEGER  NOT NULL
+                           DEFAULT 3,-- Mulai sebagai Operator
+    username      TEXT     NOT NULL
+                           UNIQUE,
+    password_hash TEXT     NOT NULL,-- Password ter-hash (bcrypt/argon2)
+    salt          TEXT     NOT NULL,-- Password ter-hash (bcrypt/argon2)
+    nama_lengkap  TEXT     NOT NULL,
+    email         TEXT,-- TAMBAHAN: Email admin
+    nomor_telp    TEXT,-- TAMBAHAN: Nomor telepon admin
+    is_active     INTEGER  DEFAULT 1,-- 1: Aktif, 0: Non-aktif
+    last_login    DATETIME,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (
+        role_id
+    )
+    REFERENCES roles (id) ON DELETE RESTRICT
+);
+
+-- COMMENT INSERT INI Dalam PRODUKSI
+INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (1, 1, 'nurholis', '7b918a1952245299d004b12501f1b8c8ece58f35dd0235eaa4f8bc08661f8eca', 'yt3ufKxhnhE5RCJm8a2ZqtFNDyLg3JSw', 'Nur Holis Komarudin', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.097Z', '2026-02-24T16:49:59.097Z');
+INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (2, 2, 'maman', 'e44ed82d2c7b958b9373c9883dded54666d45cd2b8c3826eb9ed6c590196a9db', 'Scx6dhFGEKObSmKazZSAVXGkT0USTrR2', 'Maman Nurzaman', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.190Z', '2026-02-24 16:49:59');
+INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (3, 3, 'syahid', '9ccca7d556bfc8ce14007a559094f62232c9d4edb2621b078728ab57b6c6e338', '5uLr1WBHUUc5cYV1bKiwsYJ7dChs50PZ', 'Syahid Yusuf Nurdiansyah', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.300Z', '2026-02-24 16:49:59');
+
 -- ============================================================================
 -- 2. TABEL MASTER - MANAJEMEN PELANGGAN
 -- ============================================================================
@@ -499,7 +532,9 @@ INSERT INTO app_settings (setting_key, setting_value, data_type, description) VA
 ('order_number_prefix', 'ORD', 'string', 'Prefix nomor order'),
 ('payment_number_prefix', 'PAY', 'string', 'Prefix nomor pembayaran'),
 ('auto_complete_paid_orders', '1', 'boolean', 'Otomatis selesaikan order yang lunas'),
-('low_stock_alert', '10', 'number', 'Alert jika stok dibawah nilai ini');
+('low_stock_alert', '10', 'number', 'Alert jika stok dibawah nilai ini'),
+('max_login_failCount', '3', 'number', 'Jeda login jika gagal melewati batas ini'),
+('login_failCount_timeout_sec', '30', 'number', 'Batas waktu agar bisa relogin setelah failCount');
 
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)

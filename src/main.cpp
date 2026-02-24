@@ -1,29 +1,35 @@
-#include <QApplication>
-#include <QSqlDatabase>
-#include <QSqlTableModel>
-#include <QSqlError>
-#include <QSqlRecord>
-#include <QSettings>
-#include <QHash>
+
 #include "src/database/databasemanager.h"
+#include "src/managers/basemanager.h"
+#include "src/dialogs/logindialog.h"
 
 #include <QtDebug>
+#include <QApplication>
+#include <QSettings>
 
 int main(int argc, char **args)
 {
   QApplication app(argc, args);
-  app.setOrganizationName("AksaraJaya");
-  app.setApplicationName("LazyAdmins");
+  // app.setOrganizationName("AksaraJaya");
+  // app.setApplicationName("LazyAdmins");
   
   QSettings::setDefaultFormat(QSettings::IniFormat);
   QSettings userSettings;
   
-  auto sb = QSqlDatabase::addDatabase("QSQLITE", "LMAdmins_db");
-  sb.setDatabaseName(QString("%1/data/lm.db").arg(app.applicationDirPath()));
-  sb.open();
+  auto sb = QSqlDatabase::addDatabase("QSQLITE");
+  sb.setDatabaseName(QString("%1/../a.db").arg(app.applicationDirPath()));
+  if (!sb.open()) {
+    qDebug() << "Database not open" << sb.databaseName();
+    app.quit();
+    return 0;
+  }
   
   auto &db = DatabaseManager::instance();
+  db.setDatabase(sb);
+  BaseManager::connection = db.database();
   
+  LoginDialog ld;
+  ld.exec();
   
   return 0;
 };

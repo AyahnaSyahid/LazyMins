@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSqlRecord>
 
 class SessionManager : public QObject
 {
@@ -12,14 +13,14 @@ public:
 public slots:
   void login(const QString &name, const QString &password);
   void logout();
-  std::optional<QSqlRecord> &currentUser() const;
-  
-  
+  std::optional<QSqlRecord> currentUser() const;
+
 signals:
   void userChanged();
   void userLogin();
   void userLogout();
   void loginFailed();
+  void loginSuccess();
 
 private:
   SessionManager() : QObject(nullptr) {}

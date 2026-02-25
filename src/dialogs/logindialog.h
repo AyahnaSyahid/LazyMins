@@ -14,6 +14,9 @@ public:
   explicit LoginDialog(QWidget *p=nullptr);
   ~LoginDialog();
 
+public slots:
+  void setUsername(const QString& name);
+
 private slots:
   void on_masukButton_clicked();
   void decrementChances();

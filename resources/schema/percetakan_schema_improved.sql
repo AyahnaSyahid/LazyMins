@@ -633,12 +633,6 @@ ORDER BY k.total_spent DESC;
 -- ============================================================================
 
 -- Trigger: Update timestamp saat data berubah
-CREATE TRIGGER trg_admins_updated_at 
-AFTER UPDATE ON admins
-BEGIN
-    UPDATE admins SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
-
 CREATE TRIGGER trg_konsumen_updated_at 
 AFTER UPDATE ON konsumen
 BEGIN

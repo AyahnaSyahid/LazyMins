@@ -27,8 +27,14 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/dialogs/logindialog.h
                        src/dialogs/logindialog.ui
                        src/dialogs/logindialog.cpp
-                       )
+                       src/dialogs/edituserdialog.h
+                       src/dialogs/edituserdialog.ui
+                       src/dialogs/edituserdialog.cpp
+                       src/dialogs/createuserdialog.h
+                       src/dialogs/createuserdialog.ui
+                       src/dialogs/createuserdialog.cpp
                        
+                       )
 
 target_link_libraries(LAdmins PUBLIC Qt6::Sql Qt6::Widgets Qt6::Network)
 add_subdirectory(tests)

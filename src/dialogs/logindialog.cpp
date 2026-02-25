@@ -54,3 +54,7 @@ void LoginDialog::reenableLogin() {
   m_failCount = smap.isEmpty() ? 3 : smap.value("setting_value").toInt();
   ui->masukButton->setEnabled(true);
 }
+
+void LoginDialog::setUsername(const QString& name) {
+  ui->nameEdit->setText(name);
+}

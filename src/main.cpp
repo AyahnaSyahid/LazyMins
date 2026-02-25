@@ -2,6 +2,8 @@
 #include "src/database/databasemanager.h"
 #include "src/managers/basemanager.h"
 #include "src/dialogs/logindialog.h"
+#include "src/dialogs/createuserdialog.h"
+#include "src/dialogs/edituserdialog.h"
 
 #include <QtDebug>
 #include <QApplication>
@@ -28,8 +30,12 @@ int main(int argc, char **args)
   db.setDatabase(sb);
   BaseManager::connection = db.database();
   
-  LoginDialog ld;
+  CreateUserDialog ld;
   ld.exec();
+  
+  EditUserDialog eud("nurholis");
+  eud.exec();
+  
   
   return 0;
 };

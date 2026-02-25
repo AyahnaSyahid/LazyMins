@@ -33,9 +33,5 @@ int main(int argc, char **args)
   CreateUserDialog ld;
   ld.exec();
   
-  EditUserDialog eud("nurholis");
-  eud.exec();
-  
-  
   return 0;
 };

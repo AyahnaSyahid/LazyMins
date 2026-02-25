@@ -71,7 +71,7 @@ void CreateUserDialog::on_simpanButton_clicked() {
   
   QVariantMap param {
     { "username",         QVariant(ui->usernameEdit->text()) },
-    { "role_id",          QVariant(qmodel->index(ui->roleBox->currentIndex(), 0).data(Qt::EditRole).toInt()) },
+    { "role_id",          QVariant(ui->roleBox->currentRoleId()) },
     { "literal_password", QVariant(ui->passwordEdit1->text()) },
     { "nama_lengkap",     QVariant(ui->fullnameEdit->text()) },
     { "email",            QVariant(ui->emailEdit->text()) },

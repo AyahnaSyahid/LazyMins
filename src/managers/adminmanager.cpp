@@ -24,6 +24,32 @@ void AdminManager::beforeUpdate(int id, QVariantMap &param) {
   param["updated_at"] = QDateTime::currentDateTimeUtc();
 }
 
+bool AdminManager::changeLoginInfo(const QString& oldname, const QString& newName, const QString& newPass)
+{
+  connection.transaction();
+  auto q = baseQuery();
+  q.prepare("SELECT id FROM admins WHERE username = :old");
+  q.bindValue(":old", oldname);
+  if (q.exec() && q.next()) {
+    int id = q.value("id").toInt();
+    auto &am     = AuthManager::instance();
+    auto newSalt = am.generateSalt();
+    auto newHash = am.generateHash(newPass, newSalt);
+    auto qq = baseQuery();
+    qq.prepare("UPDATE admins SET (username, salt, password_hash, updated_at) = "
+               "(:newname, :salt, :phash, :ctu)");
+    qq.bindValue(":newname", newName);
+    qq.bindValue(":salt", newSalt);
+    qq.bindValue(":phash", newHash);
+    qq.bindValue(":ctu", QDateTime::currentDateTimeUtc());
+    
+    if (qq.exec() && connection.commit()) {
+      return true;
+    }
+  }
+  connection.rollback();
+  return false;
+}
 
 bool AdminManager::changePassword(const QString& uname, const QString& newpass) {
   auto recordList = getWhere("username = :uname", {{"uname", uname}}, "", 1);

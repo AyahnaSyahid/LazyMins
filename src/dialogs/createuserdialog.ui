@@ -117,7 +117,7 @@
       </widget>
      </item>
      <item row="3" column="1">
-      <widget class="QComboBox" name="roleBox"/>
+      <widget class="RolesComboBox" name="roleBox"/>
      </item>
     </layout>
    </item>
@@ -147,6 +147,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RolesComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/rolescombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

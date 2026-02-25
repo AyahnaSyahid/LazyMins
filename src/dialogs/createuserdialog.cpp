@@ -15,26 +15,6 @@ CreateUserDialog::CreateUserDialog(QWidget *p) :
 ui (new Ui::CreateUserDialog), qmodel(new QSqlQueryModel(this)), QDialog(p) 
 {
   ui->setupUi(this);
-  qmodel->setQuery("SELECT id AS ID, role_name AS Peran, description AS Keterangan FROM roles", 
-    DatabaseManager::instance().database());
-  ui->roleBox->setModel(qmodel);
-  ui->roleBox->setModelColumn(1);
-  
-  auto boxView = new QTableView();
-  ui->roleBox->setView(boxView);
-  ui->roleBox->setCurrentIndex(2);
-  
-  auto vh = boxView->verticalHeader();
-  vh->setMinimumSectionSize(22);
-  vh->setDefaultSectionSize(20);
-  vh->hide();
-  boxView->horizontalHeader()->hide();
-  boxView->hideColumn(0);
-  boxView->setAlternatingRowColors(true);
-  boxView->resizeColumnsToContents();
-  boxView->setHorizontalScrollMode(QTableView::ScrollPerPixel);
-  boxView->setSelectionBehavior(QTableView::SelectRows);
-  boxView->setMinimumWidth(boxView->columnWidth(1) + boxView->columnWidth(2));
 }
 
 CreateUserDialog::~CreateUserDialog() { delete ui; }
@@ -68,6 +48,14 @@ bool CreateUserDialog::checkInputs() {
     return false;
   } else {
     ui->passwordEdit2->setStyleSheet("");
+  }
+  
+  if (ui->passwordEdit1->text().size() < 6) {
+    QMessageBox::information(this, "Periksa Password", "Password terlalu pendek, minimal jumlah karakter adalah 6");
+    ui->passwordEdit1->setFocus();
+    ui->passwordEdit1->selectAll();
+    ui->passwordEdit2->clear();
+    return false;
   }
   return true;
 }

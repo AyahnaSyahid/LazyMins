@@ -42,3 +42,10 @@ void SessionManager::logout() {
 std::optional<QSqlRecord> SessionManager::currentUser() const {
   return m_optUserRecord;
 }
+
+bool SessionManager::currentUserPasswordMatch(const QString& pass) const {
+  if(!m_optUserRecord) return false;
+  QString username = (*m_optUserRecord).value("username").toString();
+  auto &auth = AuthManager::instance();
+  return auth.passwordMatch(username, pass);
+}

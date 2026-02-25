@@ -28,11 +28,20 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/dialogs/logindialog.ui
                        src/dialogs/logindialog.cpp
                        src/dialogs/edituserdialog.h
+                       src/dialogs/edituserlogininfodialog.h
+                       src/dialogs/edituserlogininfodialog.ui
+                       src/dialogs/edituserlogininfodialog.cpp
                        src/dialogs/edituserdialog.ui
                        src/dialogs/edituserdialog.cpp
                        src/dialogs/createuserdialog.h
                        src/dialogs/createuserdialog.ui
                        src/dialogs/createuserdialog.cpp
+                       src/dialogs/revokepassworddialog.h
+                       src/dialogs/revokepassworddialog.ui
+                       src/dialogs/revokepassworddialog.cpp
+                       
+                       src/customs/rolescombobox.h
+                       src/customs/rolescombobox.cpp
                        
                        )
 

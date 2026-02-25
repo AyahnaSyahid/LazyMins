@@ -9,11 +9,12 @@ class SessionManager : public QObject
 
 public:
   static SessionManager &instance();
+  std::optional<QSqlRecord> currentUser() const;
+  bool currentUserPasswordMatch(const QString& ) const;
 
 public slots:
   void login(const QString &name, const QString &password);
   void logout();
-  std::optional<QSqlRecord> currentUser() const;
 
 signals:
   void userChanged();

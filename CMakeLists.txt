@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.23)
 
 project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -20,10 +23,10 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/managers/basemanager.cpp
                        src/managers/adminmanager.cpp
                        src/managers/appsettingsmanager.cpp
-                       
+
                        src/utils/sessionmanager.h
                        src/utils/sessionmanager.cpp
-                       
+
                        src/dialogs/logindialog.h
                        src/dialogs/logindialog.ui
                        src/dialogs/logindialog.cpp
@@ -39,10 +42,17 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/dialogs/revokepassworddialog.h
                        src/dialogs/revokepassworddialog.ui
                        src/dialogs/revokepassworddialog.cpp
-                       
+                       # src/dialogs/konsumeneditordialog.h
+                       src/dialogs/konsumeneditordialog.ui
+                       # src/dialogs/konsumeneditordialog.cpp
+
+                       src/customs/querycombobox.h
+                       src/customs/querycombobox.cpp
                        src/customs/rolescombobox.h
                        src/customs/rolescombobox.cpp
-                       
+                       src/customs/tipekonsumencombobox.h
+                       src/customs/tipekonsumencombobox.cpp
+
                        )
 
 target_link_libraries(LAdmins PUBLIC Qt6::Sql Qt6::Widgets Qt6::Network)

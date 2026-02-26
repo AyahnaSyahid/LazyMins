@@ -77,9 +77,10 @@ CREATE TABLE IF NOT EXISTS admins (
 );
 
 -- COMMENT INSERT INI Dalam PRODUKSI
-INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (1, 1, 'nurholis', '7b918a1952245299d004b12501f1b8c8ece58f35dd0235eaa4f8bc08661f8eca', 'yt3ufKxhnhE5RCJm8a2ZqtFNDyLg3JSw', 'Nur Holis Komarudin', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.097Z', '2026-02-24T16:49:59.097Z');
-INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (2, 2, 'maman', 'e44ed82d2c7b958b9373c9883dded54666d45cd2b8c3826eb9ed6c590196a9db', 'Scx6dhFGEKObSmKazZSAVXGkT0USTrR2', 'Maman Nurzaman', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.190Z', '2026-02-24 16:49:59');
-INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES (3, 3, 'syahid', '9ccca7d556bfc8ce14007a559094f62232c9d4edb2621b078728ab57b6c6e338', '5uLr1WBHUUc5cYV1bKiwsYJ7dChs50PZ', 'Syahid Yusuf Nurdiansyah', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.300Z', '2026-02-24 16:49:59');
+INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES 
+(1, 1, 'nurholis', '7b918a1952245299d004b12501f1b8c8ece58f35dd0235eaa4f8bc08661f8eca', 'yt3ufKxhnhE5RCJm8a2ZqtFNDyLg3JSw', 'Nur Holis Komarudin', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.097Z', '2026-02-24T16:49:59.097Z'),
+(2, 2, 'maman', 'e44ed82d2c7b958b9373c9883dded54666d45cd2b8c3826eb9ed6c590196a9db', 'Scx6dhFGEKObSmKazZSAVXGkT0USTrR2', 'Maman Nurzaman', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.190Z', '2026-02-24 16:49:59'),
+(3, 3, 'syahid', '9ccca7d556bfc8ce14007a559094f62232c9d4edb2621b078728ab57b6c6e338', '5uLr1WBHUUc5cYV1bKiwsYJ7dChs50PZ', 'Syahid Yusuf Nurdiansyah', NULL, NULL, 1, NULL, '2026-02-24T16:49:59.300Z', '2026-02-24 16:49:59');
 
 -- ============================================================================
 -- 2. TABEL MASTER - MANAJEMEN PELANGGAN
@@ -100,8 +101,6 @@ CREATE TABLE konsumen (
     catatan TEXT,                     -- TAMBAHAN: Catatan khusus pelanggan
     price_level_id INTEGER DEFAULT 1, -- TAMBAHAN: Level harga default pelanggan
     is_active INTEGER DEFAULT 1,      -- TAMBAHAN: Status aktif/non-aktif
-    total_orders INTEGER DEFAULT 0,   -- TAMBAHAN: Total order yang pernah dibuat
-    total_spent REAL DEFAULT 0,       -- TAMBAHAN: Total pembelian
     last_seen DATETIME,               -- Terakhir kali order
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -146,7 +145,7 @@ CREATE TABLE products (
     unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter, dll)
     stock INTEGER DEFAULT 0,
     min_stock INTEGER DEFAULT 0,      -- TAMBAHAN: Minimum stok untuk alert
-    cost_price REAL DEFAULT 0,        -- TAMBAHAN: Harga pokok (HPP)
+    cost_price INTEGER DEFAULT 0,     -- TAMBAHAN: Harga pokok (HPP)
     is_active INTEGER DEFAULT 1,      -- 1: Aktif, 0: Non-aktif
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -170,9 +169,9 @@ CREATE TABLE price_levels (
 
 -- Data awal price levels
 INSERT INTO price_levels (id, level_name, discount_percentage, description) VALUES
-(1, 'order', 0, 'Harga normal untuk pelanggan umum'),
-(2, 'reseller', 10, 'Harga untuk reseller dengan diskon 10%'),
-(3, 'wholesale', 15, 'Harga grosir dengan diskon 15%');
+(1, 'order', 0, 'Harga normal untuk pelanggan OD'),
+(2, 'makloon', 0, 'Harga normal untuk reseller MAKLOON'),
+(3, 'nego', 0, 'Harga Nego BOS');
 
 -- Tabel Product Prices: Harga produk berdasarkan level
 CREATE TABLE product_prices (
@@ -206,7 +205,7 @@ CREATE TABLE finishing_services (
     code TEXT UNIQUE,                 -- TAMBAHAN: Kode finishing (FIN-001)
     name TEXT NOT NULL,
     description TEXT,                 -- TAMBAHAN: Deskripsi layanan
-    price_per_unit REAL DEFAULT 0,
+    price_per_unit INTEGER DEFAULT 0,
     unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter)
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -230,11 +229,11 @@ CREATE TABLE orders (
     price_level_id INTEGER DEFAULT 1, -- TAMBAHAN: Level harga yang digunakan
     
     -- Informasi finansial
-    subtotal REAL DEFAULT 0,          -- TAMBAHAN: Subtotal sebelum diskon
-    discount_amount REAL DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
-    discount_percentage REAL DEFAULT 0, -- TAMBAHAN: Persentase diskon
-    tax_amount REAL DEFAULT 0,        -- TAMBAHAN: Jumlah pajak (PPN)
-    total_amount REAL DEFAULT 0,      -- Total akhir
+    subtotal INTEGER DEFAULT 0,          -- TAMBAHAN: Subtotal sebelum diskon
+    discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
+    discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Persentase diskon
+    tax_amount INTEGER DEFAULT 0,        -- TAMBAHAN: Jumlah pajak (PPN)
+    total_amount INTEGER DEFAULT 0,      -- Total akhir
     
     -- Status dan tracking
     status TEXT DEFAULT 'pending',    -- pending, processing, ready, completed, cancelled
@@ -247,7 +246,7 @@ CREATE TABLE orders (
     
     -- Pembayaran
     payment_status TEXT DEFAULT 'unpaid',  -- TAMBAHAN: unpaid, partial, paid
-    paid_amount REAL DEFAULT 0,       -- TAMBAHAN: Jumlah yang sudah dibayar
+    paid_amount INTEGER DEFAULT 0,       -- TAMBAHAN: Jumlah yang sudah dibayar
     
     -- Catatan
     notes TEXT,                       -- TAMBAHAN: Catatan order
@@ -280,10 +279,10 @@ CREATE TABLE order_items (
     sku TEXT,                         -- TAMBAHAN: Denormalisasi SKU
     quantity INTEGER NOT NULL CHECK(quantity > 0),
     unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan
-    base_price REAL NOT NULL,         -- Harga satuan
-    discount_percentage REAL DEFAULT 0, -- TAMBAHAN: Diskon per item
-    discount_amount REAL DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
-    subtotal REAL NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
+    base_price INTEGER NOT NULL,         -- Harga satuan
+    discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item
+    discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
+    subtotal INTEGER NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
     notes TEXT,                       -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -302,8 +301,8 @@ CREATE TABLE order_item_finishings (
     finishing_id INTEGER,
     finishing_name TEXT NOT NULL,     -- TAMBAHAN: Denormalisasi nama finishing
     quantity INTEGER DEFAULT 1,       -- TAMBAHAN: Jumlah yang di-finishing
-    finishing_price REAL NOT NULL,    -- Harga finishing per unit
-    subtotal REAL NOT NULL,           -- TAMBAHAN: Total = quantity * finishing_price
+    finishing_price INTEGER NOT NULL,    -- Harga finishing per unit
+    subtotal INTEGER NOT NULL,           -- TAMBAHAN: Total = quantity * finishing_price
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
@@ -343,7 +342,7 @@ CREATE TABLE payments (
     customer_id INTEGER,              -- TAMBAHAN: Referensi ke customer
     
     -- Detail pembayaran
-    amount REAL NOT NULL CHECK(amount > 0),
+    amount INTEGER NOT NULL CHECK(amount > 0),
     payment_method TEXT NOT NULL DEFAULT 'cash',  -- cash, transfer, qris, dll
     
     -- Informasi transfer (jika method = transfer)
@@ -354,8 +353,8 @@ CREATE TABLE payments (
     transfer_proof_image TEXT,        -- TAMBAHAN: Path foto bukti transfer
     
     -- Informasi tunai (jika method = cash)
-    cash_received REAL,               -- TAMBAHAN: Jumlah uang diterima
-    cash_change REAL,                 -- TAMBAHAN: Kembalian
+    cash_received INTEGER,               -- TAMBAHAN: Jumlah uang diterima
+    cash_change INTEGER,                 -- TAMBAHAN: Kembalian
     
     -- Status dan tracking
     payment_status TEXT DEFAULT 'pending',  -- TAMBAHAN: pending, verified, cancelled
@@ -421,7 +420,7 @@ CREATE TABLE transaksi (
     -- Detail transaksi
     tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
     deskripsi TEXT,
-    jumlah REAL NOT NULL CHECK(jumlah > 0),
+    jumlah INTEGER NOT NULL CHECK(jumlah > 0),
     
     -- Informasi tambahan
     payment_method TEXT,              -- TAMBAHAN: Metode pembayaran

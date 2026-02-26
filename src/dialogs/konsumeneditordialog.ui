@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>KonsumenEditor</class>
+ <widget class="QDialog" name="KonsumenEditor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>269</width>
+    <height>475</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form Konsumen</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="namaLabel">
+       <property name="text">
+        <string>Nama</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="namaLineEdit"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="emailLabel">
+       <property name="text">
+        <string>Email</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="emailLineEdit"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="telpLabel">
+       <property name="text">
+        <string>Telp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="telpLineEdit"/>
+     </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="Line" name="line">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="alamatLabel">
+       <property name="text">
+        <string>Alamat</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="alamatLineEdit"/>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="kotaLabel">
+       <property name="text">
+        <string>Kota</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="kotaLineEdit"/>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="kodePosLabel">
+       <property name="text">
+        <string>Kode Pos</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QLineEdit" name="kodePosLineEdit"/>
+     </item>
+     <item row="7" column="0" colspan="2">
+      <widget class="Line" name="line_2">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="nPWPLabel">
+       <property name="text">
+        <string>NPWP</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="nPWPLineEdit"/>
+     </item>
+     <item row="9" column="0" colspan="2">
+      <widget class="Line" name="line_3">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="formGroupBox_2">
+     <property name="title">
+      <string>Data Internal</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_2">
+      <property name="horizontalSpacing">
+       <number>9</number>
+      </property>
+      <property name="leftMargin">
+       <number>9</number>
+      </property>
+      <property name="topMargin">
+       <number>9</number>
+      </property>
+      <property name="rightMargin">
+       <number>9</number>
+      </property>
+      <property name="bottomMargin">
+       <number>9</number>
+      </property>
+      <item row="1" column="0">
+       <widget class="QLabel" name="kodeKonsumenLabel">
+        <property name="text">
+         <string>Kode</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="kodeKonsumenLineEdit">
+        <property name="placeholderText">
+         <string>Kode Konsumen Kosong</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="tipeLabel">
+        <property name="text">
+         <string>Tipe</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="TipeKonsumenComboBox" name="tipeBox">
+        <property name="insertPolicy">
+         <enum>QComboBox::InsertPolicy::InsertAtTop</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="notesLabel">
+        <property name="text">
+         <string>Catatan</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QPlainTextEdit" name="plainTextEdit">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>68</height>
+         </size>
+        </property>
+        <property name="tabChangesFocus">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="activeCheck">
+          <property name="text">
+           <string>Aktif</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="simpanBox">
+       <property name="text">
+        <string>Simpan</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TipeKonsumenComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/tipekonsumencombobox.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>namaLineEdit</tabstop>
+  <tabstop>emailLineEdit</tabstop>
+  <tabstop>telpLineEdit</tabstop>
+  <tabstop>alamatLineEdit</tabstop>
+  <tabstop>kotaLineEdit</tabstop>
+  <tabstop>kodePosLineEdit</tabstop>
+  <tabstop>nPWPLineEdit</tabstop>
+  <tabstop>activeCheck</tabstop>
+  <tabstop>kodeKonsumenLineEdit</tabstop>
+  <tabstop>tipeBox</tabstop>
+  <tabstop>plainTextEdit</tabstop>
+  <tabstop>simpanBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

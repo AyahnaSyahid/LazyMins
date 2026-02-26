@@ -1,17 +1,12 @@
 #pragma once
 #include <QComboBox>
 
-class QSqlQueryModel;
-class RolesComboBox : public QComboBox
+#include "querycombobox.h"
+
+class RolesComboBox : public QueryComboBox  
 {
   Q_OBJECT
   public:
     RolesComboBox(QWidget *p=nullptr);
     int currentRoleId() const;
-  
-  public slots:
-    void refetchData();
-
-  private:
-    QSqlQueryModel *qmodel;
 };

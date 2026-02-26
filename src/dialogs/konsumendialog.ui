@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>KonsumenEditor</class>
- <widget class="QDialog" name="KonsumenEditor">
+ <class>KonsumenDialog</class>
+ <widget class="QDialog" name="KonsumenDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>269</width>
+    <width>273</width>
     <height>475</height>
    </rect>
   </property>
@@ -179,7 +179,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QPlainTextEdit" name="plainTextEdit">
+       <widget class="QPlainTextEdit" name="notesEdit">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
@@ -218,6 +218,19 @@
         </item>
        </layout>
       </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label">
+        <property name="toolTip">
+         <string>Level harga</string>
+        </property>
+        <property name="text">
+         <string>Level</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="priceLevelBox"/>
+      </item>
      </layout>
     </widget>
    </item>
@@ -237,7 +250,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="simpanBox">
+      <widget class="QPushButton" name="simpanButton">
        <property name="text">
         <string>Simpan</string>
        </property>
@@ -265,8 +278,8 @@
   <tabstop>activeCheck</tabstop>
   <tabstop>kodeKonsumenLineEdit</tabstop>
   <tabstop>tipeBox</tabstop>
-  <tabstop>plainTextEdit</tabstop>
-  <tabstop>simpanBox</tabstop>
+  <tabstop>notesEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

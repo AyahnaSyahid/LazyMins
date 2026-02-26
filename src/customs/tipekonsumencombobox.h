@@ -5,5 +5,6 @@
 class QSqlQueryModel;
 class TipeKonsumenComboBox : public QueryComboBox
 {
-  TipeKonsumenComboBox(QWidget *p=nullptr);
+  public:
+    TipeKonsumenComboBox(QWidget *p=nullptr);
 };

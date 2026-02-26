@@ -42,9 +42,11 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/dialogs/revokepassworddialog.h
                        src/dialogs/revokepassworddialog.ui
                        src/dialogs/revokepassworddialog.cpp
-                       # src/dialogs/konsumeneditordialog.h
-                       src/dialogs/konsumeneditordialog.ui
-                       # src/dialogs/konsumeneditordialog.cpp
+                       src/dialogs/fieldmap.h
+                       src/dialogs/formdialog.h
+                       src/dialogs/konsumendialog.h
+                       src/dialogs/konsumendialog.ui
+                       src/dialogs/konsumendialog.cpp
 
                        src/customs/querycombobox.h
                        src/customs/querycombobox.cpp
@@ -52,7 +54,6 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/customs/rolescombobox.cpp
                        src/customs/tipekonsumencombobox.h
                        src/customs/tipekonsumencombobox.cpp
-
                        )
 
 target_link_libraries(LAdmins PUBLIC Qt6::Sql Qt6::Widgets Qt6::Network)

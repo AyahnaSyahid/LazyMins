@@ -1,11 +1,12 @@
 
 #include "src/database/databasemanager.h"
 #include "src/managers/basemanager.h"
-#include "src/dialogs/logindialog.h"
-#include "src/dialogs/createuserdialog.h"
-#include "src/dialogs/edituserdialog.h"
+#include "src/managers/konsumenmanager.h"
+#include "src/dialogs/konsumendialog.h"
+
 
 #include <QtDebug>
+#include <QSqlRecord>
 #include <QApplication>
 #include <QSettings>
 
@@ -29,9 +30,11 @@ int main(int argc, char **args)
   auto &db = DatabaseManager::instance();
   db.setDatabase(sb);
   BaseManager::connection = db.database();
+  KonsumenManager km;
+  auto opt = km.getById(1);
   
-  CreateUserDialog ld;
-  ld.exec();
-  
+  KonsumenDialog dialog;
+  dialog.prepareModify(*opt);
+  dialog.exec();
   return 0;
 };

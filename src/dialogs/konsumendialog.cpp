@@ -10,7 +10,6 @@ KonsumenDialog::KonsumenDialog(QWidget *p):
 ui(new Ui::KonsumenDialog), FormDialog(p)
 {
   ui->setupUi(this);
-  setupFields();
 }
 
 KonsumenDialog::~KonsumenDialog() { delete ui; }

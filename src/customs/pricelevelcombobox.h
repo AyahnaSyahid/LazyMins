@@ -3,13 +3,18 @@
 namespace {
   auto toTitleCase = [](const QString& s) -> QString {
     if (s.isEmpty()) return s;
-    
+
     QString result = s.toLower();
     QRegularExpression re("\\b\\w");
-    
-    return result.replace(re, [](const QRegularExpressionMatch& m) {
-        return m.captured().toUpper();
-    });
+    QRegularExpressionMatchIterator it = re.globalMatch(result);
+
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        result[match.capturedStart()] = result[match.capturedStart()].toUpper();
+    }
+
+    return result;
+  };
 }
 
 class PriceLevelComboBox : public QueryComboBox
@@ -26,11 +31,17 @@ class PriceLevelComboBox : public QueryComboBox
     void setLevelID (int id) {
       for (int r=0; r<qmodel->rowCount(); ++r) {
         auto var = qmodel->index(r, 0).data(Qt::EditRole);
+        auto var2 = qmodel->index(r, 1).data(Qt::EditRole);
         if (var.isValid() && var.toInt() == id) {
           setCurrentIndex(r);
-          return
+          return;
         }
       }
-    }
     setCurrentIndex(-1);
+    }
+    
+    int currentId () const {
+      auto cid = qmodel->index(currentIndex(), 0).data(Qt::EditRole).toInt();
+      return cid;
+    }
 };

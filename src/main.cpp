@@ -31,13 +31,10 @@ int main(int argc, char **args)
   db.setDatabase(sb);
   BaseManager::connection = db.database();
   KonsumenManager km;
-  auto opt = km.getById(1);
+  auto ja = km.getById(2);
   
   KonsumenDialog dialog;
-  if(opt)
-    dialog.prepareModify(*opt);
-  else 
-    dialog.prepareCreate();
+  dialog.prepareModify(*ja);
   dialog.exec();
   return 0;
 };

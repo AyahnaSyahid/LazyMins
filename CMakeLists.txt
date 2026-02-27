@@ -44,6 +44,7 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/dialogs/revokepassworddialog.cpp
                        src/dialogs/fieldmap.h
                        src/dialogs/formdialog.h
+                       src/dialogs/formdialog.cpp
                        src/dialogs/konsumendialog.h
                        src/dialogs/konsumendialog.ui
                        src/dialogs/konsumendialog.cpp

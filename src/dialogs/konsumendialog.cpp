@@ -13,53 +13,51 @@ ui(new Ui::KonsumenDialog), FormDialog(p)
   setupFields();
 }
 
-void KonsumenDialog::setupFields() {
-  setFields({
-      { ui->namaLineEdit,         "nama_lengkap" },
-      { ui->emailLineEdit,        "email" },
-      { ui->telpLineEdit,         "nomor_telp" },
-      { ui->alamatLineEdit,       "alamat" },
-      { ui->kotaLineEdit,         "kota" },
-      { ui->kodePosLineEdit,      "kode_pos" },
-      { ui->kodeKonsumenLineEdit, "customer_code" },
-      { ui->nPWPLineEdit,         "npwp" },
-      { ui->notesEdit,            "catatan" }
-  });
+KonsumenDialog::~KonsumenDialog() { delete ui; }
+
+void KonsumenDialog::setupFields()
+{
+    setFields({
+        { ui->namaLineEdit,         "nama_lengkap" },
+        { ui->emailLineEdit,        "email" },
+        { ui->telpLineEdit,         "nomor_telp" },
+        { ui->alamatLineEdit,       "alamat" },
+        { ui->kotaLineEdit,         "kota" },
+        { ui->kodePosLineEdit,      "kode_pos" },
+        { ui->kodeKonsumenLineEdit, "customer_code" },
+        { ui->nPWPLineEdit,         "npwp" },
+        { ui->notesEdit,            "catatan" }
+    });
 }
 
-void KonsumenDialog::onPrepareCreate() {
-  // ui->tipeBox->setCurrentText("Individual");
-  ui->priceLevelBox->setCurrentIndex(0);
+void KonsumenDialog::setupBoundFields()
+{
+    addBoundField("is_active",
+    [this]{ return ui->activeCheck->isChecked() ? 1 : 0;},
+    [this](const QVariant& v){ ui->activeCheck->setChecked(v.toBool()); }
+    );
+
+    addBoundField("customer_type", 
+    [this]{ return ui->tipeBox->currentText();},
+    [this](const QVariant& v){ ui->tipeBox->setCurrentText(v.toString());}
+    );
+
+    addBoundField("price_level_id",
+    [this]{ return ui->priceLevelBox->currentId();},
+    [this](const QVariant& v){ ui->priceLevelBox->setLevelID(v.toInt());}
+    );
 }
 
-void KonsumenDialog::onPrepareModify() {
-  ui->activeCheck->setChecked(m_originalRecord.value("is_active").toBool());
-  ui->tipeBox->setCurrentText(m_originalRecord.value("customer_type").toString());
-  ui->priceLevelBox->setLevelID(m_originalRecord.value("price_level_id").toInt());
-}
+bool KonsumenDialog::onSave(const QVariantMap& changes)
+{
+    KonsumenManager km;
 
-bool KonsumenDialog::onSave(const QVariantMap& data) {
-  // append manual widgets not registered in setFields()
-  QVariantMap full = data;
-  full["is_active"] = ui->activeCheck->isChecked() ? 1 : 0;
-  // full["is_active"] = ui->activeCheck->isChecked() ? 1 : 0;
-
-  KonsumenManager km;
-  if (isCreateMode()) {
-    // INSERT INTO customers (...)
-    // e.g: db.insertCustomer(full);
-    auto opt = km.create(data);
-    if(opt) return true;
-  } else {
-    // UPDATE customers SET ... WHERE id = originalRecord().value("id")
-    int id = originalRecord().value("id").toInt();
-    auto opt = km.update(id, data);
-    if(opt) return true;
-    qDebug() << "UPDATE id=" << id << full;
-  }
-  return false;
-}
-
-void KonsumenDialog::on_simpanButton_clicked() {
-  accept();
+    if (isCreateMode()) {
+        auto opt = km.create(changes);
+        return opt.has_value();
+    }
+    else {
+        int id = originalRecord().value("id").toInt();
+        return km.update(id, changes);
+    }
 }

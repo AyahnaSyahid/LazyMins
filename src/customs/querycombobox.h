@@ -2,6 +2,7 @@
 
 #include <QComboBox>
 #include <QTableView>
+#include <QSqlQueryModel>
 #include "src/database/databasemanager.h"
 
 class QSqlQueryModel;
@@ -16,6 +17,7 @@ class QueryComboBox : public QComboBox
 
   public slots:
     virtual void refetchData();
+    virtual void boxViewAutoResize();
   
   private:
     void popError(const QString& err) const;

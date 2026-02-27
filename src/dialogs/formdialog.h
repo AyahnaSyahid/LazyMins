@@ -190,8 +190,10 @@ private slots:
 
 private:
     QList<FieldMap> m_fields;
-    QSqlRecord      m_originalRecord;
     FormMode        m_mode;
+
+protected:
+    QSqlRecord      m_originalRecord;
 };
 
 // #include moc_formdialog.cpp

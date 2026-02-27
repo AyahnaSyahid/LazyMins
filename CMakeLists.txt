@@ -54,6 +54,7 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/customs/rolescombobox.cpp
                        src/customs/tipekonsumencombobox.h
                        src/customs/tipekonsumencombobox.cpp
+                       src/customs/pricelevelcombobox.h
                        )
 
 target_link_libraries(LAdmins PUBLIC Qt6::Sql Qt6::Widgets Qt6::Network)

@@ -79,3 +79,14 @@ void QueryComboBox::popError(const QString& s) const
 {
   QMessageBox::warning(nullptr, "Error", s);
 }
+
+void QueryComboBox::boxViewAutoResize() {
+  int visibleColumnWidth = 0;
+  for(int nc =0; nc < qmodel->rowCount(); nc ++) {
+    if (!boxView->isColumnHidden(nc))  {
+      visibleColumnWidth += boxView->columnWidth(nc);
+    }
+  }
+  boxView->resizeRowsToContents();
+  boxView->setMinimumWidth(visibleColumnWidth);
+}

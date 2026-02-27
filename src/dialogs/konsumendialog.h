@@ -15,6 +15,8 @@ class KonsumenDialog : public FormDialog
   protected:
     void setupFields() override;
     bool onSave(const QVariantMap& data) override;
+    void onPrepareCreate() override;
+    void onPrepareModify() override;
   
   private slots:
     void on_simpanButton_clicked();

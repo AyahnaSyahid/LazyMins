@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>273</width>
-    <height>475</height>
+    <height>497</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -229,7 +229,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QComboBox" name="priceLevelBox"/>
+       <widget class="PriceLevelComboBox" name="priceLevelBox"/>
       </item>
      </layout>
     </widget>
@@ -265,6 +265,11 @@
    <class>TipeKonsumenComboBox</class>
    <extends>QComboBox</extends>
    <header>src/customs/tipekonsumencombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PriceLevelComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/pricelevelcombobox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

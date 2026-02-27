@@ -27,10 +27,21 @@ void KonsumenDialog::setupFields() {
   });
 }
 
+void KonsumenDialog::onPrepareCreate() {
+  ui->tipeBox->setCurrentText("Individual");
+  ui->priceLevelBox->setCurrentIndex(0);
+}
+
+void KonsumenDialog::onPrepareModify() {
+  ui->activeCheck->setChecked(m_originalRecord.value("is_active").toBool());
+  ui->tipeBox->setCurrentText(m_originalRecord.value("customer_type").toString());
+  ui->priceLevelBox->setCurrentIndex(m_originalRecord.value("price_level_id").toInt()-1);
+}
+
 bool KonsumenDialog::onSave(const QVariantMap& data) {
   // append manual widgets not registered in setFields()
   QVariantMap full = data;
-  full["status"] = ui->activeCheck->isChecked() ? 1 : 0;
+  full["is_active"] = ui->activeCheck->isChecked() ? 1 : 0;
 
   KonsumenManager km;
   if (isCreateMode()) {

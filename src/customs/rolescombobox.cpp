@@ -14,8 +14,7 @@ QueryComboBox(p)
 {
   setQuery(queryText);
   boxView->hideColumn(0);
-  boxView->resizeColumnsToContents();
-  boxView->setMinimumWidth(boxView->columnWidth(1) + boxView->columnWidth(2));
+  boxViewAutoResize();
 }
 
 int RolesComboBox::currentRoleId() const {

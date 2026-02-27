@@ -87,6 +87,5 @@ void QueryComboBox::boxViewAutoResize() {
       visibleColumnWidth += boxView->columnWidth(nc);
     }
   }
-  boxView->resizeRowsToContents();
   boxView->setMinimumWidth(visibleColumnWidth);
 }

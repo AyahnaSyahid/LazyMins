@@ -1,5 +1,17 @@
 #include "querycombobox.h"
 
+namespace {
+  auto toTitleCase = [](const QString& s) -> QString {
+    if (s.isEmpty()) return s;
+    
+    QString result = s.toLower();
+    QRegularExpression re("\\b\\w");
+    
+    return result.replace(re, [](const QRegularExpressionMatch& m) {
+        return m.captured().toUpper();
+    });
+}
+
 class PriceLevelComboBox : public QueryComboBox
 {
   public:
@@ -10,4 +22,15 @@ class PriceLevelComboBox : public QueryComboBox
       boxViewAutoResize();
       qDebug() << qmodel->rowCount();
     };
+    
+    void setLevelID (int id) {
+      for (int r=0; r<qmodel->rowCount(); ++r) {
+        auto var = qmodel->index(r, 0).data(Qt::EditRole);
+        if (var.isValid() && var.toInt() == id) {
+          setCurrentIndex(r);
+          return
+        }
+      }
+    }
+    setCurrentIndex(-1);
 };

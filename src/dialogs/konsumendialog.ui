@@ -167,7 +167,10 @@
       <item row="2" column="1">
        <widget class="TipeKonsumenComboBox" name="tipeBox">
         <property name="insertPolicy">
-         <enum>QComboBox::InsertPolicy::InsertAtTop</enum>
+         <enum>QComboBox::InsertPolicy::NoInsert</enum>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
         </property>
        </widget>
       </item>
@@ -229,7 +232,11 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="PriceLevelComboBox" name="priceLevelBox"/>
+       <widget class="PriceLevelComboBox" name="priceLevelBox">
+        <property name="insertPolicy">
+         <enum>QComboBox::InsertPolicy::NoInsert</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

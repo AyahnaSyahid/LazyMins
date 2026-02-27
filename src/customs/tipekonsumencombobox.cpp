@@ -1,13 +1,13 @@
 #include "tipekonsumencombobox.h"
 #include <QLineEdit>
+#include <QHeaderView>
 
 TipeKonsumenComboBox::TipeKonsumenComboBox(QWidget *p) : QueryComboBox(p)
 {
   setQuery("SELECT DISTINCT customer_type FROM konsumen");
-  boxView->setMinimumHeight(50);
+  setModel(qmodel);
+  setModelColumn(0);
+  boxView->horizontalHeader()->setStretchLastSection(true);
   setEditable(true);
-  auto le = lineEdit();
-  if (le) {
-    le->setAlignment(Qt::AlignCenter);
-  }
+  qDebug() << "is Column 0 hidden" << boxView->isColumnHidden(0);
 }

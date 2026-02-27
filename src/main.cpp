@@ -34,7 +34,10 @@ int main(int argc, char **args)
   auto opt = km.getById(1);
   
   KonsumenDialog dialog;
-  dialog.prepareModify(*opt);
+  if(opt)
+    dialog.prepareModify(*opt);
+  else 
+    dialog.prepareCreate();
   dialog.exec();
   return 0;
 };

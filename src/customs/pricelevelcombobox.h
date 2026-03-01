@@ -25,7 +25,6 @@ class PriceLevelComboBox : public QueryComboBox
       boxView->hideColumn(0);
       setModelColumn(1);
       boxViewAutoResize();
-      qDebug() << qmodel->rowCount();
     };
     
     void setLevelID (int id) {

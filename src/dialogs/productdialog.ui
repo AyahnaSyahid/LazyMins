@@ -59,7 +59,7 @@
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QComboBox" name="comboBox"/>
+      <widget class="ProductCategoriesComboBox" name="productCategoriesComboBox"/>
      </item>
      <item row="5" column="0">
       <widget class="QLabel" name="unitLabel">
@@ -213,10 +213,17 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ProductCategoriesComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/procuctcategoriescombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>namaLineEdit</tabstop>
   <tabstop>sKULineEdit</tabstop>
-  <tabstop>comboBox</tabstop>
+  <tabstop>productCategoriesComboBox</tabstop>
   <tabstop>descPlainTextEdit</tabstop>
   <tabstop>comboUnit</tabstop>
   <tabstop>costSpinBox</tabstop>

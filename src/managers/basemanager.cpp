@@ -1,5 +1,5 @@
 #include "basemanager.h"
-
+#include <QSqlDriver>
 QSqlDatabase BaseManager::connection;
 
 QSqlQuery BaseManager::baseQuery() {
@@ -23,17 +23,16 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   
   QVariantMap validatedParams = validateParams(params); 
   
-  if (validatedParams.isEmpty()) return std::nullopt;
+  if (validatedParams.isEmpty()) { 
+    setErrorString("Parameter Kosong");
+    return std::nullopt;
+  }
   
   if (!validatedParams.contains("created_at")) {
       validatedParams["created_at"] = QDateTime::currentDateTimeUtc();
   }
   if (!validatedParams.contains("updated_at")) {
       validatedParams["updated_at"] = QDateTime::currentDateTimeUtc();
-  }
-
-  if (validatedParams.isEmpty()) {
-    return std::nullopt;
   }
   
   // Hook before create
@@ -48,26 +47,23 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   for (auto it = validatedParams.begin(); it != validatedParams.end(); ++it) {
       query.bindValue(":" + it.key(), it.value());
   }
-  
   if (query.exec()) {
       int lastId = query.lastInsertId().toInt();
       auto record = getById(lastId);
-      
+   
       // Hook after create
       if (record)
         afterCreate(*record);
       
       return record;
   }
-  
-  qDebug() << "Error creating record in" << m_tableName << ":" << query.lastError().text();
-  qDebug() << "Query:" << query.lastQuery();
   setErrorString(query.lastError().text());
   return std::nullopt;
 }
 
 std::optional<QSqlRecord> BaseManager::getById(int id)
 {
+    resetErrorString();
     QSqlQuery query(BaseManager::connection);
     
     QString sql = QString("SELECT * FROM %1 WHERE id = :id %2")
@@ -80,6 +76,7 @@ std::optional<QSqlRecord> BaseManager::getById(int id)
         return query.record();
     } else if (!query.exec()) {
         qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
+        setErrorString(query.lastError().text());
     }
     
     return std::nullopt;
@@ -87,6 +84,7 @@ std::optional<QSqlRecord> BaseManager::getById(int id)
 
 bool BaseManager::update(int id, const QVariantMap& params)
 {
+    resetErrorString();
     QVariantMap validatedParams = validateParams(params);
     
     // Update timestamp
@@ -109,8 +107,7 @@ bool BaseManager::update(int id, const QVariantMap& params)
     }
     
     if (!query.exec()) {
-        qDebug() << "Error updating record in" << m_tableName << ":" << query.lastError().text();
-        qDebug() << "Query:" << query.lastQuery();
+        setErrorString("execution failed " + query.lastError().text());
         return false;
     }
     
@@ -144,6 +141,7 @@ bool BaseManager::remove(int id)
         qDebug() << "Error removing record from" << m_tableName << ":" << query.lastError().text();
         return false;
     }
+
     
     bool success = query.numRowsAffected() > 0;
     
@@ -152,6 +150,7 @@ bool BaseManager::remove(int id)
         afterDelete(id);
     }
     
+    qDebug() << "Removing FROM " << m_tableName << " Success";
     return success;
 }
 

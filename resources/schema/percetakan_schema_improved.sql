@@ -185,15 +185,7 @@ CREATE TABLE product_prices (
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id) ON DELETE CASCADE
 );
 
-CREATE TRIGGER trg_product_price_update
-     AFTER UPDATE OF price
-        ON product_prices
-      WHEN old.price != new.price
-BEGIN
-    UPDATE product_prices
-       SET updated_at = CURRENT_TIMESTAMP
-     WHERE (product_id, price_level_id) = (product_id, price_level_id);
-END;
+-- updated_at untuk product_prices dikelola di level aplikasi (ProductPriceManager::upsert)
 
 -- ============================================================================
 -- 4. TABEL MASTER - LAYANAN FINISHING
@@ -222,7 +214,7 @@ CREATE INDEX idx_finishing_name ON finishing_services(name);
 -- Tabel Orders: Header order/pesanan (diperbaiki)
 CREATE TABLE orders (
     id INTEGER PRIMARY KEY,
-    order_number TEXT UNIQUE NOT NULL,
+    order_number TEXT UNIQUE,             -- Di-generate otomatis oleh trigger jika tidak diisi
     customer_id INTEGER,
     customer_name TEXT NOT NULL,      -- Denormalisasi untuk performa
     customer_phone TEXT,              -- TAMBAHAN: Nomor telp customer
@@ -631,24 +623,8 @@ ORDER BY k.total_spent DESC;
 -- 12. TRIGGERS - AUTOMASI (TAMBAHAN BARU)
 -- ============================================================================
 
--- Trigger: Update timestamp saat data berubah
-CREATE TRIGGER trg_konsumen_updated_at 
-AFTER UPDATE ON konsumen
-BEGIN
-    UPDATE konsumen SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
-
-CREATE TRIGGER trg_products_updated_at 
-AFTER UPDATE ON products
-BEGIN
-    UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
-
-CREATE TRIGGER trg_orders_updated_at 
-AFTER UPDATE ON orders
-BEGIN
-    UPDATE orders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
+-- updated_at untuk konsumen, products, dan orders dikelola di level aplikasi (BaseManager::update).
+-- Trigger updated_at dihapus untuk menghindari recursive trigger dan overhead query tambahan.
 
 -- Trigger: Auto-generate customer code
 CREATE TRIGGER trg_konsumen_generate_code
@@ -657,6 +633,19 @@ WHEN NEW.customer_code IS NULL
 BEGIN
     UPDATE konsumen 
     SET customer_code = 'CUST-' || PRINTF('%05d', NEW.id)
+    WHERE id = NEW.id;
+END;
+
+-- Trigger: Auto-generate order number jika tidak diisi saat INSERT
+-- Format: ORD-YYYYMMDD-XXXXX (tanggal + 5 digit urut berdasarkan id)
+-- WHEN NEW.order_number IS NULL memastikan trigger tidak berjalan
+-- jika aplikasi sudah menyediakan nilai sendiri.
+CREATE TRIGGER trg_orders_generate_number
+AFTER INSERT ON orders
+WHEN NEW.order_number IS NULL
+BEGIN
+    UPDATE orders
+    SET order_number = 'ORD-' || STRFTIME('%Y%m%d', 'now') || '-' || PRINTF('%05d', NEW.id)
     WHERE id = NEW.id;
 END;
 

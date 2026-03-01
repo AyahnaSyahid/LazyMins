@@ -2,10 +2,10 @@
 
 std::optional<QSqlRecord> RolesManager::create(const QVariantMap &params)
 {
-  m_errorString = "";
+  resetErrorString();
   
   if(!params.contains("role_name") || !params.contains("description")) {
-      m_errorString = "Parameter role_name atau description tidak ditemukan";
+      setErrorString("Parameter role_name atau description tidak ditemukan");
       return std::nullopt;
     }
   if (params.count() > 2) {

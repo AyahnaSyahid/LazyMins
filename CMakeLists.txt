@@ -22,6 +22,8 @@ qt_add_library(LAdmins resources/database_resources.qrc
                        src/database/databasemanager.cpp
                        src/managers/basemanager.cpp
                        src/managers/adminmanager.cpp
+                       src/managers/managers.cpp
+                       src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
 
                        src/utils/sessionmanager.h

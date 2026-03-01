@@ -26,6 +26,7 @@ void AdminManager::beforeUpdate(int id, QVariantMap &param) {
 
 bool AdminManager::changeLoginInfo(const QString& oldname, const QString& newName, const QString& newPass)
 {
+  resetErrorString();
   connection.transaction();
   auto q = baseQuery();
   q.prepare("SELECT id FROM admins WHERE username = :old");
@@ -37,16 +38,25 @@ bool AdminManager::changeLoginInfo(const QString& oldname, const QString& newNam
     auto newHash = am.generateHash(newPass, newSalt);
     auto qq = baseQuery();
     qq.prepare("UPDATE admins SET (username, salt, password_hash, updated_at) = "
-               "(:newname, :salt, :phash, :ctu)");
+               "(:newname, :salt, :phash, :ctu) WHERE id = :id");
     qq.bindValue(":newname", newName);
     qq.bindValue(":salt", newSalt);
     qq.bindValue(":phash", newHash);
     qq.bindValue(":ctu", QDateTime::currentDateTimeUtc());
+    qq.bindValue(":id", id);
     
-    if (qq.exec() && connection.commit()) {
-      return true;
+    if (qq.exec()) {
+      if(connection.commit()) {
+        return true;
+      } else {
+        setErrorString("Unable to commit : " + connection.lastError().text());
+        return false;
+      }
+      setErrorString("execution failed : " + qq.lastError().text());
+      return false;
     }
   }
+  setErrorString("Error tidak diketahui");
   connection.rollback();
   return false;
 }

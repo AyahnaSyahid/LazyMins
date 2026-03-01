@@ -70,7 +70,7 @@ protected:
     virtual void afterDelete(int id);
 
     void resetErrorString();
-    inline void setErrorString(const QString& err) { m_errorString = err; }
+    void setErrorString(const QString& err) { m_errorString = err; }
     // Helper methods
     QString getDeleteCondition() const;
     

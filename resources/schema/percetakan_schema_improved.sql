@@ -215,6 +215,7 @@ CREATE INDEX idx_finishing_name ON finishing_services(name);
 CREATE TABLE orders (
     id INTEGER PRIMARY KEY,
     order_number TEXT UNIQUE,             -- Di-generate otomatis oleh trigger jika tidak diisi
+    invoice_id INTEGER,
     customer_id INTEGER,
     customer_name TEXT NOT NULL,      -- Denormalisasi untuk performa
     customer_phone TEXT,              -- TAMBAHAN: Nomor telp customer
@@ -249,6 +250,7 @@ CREATE TABLE orders (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE RESTRICT,
     FOREIGN KEY (customer_id) REFERENCES konsumen(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id)
@@ -332,6 +334,7 @@ CREATE TABLE payments (
     payment_number TEXT UNIQUE,       -- TAMBAHAN: Nomor pembayaran unik (PAY-001)
     order_id INTEGER NOT NULL,
     customer_id INTEGER,              -- TAMBAHAN: Referensi ke customer
+    invoice_id INTEGER,              -- TAMBAHAN: Referensi ke invoices
     
     -- Detail pembayaran
     amount INTEGER NOT NULL CHECK(amount > 0),
@@ -360,6 +363,7 @@ CREATE TABLE payments (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE RESTRICT,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
     FOREIGN KEY (customer_id) REFERENCES konsumen(id),
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
@@ -367,6 +371,7 @@ CREATE TABLE payments (
 );
 
 -- Index untuk payments
+CREATE INDEX idx_invoices_order ON payments(invoice_id);
 CREATE INDEX idx_payments_order ON payments(order_id);
 CREATE INDEX idx_payments_customer ON payments(customer_id);
 CREATE INDEX idx_payments_date ON payments(payment_date);
@@ -526,6 +531,48 @@ INSERT INTO app_settings (setting_key, setting_value, data_type, description) VA
 ('low_stock_alert', '10', 'number', 'Alert jika stok dibawah nilai ini'),
 ('max_login_failCount', '3', 'number', 'Jeda login jika gagal melewati batas ini'),
 ('login_failCount_timeout_sec', '30', 'number', 'Batas waktu agar bisa relogin setelah failCount');
+
+CREATE TABLE invoices (
+    id INTEGER PRIMARY KEY,
+    invoice_number TEXT UNIQUE,           -- Contoh: INV-20260302-00001
+    customer_id INTEGER NOT NULL,
+    customer_name TEXT NOT NULL,          -- Denormalisasi untuk performa
+    customer_phone TEXT,
+    price_level_id INTEGER DEFAULT 1,
+
+    -- Informasi finansial
+    subtotal INTEGER DEFAULT 0,
+    discount_amount INTEGER DEFAULT 0,
+    tax_amount INTEGER DEFAULT 0,
+    total_amount INTEGER DEFAULT 0,
+    paid_amount INTEGER DEFAULT 0,
+
+    -- Status & tanggal
+    status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'issued', 'sent', 'partial', 'paid', 'cancelled', 'overdue')),
+    issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    due_date DATETIME,                    -- Jatuh tempo pembayaran
+    payment_status TEXT DEFAULT 'unpaid' CHECK(payment_status IN ('unpaid', 'partial', 'paid')),
+
+    -- Catatan
+    notes TEXT,
+    internal_notes TEXT,
+
+    -- Tracking
+    admin_id INTEGER NOT NULL,            -- Admin yang membuat invoice
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (customer_id) REFERENCES konsumen(id) ON DELETE RESTRICT,
+    FOREIGN KEY (price_level_id) REFERENCES price_levels(id),
+    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT
+);
+
+-- Index untuk invoices
+CREATE INDEX idx_invoices_number ON invoices(invoice_number);
+CREATE INDEX idx_invoices_customer ON invoices(customer_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_issue_date ON invoices(issue_date);
+CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)
@@ -731,6 +778,38 @@ BEGIN
         total_spent = (SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE customer_id = NEW.customer_id AND status != 'cancelled'),
         last_seen = CURRENT_TIMESTAMP
     WHERE id = NEW.customer_id;
+END;
+
+-- Trigger: Generasi Nomor Invoices jika NULL
+CREATE TRIGGER trg_invoices_generate_number
+AFTER INSERT ON invoices
+WHEN NEW.invoice_number IS NULL
+BEGIN
+    UPDATE invoices
+    SET invoice_number = 'INV-' || STRFTIME('%Y%m%d', 'now') || '-' || PRINTF('%05d', NEW.id)
+    WHERE id = NEW.id;
+END;
+
+-- 5. Trigger: Update payment_status & paid_amount di invoice saat ada pembayaran
+CREATE TRIGGER trg_payments_update_invoice
+AFTER INSERT ON payments
+BEGIN
+    UPDATE invoices 
+    SET 
+        paid_amount = (
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM payments 
+            WHERE invoice_id = NEW.invoice_id 
+            AND payment_status = 'verified'
+        ),
+        payment_status = CASE
+            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = NEW.invoice_id AND payment_status = 'verified') >= total_amount 
+            THEN 'paid'
+            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = NEW.invoice_id AND payment_status = 'verified') > 0 
+            THEN 'partial'
+            ELSE 'unpaid'
+        END
+    WHERE id = NEW.invoice_id;
 END;
 
 -- ============================================================================

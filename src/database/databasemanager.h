@@ -4,6 +4,7 @@
 class DatabaseManager
 {
   public:
+    static bool initSchema(QSqlDatabase &db);
     static DatabaseManager& instance();
     DatabaseManager(const DatabaseManager &) = delete;
     DatabaseManager &operator=(DatabaseManager &) = delete;
@@ -19,6 +20,5 @@ class DatabaseManager
     ~DatabaseManager();
     QSqlDatabase m_database;
     bool m_databaseReady;
-    bool initSchema(QSqlDatabase &db);
     bool verifySchema(QSqlDatabase &db);
 };

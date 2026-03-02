@@ -29,12 +29,13 @@ int main(int argc, char **args)
   
   auto &db = DatabaseManager::instance();
   db.setDatabase(sb);
+  if (db.database().tables().count() < 5) {
+    DatabaseManager::initSchema(sb);
+  }
   BaseManager::connection = db.database();
   KonsumenManager km;
-  auto ja = km.getById(2);
-  
   KonsumenDialog dialog;
-  dialog.prepareModify(*ja);
+  dialog.prepareCreate();
   dialog.exec();
   return 0;
 };

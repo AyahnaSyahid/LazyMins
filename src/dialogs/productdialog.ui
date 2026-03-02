@@ -102,6 +102,9 @@
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
        </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
        <property name="maximum">
         <number>1000000</number>
        </property>
@@ -115,12 +118,15 @@
       </widget>
      </item>
      <item row="7" column="1">
-      <widget class="QSpinBox" name="spinBox">
+      <widget class="QSpinBox" name="minStock">
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
        </property>
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="accelerated">
+        <bool>true</bool>
        </property>
        <property name="maximum">
         <number>100000</number>
@@ -170,6 +176,9 @@
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
        </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
        <property name="maximum">
         <number>9999999</number>
        </property>
@@ -217,7 +226,7 @@
   <customwidget>
    <class>ProductCategoriesComboBox</class>
    <extends>QComboBox</extends>
-   <header>src/customs/procuctcategoriescombobox.h</header>
+   <header>src/customs/productcategoriescombobox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
@@ -227,7 +236,7 @@
   <tabstop>descPlainTextEdit</tabstop>
   <tabstop>comboUnit</tabstop>
   <tabstop>costSpinBox</tabstop>
-  <tabstop>spinBox</tabstop>
+  <tabstop>minStock</tabstop>
   <tabstop>aktifComboBox</tabstop>
   <tabstop>stokSpinBox</tabstop>
  </tabstops>

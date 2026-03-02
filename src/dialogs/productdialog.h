@@ -17,6 +17,9 @@ class ProductDialog : public FormDialog
     void setupFields() override;
     void setupBoundFields() override;
     bool onSave(const QVariantMap& m) override;
+    
+  private slots:
+    void on_simpanButton_clicked();
   
   private:
     Ui::ProductDialog *ui;

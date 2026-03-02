@@ -48,6 +48,10 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/dialogs/konsumendialog.h
                            src/dialogs/konsumendialog.ui
                            src/dialogs/konsumendialog.cpp
+                           src/dialogs/productdialog.h
+                           src/dialogs/productdialog.ui
+                           src/dialogs/productdialog.cpp
+                           
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp
                            src/customs/rolescombobox.h

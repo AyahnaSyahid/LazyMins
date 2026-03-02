@@ -3,6 +3,7 @@
 #include "src/managers/basemanager.h"
 #include "src/managers/konsumenmanager.h"
 #include "src/dialogs/konsumendialog.h"
+#include "src/dialogs/productdialog.h"
 
 
 #include <QtDebug>
@@ -34,8 +35,8 @@ int main(int argc, char **args)
   }
   BaseManager::connection = db.database();
   KonsumenManager km;
-  KonsumenDialog dialog;
-  dialog.prepareCreate();
-  dialog.exec();
+  ProductDialog pdg;
+  pdg.prepareCreate();
+  pdg.exec();
   return 0;
 };

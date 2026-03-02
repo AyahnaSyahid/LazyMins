@@ -1,10 +1,7 @@
 
 #include "src/database/databasemanager.h"
 #include "src/managers/basemanager.h"
-#include "src/managers/konsumenmanager.h"
-#include "src/dialogs/konsumendialog.h"
-#include "src/dialogs/productdialog.h"
-
+#include "src/mainwindow/mainwindow.h"
 
 #include <QtDebug>
 #include <QSqlRecord>
@@ -34,9 +31,10 @@ int main(int argc, char **args)
     DatabaseManager::initSchema(sb);
   }
   BaseManager::connection = db.database();
-  KonsumenManager km;
-  ProductDialog pdg;
-  pdg.prepareCreate();
-  pdg.exec();
+  
+  MainWindow mw;
+  mw.show();
+  
+  app.exec();
   return 0;
 };

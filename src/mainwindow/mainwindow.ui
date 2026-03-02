@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1013</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1013</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuPengaturan">
+    <property name="title">
+     <string>Pengaturan</string>
+    </property>
+    <widget class="QMenu" name="menuAkun">
+     <property name="title">
+      <string>Akun</string>
+     </property>
+     <addaction name="actionKeluar"/>
+    </widget>
+    <addaction name="menuAkun"/>
+   </widget>
+   <widget class="QMenu" name="menuToolbar">
+    <property name="title">
+     <string>Toolbar</string>
+    </property>
+   </widget>
+   <addaction name="menuPengaturan"/>
+   <addaction name="menuToolbar"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="addDataToolbar">
+   <property name="windowTitle">
+    <string>Tambah Data</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionAdminAdd"/>
+   <addaction name="separator"/>
+   <addaction name="actionKonsumenAdd"/>
+   <addaction name="actionProdukAdd"/>
+  </widget>
+  <widget class="QToolBar" name="transactionToolbar">
+   <property name="windowTitle">
+    <string>Transaksi</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionOrderCreate"/>
+   <addaction name="actionInvoiceCreate"/>
+   <addaction name="separator"/>
+   <addaction name="actionKeuanganKas"/>
+  </widget>
+  <action name="actionAdminAdd">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/add-admin.svg</normaloff>:/svg/svg/add-admin.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Admin</string>
+   </property>
+   <property name="toolTip">
+    <string>Register Admin Baru</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionKonsumenAdd">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/add-customer.svg</normaloff>:/svg/svg/add-customer.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Konsumen</string>
+   </property>
+   <property name="toolTip">
+    <string>Tambah Konsumen</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionProdukAdd">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/add-product.svg</normaloff>:/svg/svg/add-product.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Produk</string>
+   </property>
+   <property name="toolTip">
+    <string>Tambah Produk</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionOrderCreate">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/create-order.svg</normaloff>:/svg/svg/create-order.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Order</string>
+   </property>
+   <property name="toolTip">
+    <string>Catat Order</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionInvoiceCreate">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/create-invoice.svg</normaloff>:/svg/svg/create-invoice.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Invoice</string>
+   </property>
+   <property name="toolTip">
+    <string>Buat Invoice</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionKeluar">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/sign-out.svg</normaloff>:/svg/svg/sign-out.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Keluar</string>
+   </property>
+  </action>
+  <action name="actionKeuanganKas">
+   <property name="icon">
+    <iconset resource="../../resources/database_resources.qrc">
+     <normaloff>:/svg/svg/cash-flow.svg</normaloff>:/svg/svg/cash-flow.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Keuangan/Kas</string>
+   </property>
+   <property name="toolTip">
+    <string>Cash-Flow</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="../../resources/database_resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

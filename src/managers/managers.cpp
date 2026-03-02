@@ -301,6 +301,12 @@ bool OrderManager::markCompleted(int id) { return updateStatus(id, "completed");
 
 QString OrderManager::generateOrderNumber(const QString& prefix)
 {
+    auto q = baseQuery();
+    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val FROM orders WHERE date(created_at) = date('now')")
+                        .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
+    if(q.exec() && q.next()) {
+      return q.value("next_val").toString();
+    }
     return generateCode("orders", "id", prefix);
 }
 

@@ -160,6 +160,7 @@ public:
         : BaseManager("order_items") {}
 
     QList<QSqlRecord> getByOrder(int orderId);
+    
     bool removeByOrder(int orderId);
 
 protected:

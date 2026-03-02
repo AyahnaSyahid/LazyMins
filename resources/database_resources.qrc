@@ -2,4 +2,13 @@
   <qresource prefix="schema">
     <file alias="main.sql">schema/percetakan_schema_improved.sql</file>
   </qresource>
+  <qresource prefix="svg">
+    <file>svg/cash-flow.svg</file>
+    <file>svg/add-admin.svg</file>
+    <file>svg/add-customer.svg</file>
+    <file>svg/add-product.svg</file>
+    <file>svg/create-invoice.svg</file>
+    <file>svg/create-order.svg</file>
+    <file>svg/sign-out.svg</file>
+  </qresource>
 </RCC>

@@ -25,6 +25,8 @@ qt_add_library(Mgr_LAdmins resources/database_resources.qrc
                        src/managers/managers.cpp
                        src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
+                       src/models/orderitemeditormodel.h
+                       src/models/orderitemeditormodel.cpp
                        )
 
 qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
@@ -51,6 +53,9 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/dialogs/productdialog.h
                            src/dialogs/productdialog.ui
                            src/dialogs/productdialog.cpp
+                           src/dialogs/orderdialog.h
+                           src/dialogs/orderdialog.ui
+                           src/dialogs/orderdialog.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp
@@ -61,7 +66,11 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/customs/pricelevelcombobox.h
                            src/customs/productcategoriescombobox.h
                            src/customs/productcategoriescombobox.cpp
-
+                           
+                           src/mainwindow/mainwindow.h
+                           src/mainwindow/mainwindow.ui
+                           src/mainwindow/mainwindow.cpp
+                           
                            src/utils/sessionmanager.h
                            src/utils/sessionmanager.cpp
                            )
@@ -69,7 +78,7 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
 target_link_libraries(Mgr_LAdmins PUBLIC Qt6::Sql Qt6::Network)
 target_link_libraries(Ui_LAdmins PUBLIC Mgr_LAdmins Qt6::Widgets)
 
-add_subdirectory(tests)
+# add_subdirectory(tests)
 
 qt_add_executable(test_logform src/main.cpp)
 

@@ -18,6 +18,7 @@ OrderItemDialog::~OrderItemDialog()
 }
 
 bool OrderItemDialog::onSave(const QVariantMap& changes) {
+    qDebug() << changes;
     return true;
 }
 
@@ -33,3 +34,13 @@ void OrderItemDialog::setupFields() {
     });
 }
 
+void OrderItemDialog::setupBoundFields() {
+    addBoundField( "product_id",
+            [&]() -> QVariant {
+                return ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0).data(Qt::EditRole);}, 
+            [&](const QVariant& value) {
+                int id = value.toInt();
+                int index = ui->produkComboBox->findValue(id);
+                ui->produkComboBox->setCurrentIndex(index);
+            });
+}

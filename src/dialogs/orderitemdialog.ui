@@ -180,7 +180,7 @@
     </layout>
    </item>
    <item alignment="Qt::AlignmentFlag::AlignRight">
-    <widget class="QPushButton" name="pushButton">
+    <widget class="QPushButton" name="simpanButton">
      <property name="text">
       <string>Simpan</string>
      </property>

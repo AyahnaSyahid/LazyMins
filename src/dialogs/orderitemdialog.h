@@ -15,7 +15,10 @@ public:
     
     bool onSave(const QVariantMap& changes) override;
     void setupFields() override;
+    void setupBoundFields() override;
 
+private slots:
+    void on_simpanButton_clicked() { onSave(collect()); }
 private:
     Ui::OrderItemDialog *ui;
 };

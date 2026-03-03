@@ -46,9 +46,15 @@ public:
     QList<QVariantMap> pendingNewRows() const { return m_newData; }
     QHash<QPair<int,int>, QVariant> editedCells() const { return m_editedCells; }
 
+    bool appendRow(const QVariantMap &defaultValues = QVariantMap());
+    bool removeRow(int row, const QModelIndex &parent = QModelIndex());
+    bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
+    void revertAllChanges();
+    bool isDirty() const;
+
 private:
     static QString columnKey(int column);
-
+    int m_orderid;
     QList<QSqlRecord>               m_fromDatabase;
     QHash<QPair<int,int>, QVariant> m_editedCells;
     QList<QVariantMap>              m_newData;

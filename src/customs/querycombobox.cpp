@@ -81,11 +81,12 @@ void QueryComboBox::popError(const QString& s) const
 }
 
 void QueryComboBox::boxViewAutoResize() {
-  int visibleColumnWidth = 0;
-  for(int nc =0; nc < qmodel->rowCount(); nc ++) {
-    if (!boxView->isColumnHidden(nc))  {
-      visibleColumnWidth += boxView->columnWidth(nc);
-    }
-  }
-  boxView->setMinimumWidth(visibleColumnWidth);
+  boxView->resizeColumnsToContents();
+  // int visibleColumnWidth = 0;
+  // for(int nc =0; nc < qmodel->rowCount(); nc ++) {
+  //   if (!boxView->isColumnHidden(nc))  {
+  //     visibleColumnWidth += boxView->columnWidth(nc);
+  //   }
+  // }
+  boxView->setMinimumWidth(boxView->horizontalHeader()->length());
 }

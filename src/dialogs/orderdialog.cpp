@@ -2,6 +2,8 @@
 #include "ui_orderdialog.h"
 
 #include <QHeaderView>
+#include "src/customs/flexibledelegate.h"
+#include "src/dialogs/orderitemdialog.h"
 
 namespace {
   const QHash<int, QString> Column {
@@ -20,7 +22,19 @@ namespace {
     {12,  "created_at"          },
     {13,  "updated_at"          }, 
   };
+  class ProductDelegate : public QStyledItemDelegate {
+  public:
+    explicit ProductDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+      auto editor = new QueryComboBox(parent);
+      editor->setQuery("SELECT id, name FROM products");
+      editor->setModelColumn(1);
+      return editor;
+    }
+  };
 }
+
+
 
 OrderDialog::OrderDialog(QWidget *p):
 ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
@@ -36,10 +50,14 @@ ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
   ui->orderItemView->hideColumn(11);
   ui->orderItemView->hideColumn(12);
   ui->orderItemView->hideColumn(13);
-  
+  ui->orderItemView->horizontalHeader()->setStretchLastSection(true);
+
+  ui->orderItemView->setItemDelegateForColumn(2, new ProductDelegate(this));
+  ui->orderItemView->addAction(ui->tambahItem);
+
   ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
   ui->tOrderDateTimeEdit->setDateTime(QDateTime::currentDateTime());
-  ui->dLineDateTimeEdit->setDateTime(QDateTime::currentDateTime());
+  ui->dLineDateTimeEdit->setDateTime(QDateTime::currentDateTime().addDays(1));
   setupFields();
 }
 
@@ -86,4 +104,14 @@ bool OrderDialog::onSave(const QVariantMap& mp) { return false; }
 void OrderDialog::prepareModify(const QSqlRecord& orderRecord) {
   FormDialog::prepareModify(orderRecord);
   emodel->loadFromOrder(orderRecord.value("id").toInt());
+}
+
+void OrderDialog::on_tambahItem_triggered() {
+  auto editor = new OrderItemDialog(this);
+  editor->setAttribute(Qt::WA_DeleteOnClose);
+  editor->prepareCreate();
+  editor->open();
+}
+
+void OrderDialog::on_simpanButton_clicked() {
 }

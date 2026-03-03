@@ -6,14 +6,195 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>434</height>
+    <width>268</width>
+    <height>312</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form Order Item</string>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="namaLabel">
+       <property name="text">
+        <string>Nama</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="produkLabel">
+       <property name="text">
+        <string>Produk</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QueryComboBox" name="produkComboBox"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="qtyLabel">
+       <property name="text">
+        <string>Qty</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QSpinBox" name="qtySpinBox">
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>999999</number>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="hargaLabel">
+       <property name="text">
+        <string>Harga @</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QSpinBox" name="hargaSpinBox">
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+       <property name="minimum">
+        <number>100</number>
+       </property>
+       <property name="maximum">
+        <number>99999999</number>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="diskonLabel">
+       <property name="text">
+        <string>Diskon %</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QDoubleSpinBox" name="diskonDoubleSpinBox">
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <double>90.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.200000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="diskonRpLabel">
+       <property name="text">
+        <string>Diskon Rp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QSpinBox" name="diskonRpSpinBox">
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>99999</number>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="subtotalLabel">
+       <property name="text">
+        <string>Subtotal</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QSpinBox" name="subtotalSpinBox">
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="catatanLabel">
+       <property name="text">
+        <string>Catatan</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QPlainTextEdit" name="notesTextEdit">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>66</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="namaLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignRight">
+    <widget class="QPushButton" name="pushButton">
+     <property name="text">
+      <string>Simpan</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QueryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/querycombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

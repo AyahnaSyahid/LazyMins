@@ -2,6 +2,24 @@
 #include "src/managers/managers.h"
 
 // Maps Column enum → the SQL field name used in QSqlRecord / QVariantMap
+namespace {
+    QHash<int, QString> columnMap {
+        {0,                 "id"},
+        {1,            "order_id"},
+        {2,          "product_id"},
+        {3,        "product_name"},
+        {4,                "sku"},
+        {5,           "quantity"},
+        {6,               "unit"},
+        {7,          "base_price"},
+        {8, "discount_percentage"},
+        {9,     "discount_amount"},
+        {9,           "subtotal"},
+        {10,              "notes"},
+        {11,          "created_at"},
+        {12,          "updated_at"},
+    };
+}
 QString OrderItemEditorModel::columnKey(int column)
 {
     switch (column) {
@@ -30,6 +48,7 @@ OrderItemEditorModel::~OrderItemEditorModel() {}
 
 bool OrderItemEditorModel::loadFromOrder(int orderid)
 {
+    m_orderid = orderid;
     beginResetModel();
     m_fromDatabase = oim.getByOrder(orderid);   // fixed: was orderId (wrong name)
     m_newData.clear();
@@ -102,7 +121,7 @@ QVariant OrderItemEditorModel::headerData(int section, Qt::Orientation orientati
     switch (section) {
         case Col_Id:                 return "ID";
         case Col_OrderId:            return "Order ID";
-        case Col_ProductId:          return "Product ID";
+        case Col_ProductId:          return "Product";
         case Col_ProductName:        return "Nama";
         case Col_Sku:                return "SKU";
         case Col_Quantity:           return "Qty";
@@ -130,4 +149,145 @@ Qt::ItemFlags OrderItemEditorModel::flags(const QModelIndex& mi) const  // fixed
         f |= Qt::ItemIsEditable;
 
     return f;
+}
+bool OrderItemEditorModel::appendRow(const QVariantMap &defaultValues)
+{
+    int newRowIndex = rowCount();  // posisi setelah semua baris saat ini
+
+    beginInsertRows(QModelIndex(), newRowIndex, newRowIndex);
+
+    QVariantMap newItem;
+
+    // 1. Isi nilai default standar model
+    newItem["order_id"]            = QVariant();  // biasanya diisi saat commit/save
+    newItem["product_id"]          = 0;
+    newItem["product_name"]        = QString();
+    newItem["sku"]                 = QString();
+    newItem["quantity"]            = 1;
+    newItem["unit"]                = QStringLiteral("pcs");
+    newItem["base_price"]          = 0.0;
+    newItem["discount_percentage"] = 0.0;
+    newItem["discount_amount"]     = 0.0;
+    newItem["subtotal"]            = 0.0;
+    newItem["notes"]               = QString();
+    // created_at dan updated_at dibiarkan kosong → diisi oleh database
+
+    // 2. Override dengan nilai yang diberikan pengguna (jika ada)
+    for (auto it = defaultValues.constBegin(); it != defaultValues.constEnd(); ++it)
+    {
+        const QString &key = it.key();
+        // Hanya override field yang benar-benar ada di model
+        if (columnMap.values().contains(key)) {  // opsional: validasi field
+            newItem[key] = it.value();
+        }
+    }
+
+    m_newData.append(newItem);
+
+    endInsertRows();
+
+    // Emit sinyal bahwa data telah berubah (opsional, tergantung kebutuhan view)
+    // emit dataChanged(...) bisa ditambahkan jika diperlukan
+
+    return true;
+}
+
+bool OrderItemEditorModel::removeRow(int row, const QModelIndex &parent)
+{
+    if (parent.isValid())
+        return false;
+
+    if (row < 0 || row >= rowCount())
+        return false;
+
+    beginRemoveRows(parent, row, row);
+
+    if (row < m_fromDatabase.count())
+    {
+        // Baris dari database → kita hanya tandai untuk dihapus nanti (soft delete logic)
+        // Untuk model editor sederhana, biasanya kita hapus dari daftar sementara
+        m_fromDatabase.removeAt(row);
+
+        // Hapus juga semua edit yang sudah dilakukan pada baris ini
+        QMutableHashIterator<QPair<int,int>, QVariant> it(m_editedCells);
+        while (it.hasNext())
+        {
+            it.next();
+            if (it.key().first == row)
+                it.remove();
+            else if (it.key().first > row)
+            {
+                // Geser index baris yang lebih besar
+                auto newKey = qMakePair(it.key().first - 1, it.key().second);
+                m_editedCells[newKey] = it.value();
+                it.remove();
+            }
+        }
+    }
+    else
+    {
+        // Baris baru (belum disimpan)
+        int newDataIdx = row - m_fromDatabase.count();
+        if (newDataIdx >= 0 && newDataIdx < m_newData.count())
+        {
+            m_newData.removeAt(newDataIdx);
+        }
+
+        // Hapus edit cells yang terkait (seharusnya tidak ada, tapi untuk aman)
+        QMutableHashIterator<QPair<int,int>, QVariant> it(m_editedCells);
+        while (it.hasNext())
+        {
+            it.next();
+            if (it.key().first == row)
+                it.remove();
+            else if (it.key().first > row)
+            {
+                auto newKey = qMakePair(it.key().first - 1, it.key().second);
+                m_editedCells[newKey] = it.value();
+                it.remove();
+            }
+        }
+    }
+
+    endRemoveRows();
+    return true;
+}
+
+bool OrderItemEditorModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    if (parent.isValid() || count <= 0)
+        return false;
+
+    int last = row + count - 1;
+    if (last >= rowCount())
+        return false;
+
+    beginRemoveRows(parent, row, last);
+
+    // Implementasi sederhana: panggil removeRow berulang (bisa dioptimasi nanti)
+    for (int i = 0; i < count; ++i)
+    {
+        removeRow(row, parent);  // perhatikan: row tidak bertambah karena list bergeser
+    }
+
+    endRemoveRows();
+    return true;
+}
+
+void OrderItemEditorModel::revertAllChanges()
+{
+    beginResetModel();
+    m_editedCells.clear();
+    m_newData.clear();
+    // Catatan: data dari database tidak di-reload otomatis
+    // Jika ingin reload dari DB, panggil loadFromOrder lagi setelah ini
+    endResetModel();
+    if (!m_fromDatabase.isEmpty()) {
+        loadFromOrder(m_orderid);
+    }
+}
+
+bool OrderItemEditorModel::isDirty() const
+{
+    return !m_editedCells.isEmpty() || !m_newData.isEmpty();
 }

@@ -190,7 +190,11 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_5">
       <item>
-       <widget class="QTableView" name="orderItemView"/>
+       <widget class="QTableView" name="orderItemView">
+        <property name="contextMenuPolicy">
+         <enum>Qt::ContextMenuPolicy::ActionsContextMenu</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -380,6 +384,14 @@ Internal</string>
     </widget>
    </item>
   </layout>
+  <action name="tambahItem">
+   <property name="text">
+    <string>Tambah Item</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

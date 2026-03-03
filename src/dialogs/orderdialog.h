@@ -15,7 +15,6 @@ class OrderDialog : public FormDialog
   public:
     explicit OrderDialog(QWidget * =nullptr);
     ~OrderDialog();
-    
     void prepareModify(const QSqlRecord& r);
     
   protected:
@@ -23,7 +22,11 @@ class OrderDialog : public FormDialog
     void setupBoundFields() override;
     bool onSave(const QVariantMap& ) override;
   
-  private:
+  private slots:
+    void on_simpanButton_clicked();
+    void on_tambahItem_triggered();
+
+    private:
     Ui::OrderDialog *ui;
     OrderItemEditorModel *emodel;
     OrderManager oman;

@@ -277,6 +277,7 @@ CREATE TABLE order_items (
     discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item
     discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
     subtotal INTEGER NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
+    total INTEGER NOT NULL,              -- TAMBAHAN: Total akhir
     notes TEXT,                       -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

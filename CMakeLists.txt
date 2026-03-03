@@ -56,6 +56,9 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/dialogs/orderdialog.h
                            src/dialogs/orderdialog.ui
                            src/dialogs/orderdialog.cpp
+                           src/dialogs/orderitemdialog.h
+                           src/dialogs/orderitemdialog.ui
+                           src/dialogs/orderitemdialog.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp
@@ -66,6 +69,7 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/customs/pricelevelcombobox.h
                            src/customs/productcategoriescombobox.h
                            src/customs/productcategoriescombobox.cpp
+                           src/customs/flexibledelegate.h
                            
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui

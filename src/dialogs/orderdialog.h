@@ -20,6 +20,7 @@ class OrderDialog : public FormDialog
     
   protected:
     void setupFields() override;
+    void setupBoundFields() override;
     bool onSave(const QVariantMap& ) override;
   
   private:

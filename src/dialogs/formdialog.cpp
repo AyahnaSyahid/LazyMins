@@ -82,6 +82,8 @@ QVariantMap FormDialog::collect() const
 
             if constexpr (std::is_same_v<T, QLineEdit>)
                 current = editor->text();
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                current = editor->value();
             else if constexpr (std::is_same_v<T, QSpinBox>)
                 current = editor->value();
             else if constexpr (std::is_same_v<T, QPlainTextEdit>)
@@ -122,6 +124,8 @@ void FormDialog::populateFields()
 
             if constexpr (std::is_same_v<T, QLineEdit>)
                 editor->setText(val.toString());
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                editor->setValue(val.toInt());
             else if constexpr (std::is_same_v<T, QSpinBox>)
                 editor->setValue(val.toInt());
             else if constexpr (std::is_same_v<T, QPlainTextEdit>)
@@ -146,6 +150,8 @@ void FormDialog::clearFields()
             using T = std::decay_t<decltype(*editor)>;
             if constexpr (std::is_same_v<T, QLineEdit>)
                 editor->clear();
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                editor->setValue(0);
             else if constexpr (std::is_same_v<T, QSpinBox>)
                 editor->setValue(0);
             else if constexpr (std::is_same_v<T, QPlainTextEdit>)

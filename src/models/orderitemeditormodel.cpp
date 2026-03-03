@@ -103,15 +103,15 @@ QVariant OrderItemEditorModel::headerData(int section, Qt::Orientation orientati
         case Col_Id:                 return "ID";
         case Col_OrderId:            return "Order ID";
         case Col_ProductId:          return "Product ID";
-        case Col_ProductName:        return "Product Name";
+        case Col_ProductName:        return "Nama";
         case Col_Sku:                return "SKU";
         case Col_Quantity:           return "Qty";
         case Col_Unit:               return "Unit";
-        case Col_BasePrice:          return "Base Price";
+        case Col_BasePrice:          return "Satuan";
         case Col_DiscountPercentage: return "Disc %";
         case Col_DiscountAmount:     return "Disc Amount";
         case Col_Subtotal:           return "Subtotal";
-        case Col_Notes:              return "Notes";
+        case Col_Notes:              return "Catatan";
         case Col_CreatedAt:          return "Created At";
         case Col_UpdatedAt:          return "Updated At";
         default:                     return QVariant();

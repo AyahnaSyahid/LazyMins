@@ -90,3 +90,12 @@ void QueryComboBox::boxViewAutoResize() {
   // }
   boxView->setMinimumWidth(boxView->horizontalHeader()->length());
 }
+
+int QueryComboBox::findValue(const QVariant& value, int column) const{
+    for(int i = 0; i < qmodel->rowCount(); i++) {
+        if (qmodel->index(i, column).data() == value) {
+            return i;
+        }
+    }
+    return -1;
+}

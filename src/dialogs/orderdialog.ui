@@ -98,7 +98,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QFrame" name="frame">
+      <widget class="QFrame" name="upperFrame">
        <property name="minimumSize">
         <size>
          <width>215</width>
@@ -275,7 +275,7 @@ Internal</string>
       </spacer>
      </item>
      <item>
-      <widget class="QFrame" name="frame">
+      <widget class="QFrame" name="bottomFrame">
        <property name="minimumSize">
         <size>
          <width>215</width>

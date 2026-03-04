@@ -23,6 +23,7 @@ qt_add_library(Mgr_LAdmins resources/database_resources.qrc
                        src/managers/basemanager.cpp
                        src/managers/adminmanager.cpp
                        src/managers/managers.cpp
+                       src/managers/rolesmanager.cpp
                        src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
                        src/models/orderitemeditormodel.h
@@ -59,6 +60,9 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/dialogs/orderitemdialog.h
                            src/dialogs/orderitemdialog.ui
                            src/dialogs/orderitemdialog.cpp
+                           src/dialogs/userdialog.cpp
+                           src/dialogs/userdialog.h
+                           src/dialogs/userdialog.ui
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp

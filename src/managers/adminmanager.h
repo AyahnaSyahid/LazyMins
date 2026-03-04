@@ -17,7 +17,7 @@ class AdminManager : public BaseManager
     bool changePassword(const QString& uname, const QString& newpass);
     bool changeUsername(const QString& oldname, const QString& newName);
     bool changeLoginInfo(const QString& oldname, const QString& newName, const QString& newPass);
-
+    bool userHasRole(int userId, const QString& roleName) const;
     std::optional<QSqlRecord> getRecord(const QString& name) const;
     
   protected:

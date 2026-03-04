@@ -99,3 +99,8 @@ int QueryComboBox::findValue(const QVariant& value, int column) const{
     }
     return -1;
 }
+
+void QueryComboBox::showColumn(int column, bool show)
+{
+    boxView->setColumnHidden(column, !show);
+}

@@ -40,6 +40,7 @@ class PriceLevelComboBox : public QueryComboBox
     }
     
     int currentId () const {
+      if (currentIndex() < 0) return -1;
       auto cid = qmodel->index(currentIndex(), 0).data(Qt::EditRole).toInt();
       return cid;
     }

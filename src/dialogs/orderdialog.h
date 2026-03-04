@@ -21,7 +21,8 @@ class OrderDialog : public FormDialog
     void setupFields() override;
     void setupBoundFields() override;
     bool onSave(const QVariantMap& ) override;
-  
+    void onPrepareCreate() override;
+
   private slots:
     void on_simpanButton_clicked();
     void on_tambahItem_triggered();

@@ -58,7 +58,6 @@ ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
   ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
   ui->tOrderDateTimeEdit->setDateTime(QDateTime::currentDateTime());
   ui->dLineDateTimeEdit->setDateTime(QDateTime::currentDateTime().addDays(1));
-  setupFields();
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -101,6 +100,11 @@ void OrderDialog::setupBoundFields() {
 
 bool OrderDialog::onSave(const QVariantMap& mp) { return false; }
 
+void OrderDialog::onPrepareCreate()
+{
+  ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
+}
+
 void OrderDialog::prepareModify(const QSqlRecord& orderRecord) {
   FormDialog::prepareModify(orderRecord);
   emodel->loadFromOrder(orderRecord.value("id").toInt());
@@ -110,6 +114,10 @@ void OrderDialog::on_tambahItem_triggered() {
   auto editor = new OrderItemDialog(this);
   editor->setAttribute(Qt::WA_DeleteOnClose);
   editor->prepareCreate();
+  editor->setAutoCommit(false);
+  // get level harga pelanggan
+  auto priceLevel = ui->priceLevelComboBox->currentId();
+  editor->setCustomerPriceLevel(priceLevel);
   editor->open();
 }
 

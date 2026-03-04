@@ -4,6 +4,7 @@
 #include <QHeaderView>
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/orderitemdialog.h"
+#include "src/dialogs/konsumenpickerdialog.h"
 
 namespace {
   const QHash<int, QString> Column {
@@ -105,9 +106,29 @@ void OrderDialog::onPrepareCreate()
   ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
 }
 
-void OrderDialog::prepareModify(const QSqlRecord& orderRecord) {
-  FormDialog::prepareModify(orderRecord);
+void OrderDialog::onPrepareModify(const QSqlRecord& orderRecord) {
   emodel->loadFromOrder(orderRecord.value("id").toInt());
+}
+
+void OrderDialog::onOrderItemDialogAccepted()
+{
+  QVariantMap itemData = static_cast<OrderItemDialog*>(sender())->getFieldData();
+  emodel->appendRow(itemData);
+}
+
+void OrderDialog::on_cariButton_clicked()
+{
+  // buat dialog pencarian konsumen (CustomerSearchDialog)
+  // setelah konsumen dipilih, set nama dan kontak di form ini
+  auto dialog = KonsumenPickerDialog(this);
+  dialog.setModal(true);
+  auto wflags = dialog.windowFlags();
+  dialog.setWindowFlags(wflags | Qt::FramelessWindowHint);
+  auto geo = dialog.geometry();
+  geo.moveTopLeft(mapToGlobal(ui->cariButton->geometry().topRight()));
+  dialog.setGeometry(geo);
+  dialog.exec();
+  // need implementation here
 }
 
 void OrderDialog::on_tambahItem_triggered() {

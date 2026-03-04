@@ -61,7 +61,7 @@ void OrderItemDialog::on_simpanButton_clicked()
         accept();
         return;
     }
-    hide();
+    QDialog::accept();
 }
 
 void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {

@@ -74,7 +74,7 @@
           <widget class="QLineEdit" name="konsumenLineEdit"/>
          </item>
          <item>
-          <widget class="QToolButton" name="toolButton">
+          <widget class="QToolButton" name="cariButton">
            <property name="text">
             <string>Cari</string>
            </property>

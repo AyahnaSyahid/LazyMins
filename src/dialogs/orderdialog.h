@@ -1,6 +1,7 @@
 #pragma once
 
-namespace Ui {
+namespace Ui
+{
   class OrderDialog;
 }
 
@@ -11,24 +12,28 @@ namespace Ui {
 class OrderDialog : public FormDialog
 {
   Q_OBJECT
-  
-  public:
-    explicit OrderDialog(QWidget * =nullptr);
-    ~OrderDialog();
-    void prepareModify(const QSqlRecord& r);
-    
-  protected:
-    void setupFields() override;
-    void setupBoundFields() override;
-    bool onSave(const QVariantMap& ) override;
-    void onPrepareCreate() override;
 
-  private slots:
-    void on_simpanButton_clicked();
-    void on_tambahItem_triggered();
+public:
+  explicit OrderDialog(QWidget * = nullptr);
+  ~OrderDialog();
+  void prepareModify(const QSqlRecord &r);
 
-    private:
-    Ui::OrderDialog *ui;
-    OrderItemEditorModel *emodel;
-    OrderManager oman;
+protected:
+  void setupFields() override;
+  void setupBoundFields() override;
+  bool onSave(const QVariantMap &) override;
+  void onPrepareCreate() override;
+  void onPrepareModify(const QSqlRecord &orderRecord);
+  void onOrderItemDialogAccepted();
+
+
+private slots:
+  void on_simpanButton_clicked();
+  void on_tambahItem_triggered();
+  void on_cariButton_clicked();
+
+private:
+  Ui::OrderDialog *ui;
+  OrderItemEditorModel *emodel;
+  OrderManager oman;
 };

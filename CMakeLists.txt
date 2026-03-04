@@ -63,6 +63,9 @@ qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
                            src/dialogs/userdialog.cpp
                            src/dialogs/userdialog.h
                            src/dialogs/userdialog.ui
+                           src/dialogs/konsumenpickerdialog.h
+                           src/dialogs/konsumenpickerdialog.ui
+                           src/dialogs/konsumenpickerdialog.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp

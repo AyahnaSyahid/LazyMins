@@ -27,6 +27,15 @@
        </item>
        <item row="0" column="1">
         <widget class="QLineEdit" name="orderNumberLineEdit">
+         <property name="font">
+          <font>
+           <italic>true</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
          <property name="readOnly">
           <bool>false</bool>
          </property>

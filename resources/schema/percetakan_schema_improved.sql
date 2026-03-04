@@ -146,6 +146,7 @@ CREATE TABLE products (
     stock INTEGER DEFAULT 0,
     min_stock INTEGER DEFAULT 0,      -- TAMBAHAN: Minimum stok untuk alert
     cost_price INTEGER DEFAULT 0,     -- TAMBAHAN: Harga pokok (HPP)
+    use_area INTEGER DEFAULT 0,       -- TAMBAHAN: Apakah perhitungan harga berdasarkan Area
     is_active INTEGER DEFAULT 1,      -- 1: Aktif, 0: Non-aktif
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -273,12 +274,15 @@ CREATE TABLE order_items (
     sku TEXT,                         -- TAMBAHAN: Denormalisasi SKU
     quantity INTEGER NOT NULL CHECK(quantity > 0),
     unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan
+    size_width REAL DEFAULT 1,        -- TAMBAHAN: Panjang - hanya dihitung bila use_area = 1
+    size_height REAL DEFAULT 1,       -- TAMBAHAN: Tinggi  - hanya dihitung bila use_area = 1
+    use_area INTEGER DEFAULT 0,          -- TAMBAHAN: Hitung berdasar luas
     base_price INTEGER NOT NULL,         -- Harga satuan
     discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item
     discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
     subtotal INTEGER NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
     total INTEGER NOT NULL,              -- TAMBAHAN: Total akhir
-    notes TEXT,                       -- TAMBAHAN: Catatan khusus item
+    notes TEXT,                          -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,

@@ -35,4 +35,7 @@ void KonsumenPickerDialog::on_konsumenView_clicked(const QModelIndex &index)
         return;
     }
     // Handle the selection of a customer
+    auto record = model->record(index.row());
+    emit konsumenSelected(record);
+    accept(); // Close the dialog after selection    
 }   

@@ -18,6 +18,9 @@ public:
 private slots:
     void on_konsumenView_clicked(const QModelIndex &index);
 
+signals:
+    void konsumenSelected(const QSqlRecord& record);
+
 private:
     Ui::KonsumenPickerDialog *ui;
     QSqlQueryModel *model;

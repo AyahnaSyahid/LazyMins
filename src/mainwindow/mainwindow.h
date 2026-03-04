@@ -13,10 +13,8 @@ class MainWindow : public QMainWindow
     explicit MainWindow(QWidget *p=nullptr);
     ~MainWindow();
   
-  private slots:
-    
-  
   private:
+
     void setupToolbarActions();
     Ui::MainWindow *ui;
 };

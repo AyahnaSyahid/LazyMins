@@ -61,9 +61,8 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   return std::nullopt;
 }
 
-std::optional<QSqlRecord> BaseManager::getById(int id)
+std::optional<QSqlRecord> BaseManager::getById(int id) const
 {
-    resetErrorString();
     QSqlQuery query(BaseManager::connection);
     
     QString sql = QString("SELECT * FROM %1 WHERE id = :id %2")
@@ -76,7 +75,6 @@ std::optional<QSqlRecord> BaseManager::getById(int id)
         return query.record();
     } else if (!query.exec()) {
         qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
-        setErrorString(query.lastError().text());
     }
     
     return std::nullopt;

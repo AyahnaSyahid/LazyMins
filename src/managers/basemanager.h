@@ -24,7 +24,7 @@ public:
     
     // CRUD Operations
     virtual std::optional<QSqlRecord> create(const QVariantMap& params);
-    virtual std::optional<QSqlRecord> getById(int id);
+    virtual std::optional<QSqlRecord> getById(int id) const;
     virtual bool update(int id, const QVariantMap& params);
     virtual bool remove(int id);
     

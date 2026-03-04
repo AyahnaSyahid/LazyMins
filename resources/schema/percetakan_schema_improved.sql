@@ -158,6 +158,10 @@ CREATE UNIQUE INDEX idx_products_sku ON products(sku COLLATE NOCASE);
 CREATE INDEX idx_products_name ON products(name);
 CREATE INDEX idx_products_category ON products(category_id);
 
+INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, use_area) VALUES 
+    ('BN-FLEX', 'Banner Fleksi', 1, 'Cetak Banner Bahan Fleksi', 'meter', 200, 50, 1),
+    ('A3-AP150', 'BROCHURE', 1, 'Cetak Broser biasa A3P', 'lembar', 2000, 50, 1);
+
 -- Tabel Price Levels: Level harga untuk berbagai tipe pelanggan
 CREATE TABLE price_levels (
     id INTEGER PRIMARY KEY,

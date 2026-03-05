@@ -3,8 +3,9 @@
 #include <QMessageBox>
 
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
-    FormDialog(parent),
-    ui(new Ui::OrderItemDialog)
+    ui(new Ui::OrderItemDialog),
+    m_autoCommit(true),
+    FormDialog(parent)
 {
     ui->setupUi(this);
     setupFields();
@@ -61,7 +62,7 @@ void OrderItemDialog::on_simpanButton_clicked()
         accept();
         return;
     }
-    QDialog::accept();
+    emit editFinished(collect());
 }
 
 void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {

@@ -41,6 +41,10 @@ private slots:
     void on_widthBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void on_heightBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void recalculateSubtotal();
+
+signals:
+    void editFinished(const QVariantMap& itemData);
+
 private:
     double calculatedPrice() const;
     Ui::OrderItemDialog *ui;

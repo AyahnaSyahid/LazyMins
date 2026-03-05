@@ -28,15 +28,12 @@ class PriceLevelComboBox : public QueryComboBox
     };
     
     void setLevelID (int id) {
-      for (int r=0; r<qmodel->rowCount(); ++r) {
-        auto var = qmodel->index(r, 0).data(Qt::EditRole);
-        auto var2 = qmodel->index(r, 1).data(Qt::EditRole);
-        if (var.isValid() && var.toInt() == id) {
-          setCurrentIndex(r);
-          return;
-        }
+      auto matches = model()->match(model()->index(0, 0), id, 1, Qt::MatchExactly);
+      if (!matches.isEmpty()) {
+        setCurrentIndex(matches.first().row());
+      } else {
+        setCurrentIndex(-1);
       }
-    setCurrentIndex(-1);
     }
     
     int currentId () const {

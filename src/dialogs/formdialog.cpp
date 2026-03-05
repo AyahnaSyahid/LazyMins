@@ -110,7 +110,6 @@ QVariantMap FormDialog::collect() const
             result[column] = current;
         }
     }
-    qDebug() << result;
     return result;
 }
 

@@ -30,6 +30,9 @@ public:
         m_customerPriceLevel = priceLevel;
     }
 
+protected:
+    QVariantMap collect() const override;
+
 private slots:
     void on_produkComboBox_currentIndexChanged(int index);
     void on_simpanButton_clicked();

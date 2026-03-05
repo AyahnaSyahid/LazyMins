@@ -28,7 +28,7 @@ class PriceLevelComboBox : public QueryComboBox
     };
     
     void setLevelID (int id) {
-      auto matches = model()->match(model()->index(0, 0), id, 1, Qt::MatchExactly);
+      auto matches = model()->match(model()->index(0, 0), Qt::EditRole, id, 1, Qt::MatchExactly);
       if (!matches.isEmpty()) {
         setCurrentIndex(matches.first().row());
       } else {

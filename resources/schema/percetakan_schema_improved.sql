@@ -281,7 +281,8 @@ CREATE TABLE order_items (
     size_width REAL DEFAULT 1,        -- TAMBAHAN: Panjang - hanya dihitung bila use_area = 1
     size_height REAL DEFAULT 1,       -- TAMBAHAN: Tinggi  - hanya dihitung bila use_area = 1
     use_area INTEGER DEFAULT 0,          -- TAMBAHAN: Hitung berdasar luas
-    base_price INTEGER NOT NULL,         -- Harga satuan
+    sale_price INTEGER NOT NULL,         -- Harga jual satuan
+    base_price INTEGER NOT NULL,         -- Harga dasar satuan
     discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item
     discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
     subtotal INTEGER NOT NULL,           -- Total = (quantity * base_price) - discount + finishing

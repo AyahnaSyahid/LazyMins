@@ -51,11 +51,31 @@ void OrderItemDialog::setupBoundFields() {
             });
 }
 
-void OrderItemDialog::on_simpanButton_clicked()
+QVariantMap OrderItemDialog::collect() const
 {
+    auto data = FormDialog::collect();
+    // tambahkan field base_price yang diambil dari produkComboBox
+    auto productId = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0).data(Qt::EditRole).toInt();
+    auto opt = m_priceManager.getPrice(productId, m_customerPriceLevel);
+    if (opt.has_value()) {
+        data["base_price"] = *opt;
+    } else {
+        data["base_price"] = 0;
+    }
+    qDebug() << "Collected data:" << data;
+    return data;
+}
+
+void OrderItemDialog::on_simpanButton_clicked()
+{   
     // validasi ui->produkComboBox harus >= 0
     if (ui->produkComboBox->currentIndex() < 0) {
         QMessageBox::warning(this, "Validasi", "Produk harus dipilih");
+        return;
+    }
+    //validasi nama tidak boleh kosong
+    if (ui->namaLineEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Validasi", "Nama produk tidak boleh kosong");
         return;
     }
     if (m_autoCommit) {

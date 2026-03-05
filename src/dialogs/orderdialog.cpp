@@ -4,38 +4,48 @@
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
+#include "src/customs/flexibledelegate.h"
+#include <QSqlTableModel>
 #include <QHeaderView>
 
 namespace
 {
   const QHash<int, QString> Column{
-      {0,  "id"},
-      {1,  "order_id"},
-      {2,  "product_id"},
-      {3,  "product_name"},
-      {4,  "sku"},
-      {5,  "quantity"},
-      {6,  "unit"},
-      {7,  "base_price"},
-      {8,  "discount_percentage"},
-      {9,  "discount_amount"},
-      {10, "subtotal"},
-      {11, "notes"},
-      {12, "created_at"},
-      {13, "updated_at"},
+      {0, "id"},
+      {1, "order_id"},
+      {2, "product_id"},
+      {3, "product_name"},
+      {4, "sku"},
+      {5, "quantity"},
+      {6, "unit"},
+      {7, "size_width"},
+      {8, "size_height"},
+      {9, "sale_price"},
+      {10, "base_price"},
+      {11, "discount_percentage"},
+      {12, "discount_amount"},
+      {13, "subtotal"},
+      {14, "notes"},
+      {15, "created_at"},
+      {16, "updated_at"},
   };
-  
+
   class ProductDelegate : public QStyledItemDelegate
   {
   public:
-    explicit ProductDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+    explicit ProductDelegate(QObject *parent = nullptr) : m_productModel(new QSqlTableModel(this)), QStyledItemDelegate(parent)
+    {
+      m_productModel->setTable("products");
+      m_productModel->select();
+    }
+
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override
     {
       auto editor = new QueryComboBox(parent);
       editor->setQuery("SELECT id, name, description, use_area, cost_price FROM products");
       editor->showColumn(3, false); // Sembunyikan kolom use_area
       editor->showColumn(4, false); // Sembunyikan kolom cost_price
-      editor->setModelColumn(1); // Tampilkan nama produk di combo box
+      editor->setModelColumn(1);    // Tampilkan nama produk di combo box
       editor->setEditable(true);
       editor->boxViewAutoResize();
       return editor;
@@ -43,13 +53,47 @@ namespace
     void setEditorData(QWidget *editor, const QModelIndex &index) const override
     {
       auto combo = qobject_cast<QueryComboBox *>(editor);
-      if (combo) {
+      if (combo)
+      {
         int productId = index.data().toInt();
         int currentIndex = combo->findValue(productId);
         combo->setCurrentIndex(currentIndex);
       }
     }
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+    {
+      auto combo = qobject_cast<QueryComboBox *>(editor);
+      if (combo)
+      {
+        auto qmod = combo->model();
+        int selectedRow = combo->currentIndex();
+        if (selectedRow >= 0)
+        {
+          int productId = qmod->index(selectedRow, 0).data().toInt();
+          QString productName = qmod->index(selectedRow, 1).data().toString();
+          model->setData(index, productId); // Simpan product_id di model
+          // model->setData(index.siblingAtColumn(3), productName); // Simpan nama produk di kolom tersembunyi
+        }
+      }
+    }
+    QString displayText(const QVariant &value, const QLocale &locale) const override
+    {
+      // Tampilkan nama produk berdasarkan product_id
+      int productId = value.toInt();
+      if (productId == 0)
+        return ""; // Jika belum dipilih, tampilkan kosong
+      int row = m_productModel->match(m_productModel->index(0, 0), Qt::DisplayRole, productId, 1, Qt::MatchExactly).value(0).row();
+      if (row >= 0)
+      {
+        return m_productModel->index(row, 2).data().toString(); // Tampilkan nama produk
+      }
+      return QString("Unknown Product (ID: %1)").arg(productId);
+    }
+
+  private:
+    QSqlTableModel *m_productModel;
   };
+
 }
 
 OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
@@ -59,12 +103,14 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
   ui->orderItemView->setModel(emodel);
   ui->orderItemView->hideColumn(0);
   ui->orderItemView->hideColumn(1);
+  ui->orderItemView->hideColumn(2);
   ui->orderItemView->hideColumn(4);
-  ui->orderItemView->hideColumn(8);
-  ui->orderItemView->hideColumn(9);
+  ui->orderItemView->hideColumn(10);
   ui->orderItemView->hideColumn(11);
   ui->orderItemView->hideColumn(12);
-  ui->orderItemView->hideColumn(13);
+  ui->orderItemView->hideColumn(14);
+  ui->orderItemView->hideColumn(15);
+  ui->orderItemView->hideColumn(16);
   ui->orderItemView->horizontalHeader()->setStretchLastSection(true);
 
   ui->orderItemView->setItemDelegateForColumn(2, new ProductDelegate(this));
@@ -73,6 +119,23 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
   ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
   ui->tOrderDateTimeEdit->setDateTime(QDateTime::currentDateTime());
   ui->dLineDateTimeEdit->setDateTime(QDateTime::currentDateTime().addDays(1));
+
+  auto numberDelegate = FlexibleDelegate::create(
+      {.displayer = [](const QVariant &value, const QLocale &locale)
+       { return QString("%L1").arg(value.toInt()); },
+       .styler = [](QStyleOptionViewItem &option, const QModelIndex &index)
+       {
+        if (index.column() == 5) { // Kolom quantity
+            option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+        } else if (index.column() == 7 || index.column() == 8) { // Kolom sale_price dan base_price
+            option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+        }
+        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia);
+       }}, ui->orderItemView);
+  ui->orderItemView->setItemDelegateForColumn( 5, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn( 7, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn( 8, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn(11, numberDelegate);
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -146,7 +209,7 @@ void OrderDialog::on_cariButton_clicked()
     ui->kontakLineEdit->setText(record.value("nomor_telp").toString());
     // simpan price level untuk digunakan di OrderItemDialog
     int priceLevelId = record.value("pl_id").toInt();
-    // qDebug() << "Selected price level ID:" << priceLevelId;
+    qDebug() << "Selected price level ID:" << priceLevelId;
     ui->priceLevelComboBox->setLevelID(priceLevelId); });
   dialog->open();
 }

@@ -4,6 +4,7 @@
 #include <QVariant>
 #include <QHash>
 #include <QSqlRecord>
+#include <QSqlTableModel>
 #include "src/managers/managers.h"
 
 class OrderItemEditorModel : public QAbstractTableModel
@@ -19,6 +20,9 @@ public:
         Col_Sku,
         Col_Quantity,
         Col_Unit,
+        Col_SizeWidth,
+        Col_SizeHeight,
+        Col_SalePrice,
         Col_BasePrice,
         Col_DiscountPercentage,
         Col_DiscountAmount,
@@ -59,4 +63,6 @@ private:
     QHash<QPair<int,int>, QVariant> m_editedCells;
     QList<QVariantMap>              m_newData;
     OrderItemManager                oim;
+    // untuk lookup flags width dan height apakah bisa diedit atau tidak (hanya untuk produk tertentu)
+    QSqlTableModel *m_tableModel = nullptr;
 };

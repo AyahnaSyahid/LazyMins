@@ -59,7 +59,7 @@ protected:
     const QSqlRecord& originalRecord() const { return m_originalRecord; }
 
     // Fungsi utama: mengumpulkan semua perubahan (atau semua field di mode create)
-    QVariantMap collect() const;
+    virtual QVariantMap collect() const;
 
 private:
     void clearFields();

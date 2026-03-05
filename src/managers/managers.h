@@ -82,14 +82,14 @@ public:
         : BaseManager("product_prices") {}
 
     // Composite-key operations (override single-id methods)
-    std::optional<QSqlRecord> getByCompositeKey(int productId, int priceLevelId);
+    std::optional<QSqlRecord> getByCompositeKey(int productId, int priceLevelId) const;
     bool upsert(int productId, int priceLevelId, int price);
     bool removeByCompositeKey(int productId, int priceLevelId);
 
     // Convenience
     QList<QSqlRecord> getByProduct(int productId);
     QList<QSqlRecord> getByPriceLevel(int priceLevelId);
-    std::optional<int>  getPrice(int productId, int priceLevelId);
+    std::optional<int>  getPrice(int productId, int priceLevelId) const;
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;

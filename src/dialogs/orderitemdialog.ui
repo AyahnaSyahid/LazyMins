@@ -263,6 +263,19 @@
    <header>src/customs/querycombobox.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>namaLineEdit</tabstop>
+  <tabstop>produkComboBox</tabstop>
+  <tabstop>widthBox</tabstop>
+  <tabstop>heightBox</tabstop>
+  <tabstop>qtySpinBox</tabstop>
+  <tabstop>hargaSpinBox</tabstop>
+  <tabstop>diskonDoubleSpinBox</tabstop>
+  <tabstop>diskonRpSpinBox</tabstop>
+  <tabstop>subtotalSpinBox</tabstop>
+  <tabstop>notesTextEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

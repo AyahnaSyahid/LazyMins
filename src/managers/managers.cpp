@@ -142,7 +142,7 @@ QVariantMap PriceLevelManager::validateParams(const QVariantMap& params)
 // ProductPriceManager  (composite PK — bypasses id-based BaseManager methods)
 // ============================================================================
 
-std::optional<QSqlRecord> ProductPriceManager::getByCompositeKey(int productId, int priceLevelId)
+std::optional<QSqlRecord> ProductPriceManager::getByCompositeKey(int productId, int priceLevelId) const
 {
     QSqlQuery q(BaseManager::connection);
     q.prepare("SELECT * FROM product_prices WHERE product_id = :pid AND price_level_id = :plid");
@@ -195,7 +195,7 @@ QList<QSqlRecord> ProductPriceManager::getByPriceLevel(int priceLevelId)
     return getWhere("price_level_id = :price_level_id", {{"price_level_id", priceLevelId}});
 }
 
-std::optional<int> ProductPriceManager::getPrice(int productId, int priceLevelId)
+std::optional<int> ProductPriceManager::getPrice(int productId, int priceLevelId) const
 {
     auto rec = getByCompositeKey(productId, priceLevelId);
     if (rec) return rec->value("price").toInt();

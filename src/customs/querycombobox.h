@@ -14,7 +14,7 @@ class QueryComboBox : public QComboBox
 
     void setQuery(const QString& s, QSqlDatabase &db = DatabaseManager::instance().database());
     void setQuery(const QString& s, const QVariantMap &binding, QSqlDatabase &db = DatabaseManager::instance().database());
-    int findValue(const QVariant& value, int column = 0) const;
+    int  findValue(const QVariant& value, int column = 0) const;
     void showColumn(int column, bool show = true);
     
   public slots:

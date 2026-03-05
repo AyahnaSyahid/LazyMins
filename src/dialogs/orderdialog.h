@@ -16,6 +16,7 @@ class OrderDialog : public FormDialog
 public:
   explicit OrderDialog(QWidget * = nullptr);
   ~OrderDialog();
+  void prepareModify(const QSqlRecord &r);
 
 protected:
   void setupFields() override;

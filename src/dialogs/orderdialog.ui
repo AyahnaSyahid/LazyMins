@@ -203,6 +203,12 @@
         <property name="contextMenuPolicy">
          <enum>Qt::ContextMenuPolicy::ActionsContextMenu</enum>
         </property>
+        <attribute name="verticalHeaderMinimumSectionSize">
+         <number>20</number>
+        </attribute>
+        <attribute name="verticalHeaderDefaultSectionSize">
+         <number>22</number>
+        </attribute>
        </widget>
       </item>
      </layout>

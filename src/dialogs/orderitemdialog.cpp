@@ -55,12 +55,13 @@ QVariantMap OrderItemDialog::collect() const
 {
     auto data = FormDialog::collect();
     // tambahkan field base_price yang diambil dari produkComboBox
-    auto productId = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0).data(Qt::EditRole).toInt();
-    auto opt = m_priceManager.getPrice(productId, m_customerPriceLevel);
+    auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
+    auto costPrice = index.siblingAtColumn(4).data(Qt::EditRole).toInt();
+    auto opt = m_priceManager.getPrice(index.data().toInt(), m_customerPriceLevel);
     if (opt.has_value()) {
         data["base_price"] = *opt;
     } else {
-        data["base_price"] = 0;
+        data["base_price"] = costPrice;
     }
     qDebug() << "Collected data:" << data;
     return data;

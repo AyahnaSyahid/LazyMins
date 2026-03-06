@@ -30,6 +30,9 @@ public:
         m_customerPriceLevel = priceLevel;
     }
 
+public slots:
+    void resetForm();
+
 protected:
     QVariantMap collect() const override;
 

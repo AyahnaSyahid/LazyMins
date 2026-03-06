@@ -165,10 +165,10 @@ bool OrderItemEditorModel::setData(const QModelIndex& ix, const QVariant& value,
     if (subtotalChanged) {
         emit dataChanged(this->index(ix.row(), Col_Subtotal), this->index(ix.row(), Col_Subtotal), {Qt::DisplayRole});
         emit dataChanged(ix, ix, {role});
+        emit this->subtotalChanged();
     } else {
         emit dataChanged(ix, ix, {role});
     }
-    return true;
     emit dataChanged(ix, ix, {role});
     return true;
 }
@@ -205,14 +205,24 @@ Qt::ItemFlags OrderItemEditorModel::flags(const QModelIndex& mi) const  // fixed
     if (!mi.isValid()) return Qt::NoItemFlags;
 
     Qt::ItemFlags f = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-
-    // cek apakah produk terkait row ini memiliki flags tertentu yang mempengaruhi editability width dan height
-    // mengunakan m_tableModel untuk lookup kolom use_area
-    // cari id dari m_tableModel yang sesuai dengan product_id di row ini
     
+    bool areaIsEditable = true;
+    auto match = m_tableModel->match(m_tableModel->index(0, 0), 
+                                        Qt::EditRole, 
+                                        mi.siblingAtColumn(Col_ProductId).data(Qt::EditRole), {Qt::MatchExactly});
+    if(match.count()) {
+        areaIsEditable = match[0].siblingAtColumn(9).data(Qt::EditRole).toBool();
+    }
+    if (mi.column() == Col_SizeWidth || mi.column() == Col_SizeHeight) {
+        if (!areaIsEditable) {
+            return f; // read-only
+        }
+    }
+
     // Make read-only columns non-editable
     if (mi.column() != Col_Id && mi.column() != Col_OrderId &&
-        mi.column() != Col_CreatedAt && mi.column() != Col_UpdatedAt)
+        mi.column() != Col_CreatedAt && mi.column() != Col_UpdatedAt &&
+        mi.column() != Col_Subtotal)
         f |= Qt::ItemIsEditable;
     return f;
 }
@@ -231,11 +241,11 @@ bool OrderItemEditorModel::appendRow(const QVariantMap &defaultValues)
     newItem["sku"]                 = QString();
     newItem["quantity"]            = 1;
     newItem["unit"]                = QStringLiteral("pcs");
-    newItem["sale_price"]          = 0.0;
-    newItem["base_price"]          = 0.0;
+    newItem["sale_price"]          = 0;
+    newItem["base_price"]          = 0;
     newItem["discount_percentage"] = 0.0;
     newItem["discount_amount"]     = 0.0;
-    newItem["subtotal"]            = 0.0;
+    newItem["subtotal"]            = 0;
     newItem["notes"]               = QString();
     // created_at dan updated_at dibiarkan kosong → diisi oleh database
 
@@ -253,8 +263,7 @@ bool OrderItemEditorModel::appendRow(const QVariantMap &defaultValues)
 
     endInsertRows();
 
-    // Emit sinyal bahwa data telah berubah (opsional, tergantung kebutuhan view)
-    // emit dataChanged(...) bisa ditambahkan jika diperlukan
+    emit subtotalChanged();
 
     return true;
 }
@@ -317,6 +326,7 @@ bool OrderItemEditorModel::removeRow(int row, const QModelIndex &parent)
     }
 
     endRemoveRows();
+    emit subtotalChanged();
     return true;
 }
 
@@ -338,6 +348,7 @@ bool OrderItemEditorModel::removeRows(int row, int count, const QModelIndex &par
     }
 
     endRemoveRows();
+    emit subtotalChanged(); 
     return true;
 }
 
@@ -352,9 +363,20 @@ void OrderItemEditorModel::revertAllChanges()
     if (!m_fromDatabase.isEmpty()) {
         loadFromOrder(m_orderid);
     }
+    emit subtotalChanged();
 }
 
 bool OrderItemEditorModel::isDirty() const
 {
     return !m_editedCells.isEmpty() || !m_newData.isEmpty();
+}
+
+double OrderItemEditorModel::calculateSubtotal() const
+{
+    double total = 0;
+    for (int r=0; r < rowCount(); ++r) {
+        double subtotal = data(index(r, Col_Subtotal), Qt::DisplayRole).toInt();
+        total += subtotal;
+    }
+    return total;
 }

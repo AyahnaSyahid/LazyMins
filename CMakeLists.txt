@@ -17,7 +17,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Test Network)
 
 qt_standard_project_setup()
 
-qt_add_library(Mgr_LAdmins resources/database_resources.qrc
+qt_add_library(Mgr_LAdmins STATIC 
                        src/utils/authmanager.cpp
                        src/database/databasemanager.cpp
                        src/managers/basemanager.cpp
@@ -30,7 +30,8 @@ qt_add_library(Mgr_LAdmins resources/database_resources.qrc
                        src/models/orderitemeditormodel.cpp
                        )
 
-qt_add_library(Ui_LAdmins  src/dialogs/logindialog.h
+qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
+                           src/dialogs/logindialog.h
                            src/dialogs/logindialog.ui
                            src/dialogs/logindialog.cpp
                            src/dialogs/edituserdialog.h

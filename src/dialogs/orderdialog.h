@@ -31,6 +31,8 @@ private slots:
   void on_simpanButton_clicked();
   void on_tambahItem_triggered();
   void on_cariButton_clicked();
+  void updateSubtotal();
+  void on_orderItemView_customContextMenuRequested(const QPoint &pos);
 
 private:
   Ui::OrderDialog *ui;

@@ -10,7 +10,6 @@
 class OrderItemEditorModel : public QAbstractTableModel
 {
     Q_OBJECT
-
 public:
     enum Column {
         Col_Id = 0,
@@ -56,6 +55,12 @@ public:
     void revertAllChanges();
     bool isDirty() const;
 
+    // kalkulasi subtotal
+    double calculateSubtotal() const;
+
+signals:
+    void subtotalChanged();
+
 private:
     static QString columnKey(int column);
     int m_orderid;
@@ -63,6 +68,6 @@ private:
     QHash<QPair<int,int>, QVariant> m_editedCells;
     QList<QVariantMap>              m_newData;
     OrderItemManager                oim;
-    // untuk lookup flags width dan height apakah bisa diedit atau tidak (hanya untuk produk tertentu)
+    // untuk lookup flags width dan height apakah bisa diedit atau tidak
     QSqlTableModel *m_tableModel = nullptr;
 };

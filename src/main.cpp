@@ -11,6 +11,7 @@
 int main(int argc, char **args)
 {
   QApplication app(argc, args);
+  Q_INIT_RESOURCE(database_resources);
   // app.setOrganizationName("AksaraJaya");
   // app.setApplicationName("LazyAdmins");
   

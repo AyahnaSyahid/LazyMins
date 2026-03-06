@@ -201,7 +201,7 @@
       <item>
        <widget class="QTableView" name="orderItemView">
         <property name="contextMenuPolicy">
-         <enum>Qt::ContextMenuPolicy::ActionsContextMenu</enum>
+         <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
         </property>
         <attribute name="verticalHeaderMinimumSectionSize">
          <number>20</number>
@@ -307,6 +307,9 @@ Internal</string>
           <property name="buttonSymbols">
            <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
           </property>
+          <property name="showGroupSeparator" stdset="0">
+           <bool>true</bool>
+          </property>
           <property name="maximum">
            <number>99999999</number>
           </property>
@@ -396,6 +399,9 @@ Internal</string>
      <property name="text">
       <string>Simpan</string>
      </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
   </layout>
@@ -415,6 +421,26 @@ Internal</string>
    <header>src/customs/pricelevelcombobox.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>orderNumberLineEdit</tabstop>
+  <tabstop>konsumenLineEdit</tabstop>
+  <tabstop>cariButton</tabstop>
+  <tabstop>kontakLineEdit</tabstop>
+  <tabstop>priceLevelComboBox</tabstop>
+  <tabstop>statusLineEdit</tabstop>
+  <tabstop>prioritasLineEdit</tabstop>
+  <tabstop>tOrderDateTimeEdit</tabstop>
+  <tabstop>dLineDateTimeEdit</tabstop>
+  <tabstop>orderItemView</tabstop>
+  <tabstop>catatan1TextEdit</tabstop>
+  <tabstop>catatan2TextEdit</tabstop>
+  <tabstop>subtotalSpinBox</tabstop>
+  <tabstop>diskonDoubleSpinBox</tabstop>
+  <tabstop>diskonRpSpinBox</tabstop>
+  <tabstop>pajakRpSpinBox</tabstop>
+  <tabstop>totalSpinBox</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

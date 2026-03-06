@@ -2,6 +2,23 @@
 #include "ui_orderitemdialog.h"
 #include <QMessageBox>
 
+namespace {
+    void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
+    std::visit([&value](auto* editor) {
+            using T = std::decay_t<decltype(*editor)>;
+            editor->blockSignals(true);
+            if constexpr (std::is_same_v<T, QLineEdit>)
+                editor->setText(value.toString());
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                editor->setValue(value.toDouble());
+            else if constexpr (std::is_same_v<T, QSpinBox>)
+                editor->setValue(value.toInt());
+            else if constexpr (std::is_same_v<T, QPlainTextEdit>)
+                editor->setPlainText(value.toString());
+            editor->blockSignals(false);
+        }, editor);
+    }
+}
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui(new Ui::OrderItemDialog),
     m_autoCommit(true),
@@ -51,6 +68,24 @@ void OrderItemDialog::setupBoundFields() {
             });
 }
 
+void OrderItemDialog::resetForm()
+{
+    for (const auto& f : m_fields) {
+        std::visit([](auto* editor) {
+            using T = std::decay_t<decltype(*editor)>;
+            if constexpr (std::is_same_v<T, QLineEdit>)
+                editor->clear();
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                editor->setValue(0);
+            else if constexpr (std::is_same_v<T, QSpinBox>)
+                editor->setValue(0);
+            else if constexpr (std::is_same_v<T, QPlainTextEdit>)
+                editor->clear();
+        }, f.editor);
+    }
+    ui->produkComboBox->setCurrentIndex(-1);
+}
+
 QVariantMap OrderItemDialog::collect() const
 {
     auto data = FormDialog::collect();
@@ -63,7 +98,6 @@ QVariantMap OrderItemDialog::collect() const
     } else {
         data["base_price"] = costPrice;
     }
-    qDebug() << "Collected data:" << data;
     return data;
 }
 
@@ -100,6 +134,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     } else {
         ui->widthBox->setEnabled(false);
         ui->heightBox->setEnabled(false);
+        ui->widthBox->setValue(1);
+        ui->heightBox->setValue(1);
     }
     // dapatkan current product id
     int productId = model->index(index, 0).data(Qt::EditRole).toInt();
@@ -132,14 +168,17 @@ void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
 {
     double calcullatedSubtotal = calculatedPrice();
     double diskonRp = calcullatedSubtotal * (arg1 / 100.0);
-    // diskonRp harus dibudate benggunakan metode roundUp agar tidak terjadi pembulatan ke bawah yang merugikan pelanggan
-    diskonRp = std::ceil(diskonRp);
+    // diskon Rp harus dibulatkan menjadi kelipatan 100
+    diskonRp = qRound(diskonRp / 100.0) * 100.0;
     ui->diskonRpSpinBox->setValue(diskonRp);
 }
 
 void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
 {
-    Q_UNUSED(arg1);
+    // kalkulasi berapa persen diskon
+    double calcullatedSubtotal = calculatedPrice();
+    double diskonPersen = (arg1 / calcullatedSubtotal) * 100.0;
+    disableSignalAndSet(ui->diskonDoubleSpinBox, diskonPersen);
     recalculateSubtotal();
 }
 

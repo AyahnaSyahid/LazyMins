@@ -7,10 +7,12 @@ class FlexibleDelegate : public QStyledItemDelegate
 public:
     using Displayer = std::function<QString(const QVariant &, const QLocale &)>;
     using Styler = std::function<void(QStyleOptionViewItem &, const QModelIndex &)>;
+    using Creator = std::function<QWidget *(QWidget *, const QStyleOptionViewItem &, const QModelIndex &)>;
 
     struct Option {
         Displayer displayer;
         Styler styler;
+        Creator creator;
     };
     
     // factory method untuk membuat delegate dengan opsi tertentu
@@ -40,6 +42,32 @@ public:
         return QStyledItemDelegate::displayText(value, locale);
     }
 
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        if (m_creator)
+            return m_creator(parent, option, index);
+
+        return QStyledItemDelegate::createEditor(parent, option, index);
+    }
+
+    FlexibleDelegate &setCreator(const Creator &creator)
+    {
+        m_creator = creator;
+        return *this;
+    }
+    
+    FlexibleDelegate &setDisplayer(const Displayer &displayer)
+    {
+        m_displayer = displayer;
+        return *this;
+    }
+
+    FlexibleDelegate &setStyler(const Styler &styler)
+    {
+        m_styler = styler;
+        return *this;
+    }
+
 protected:
     void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const override
     {
@@ -51,4 +79,5 @@ protected:
 private:
     Displayer m_displayer;
     Styler m_styler;
+    Creator m_creator;
 };

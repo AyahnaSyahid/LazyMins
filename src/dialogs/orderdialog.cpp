@@ -5,6 +5,9 @@
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
 #include <QHeaderView>
+#include <QTimer>
+#include <QAction>
+#include <QMenu>
 #include <QSqlTableModel>
 
 namespace
@@ -92,7 +95,21 @@ namespace
   private:
     QSqlTableModel *m_productModel;
   };
-
+  void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
+    std::visit([&value](auto* editor) {
+            using T = std::decay_t<decltype(*editor)>;
+            editor->blockSignals(true);
+            if constexpr (std::is_same_v<T, QLineEdit>)
+                editor->setText(value.toString());
+            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+                editor->setValue(value.toDouble());
+            else if constexpr (std::is_same_v<T, QSpinBox>)
+                editor->setValue(value.toInt());
+            else if constexpr (std::is_same_v<T, QPlainTextEdit>)
+                editor->setPlainText(value.toString());
+            editor->blockSignals(false);
+        }, editor);
+  }
 }
 
 OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
@@ -100,16 +117,13 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
   ui->setupUi(this);
 
   ui->orderItemView->setModel(emodel);
-  ui->orderItemView->hideColumn(0);
-  ui->orderItemView->hideColumn(1);
-  ui->orderItemView->hideColumn(2);
-  ui->orderItemView->hideColumn(4);
-  ui->orderItemView->hideColumn(10);
-  ui->orderItemView->hideColumn(11);
-  ui->orderItemView->hideColumn(12);
-  ui->orderItemView->hideColumn(14);
-  ui->orderItemView->hideColumn(15);
-  ui->orderItemView->hideColumn(16);
+
+  QList<int> hiddenColumns = {0, 1, 2, 4, 10, 11, 12, 14, 15, 16};
+  QList<int> numberColumns = {5, 7, 8, 9, 13};
+  for (auto col : hiddenColumns)
+  {
+    ui->orderItemView->hideColumn(col);
+  }
   ui->orderItemView->horizontalHeader()->setStretchLastSection(true);
 
   ui->orderItemView->setItemDelegateForColumn(2, new ProductDelegate(this));
@@ -122,21 +136,30 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
   auto numberDelegate = FlexibleDelegate::create(
       {.displayer = [](const QVariant &value, const QLocale &locale)
        { return QString("%L1").arg(value.toInt()); },
-       .styler = [](QStyleOptionViewItem &option, const QModelIndex &index)
+       .styler = [numberColumns](QStyleOptionViewItem &option, const QModelIndex &index)
        {
         if (index.column() == 5) { // Kolom quantity
             option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-        } else if (index.column() == 7 || index.column() == 8) { // Kolom sale_price dan base_price
+        } else if (numberColumns.contains(index.column())) { // Kolom sale_price dan base_price
             option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         }
         option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia); }},
       ui->orderItemView);
   // set delegate untuk kolom quantity, sale_price, base_price, size_width, size_height
-  ui->orderItemView->setItemDelegateForColumn(5, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn(7, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn(8, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn(9, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn(13, numberDelegate);
+  numberDelegate->setCreator([](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget *
+                             {
+    auto editor = new QSpinBox(parent);
+    editor->setFrame(false);
+    editor->setMinimum(0);
+    editor->setMaximum(9999999);
+    editor->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    editor->setGroupSeparatorShown(true);
+    return editor; });
+  for (int col : numberColumns)
+  {
+    ui->orderItemView->setItemDelegateForColumn(col, numberDelegate);
+  }
+  connect(emodel, &OrderItemEditorModel::subtotalChanged, this, &OrderDialog::updateSubtotal);
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -191,8 +214,8 @@ void OrderDialog::onOrderItemDialogAccepted()
 {
   OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
   QVariantMap itemData = editor->getFieldData();
-  editor->prepareCreate(); // reset form untuk input berikutnya
   emodel->appendRow(itemData);
+  editor->resetForm();
 }
 
 void OrderDialog::on_cariButton_clicked()
@@ -217,6 +240,32 @@ void OrderDialog::on_cariButton_clicked()
   dialog->open();
 }
 
+void OrderDialog::updateSubtotal()
+{
+  double subtotal = emodel->calculateSubtotal();
+  ui->subtotalSpinBox->setValue(subtotal);
+}
+
+void OrderDialog::on_orderItemView_customContextMenuRequested(const QPoint &pos)
+{
+  QMenu contextMenu;
+  contextMenu.addAction(ui->tambahItem);
+  if(ui->orderItemView->indexAt(pos).isValid())
+  {
+    contextMenu.addSeparator();
+    contextMenu.addAction("Hapus Item", [this, pos]()
+                          {
+      QModelIndex index = ui->orderItemView->indexAt(pos);
+      if (index.isValid()) {
+          emodel->removeRow(index.row());
+      }
+    });
+  }
+  contextMenu.addSeparator();
+  contextMenu.addAction("Resize Kolom", [this](){ui->orderItemView->resizeColumnsToContents();});
+  contextMenu.exec(ui->orderItemView->viewport()->mapToGlobal(pos));
+}
+
 void OrderDialog::on_tambahItem_triggered()
 {
   auto editor = new OrderItemDialog(this);
@@ -227,7 +276,7 @@ void OrderDialog::on_tambahItem_triggered()
   auto priceLevel = ui->priceLevelComboBox->currentId();
   editor->setCustomerPriceLevel(priceLevel);
   editor->open();
-  connect(editor, &OrderItemDialog::editFinished, emodel, &OrderItemEditorModel::appendRow);
+  connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::onOrderItemDialogAccepted);
 }
 
 void OrderDialog::on_simpanButton_clicked()

@@ -4,9 +4,8 @@
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
-#include "src/customs/flexibledelegate.h"
-#include <QSqlTableModel>
 #include <QHeaderView>
+#include <QSqlTableModel>
 
 namespace
 {
@@ -130,15 +129,14 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
         } else if (index.column() == 7 || index.column() == 8) { // Kolom sale_price dan base_price
             option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         }
-        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia);
-       }}, ui->orderItemView);
+        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia); }},
+      ui->orderItemView);
   // set delegate untuk kolom quantity, sale_price, base_price, size_width, size_height
   ui->orderItemView->setItemDelegateForColumn(5, numberDelegate);
   ui->orderItemView->setItemDelegateForColumn(7, numberDelegate);
   ui->orderItemView->setItemDelegateForColumn(8, numberDelegate);
   ui->orderItemView->setItemDelegateForColumn(9, numberDelegate);
   ui->orderItemView->setItemDelegateForColumn(13, numberDelegate);
-
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -191,7 +189,9 @@ void OrderDialog::onPrepareModify(const QSqlRecord &orderRecord)
 
 void OrderDialog::onOrderItemDialogAccepted()
 {
-  QVariantMap itemData = static_cast<OrderItemDialog *>(sender())->getFieldData();
+  OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
+  QVariantMap itemData = editor->getFieldData();
+  editor->prepareCreate(); // reset form untuk input berikutnya
   emodel->appendRow(itemData);
 }
 
@@ -212,7 +212,7 @@ void OrderDialog::on_cariButton_clicked()
     ui->kontakLineEdit->setText(record.value("nomor_telp").toString());
     // simpan price level untuk digunakan di OrderItemDialog
     int priceLevelId = record.value("pl_id").toInt();
-    qDebug() << "Selected price level ID:" << priceLevelId;
+    // qDebug() << "Selected price level ID:" << priceLevelId;
     ui->priceLevelComboBox->setLevelID(priceLevelId); });
   dialog->open();
 }

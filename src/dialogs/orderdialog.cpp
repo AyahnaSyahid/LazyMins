@@ -132,10 +132,13 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
         }
         option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia);
        }}, ui->orderItemView);
-  ui->orderItemView->setItemDelegateForColumn( 5, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn( 7, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn( 8, numberDelegate);
-  ui->orderItemView->setItemDelegateForColumn(11, numberDelegate);
+  // set delegate untuk kolom quantity, sale_price, base_price, size_width, size_height
+  ui->orderItemView->setItemDelegateForColumn(5, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn(7, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn(8, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn(9, numberDelegate);
+  ui->orderItemView->setItemDelegateForColumn(13, numberDelegate);
+
 }
 
 OrderDialog::~OrderDialog() { delete ui; }

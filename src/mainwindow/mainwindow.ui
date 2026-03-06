@@ -40,8 +40,14 @@
      <string>Toolbar</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+   </widget>
    <addaction name="menuPengaturan"/>
    <addaction name="menuToolbar"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="addDataToolbar">
@@ -173,7 +179,7 @@
      <normaloff>:/svg/svg/cash-flow.svg</normaloff>:/svg/svg/cash-flow.svg</iconset>
    </property>
    <property name="text">
-    <string>Keuangan/Kas</string>
+    <string>Cash</string>
    </property>
    <property name="toolTip">
     <string>Cash-Flow</string>

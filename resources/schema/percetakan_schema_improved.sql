@@ -157,32 +157,6 @@ CREATE UNIQUE INDEX idx_products_sku ON products(sku COLLATE NOCASE);
 CREATE INDEX idx_products_name ON products(name);
 CREATE INDEX idx_products_category ON products(category_id);
 
-INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, cost_price, use_area) VALUES 
-    ('BN-FLEX',    'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30, 15000, 1),
-    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20, 45000, 1),
-    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15, 90000, 1),
-    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10, 90000, 1),
-    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10,120000, 1),
-    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 1),
-    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 1),
-    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 1),
-    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,  3000, 1),
-    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,  5000, 1),
-    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,  8500, 1),
-    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,  8500, 1),
-    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10, 75000, 1),
-    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10, 60000, 1),
-    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 1),
-    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10, 10000, 1),
-    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5, 12000, 1),
-    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5, 20000, 1),
-    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3, 15000, 1),
-    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2, 35000, 1),
-    ('OFF-TOKO',   'CO-TOKO',         4, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 1),
-    ('OFF-SORM-F', 'CO-SORM-F',       4, 'Cetak Offset SORM Full Color',        'set',     80, 20, 20000, 1),
-    ('OFF-P46-F',  'CO-P46-F',        4, 'Cetak Offset P46 Full Color',         'set',     60, 15, 15000, 1),
-    ('OFF-P52-F',  'CO-P52-F',        4, 'Cetak Offset P52 Full Color',         'set',     40, 10, 35000, 1);
-
 -- Tabel Price Levels: Level harga untuk berbagai tipe pelanggan
 CREATE TABLE price_levels (
     id INTEGER PRIMARY KEY,
@@ -220,7 +194,34 @@ CREATE TABLE product_prices (
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id) ON DELETE CASCADE
 );
 
+
 -- updated_at untuk product_prices dikelola di level aplikasi (ProductPriceManager::upsert)
+
+INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, cost_price, use_area) VALUES 
+    ('BN-FLEX',    'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30, 15000, 1),
+    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20, 45000, 1),
+    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15, 90000, 1),
+    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10, 90000, 1),
+    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10,120000, 1),
+    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 1),
+    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 1),
+    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 1),
+    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,  3000, 1),
+    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,  5000, 1),
+    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,  8500, 1),
+    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,  8500, 1),
+    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10, 75000, 1),
+    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10, 60000, 1),
+    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 1),
+    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10, 10000, 1),
+    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5, 12000, 1),
+    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5, 20000, 1),
+    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3, 15000, 1),
+    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2, 35000, 1),
+    ('OFF-TOKO',   'CO-TOKO',         4, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 1),
+    ('OFF-SORM-F', 'CO-SORM-F',       4, 'Cetak Offset SORM Full Color',        'set',     80, 20, 20000, 1),
+    ('OFF-P46-F',  'CO-P46-F',        4, 'Cetak Offset P46 Full Color',         'set',     60, 15, 15000, 1),
+    ('OFF-P52-F',  'CO-P52-F',        4, 'Cetak Offset P52 Full Color',         'set',     40, 10, 35000, 1);
 
 -- ============================================================================
 -- 4. TABEL MASTER - LAYANAN FINISHING

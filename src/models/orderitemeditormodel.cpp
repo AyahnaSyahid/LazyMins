@@ -51,6 +51,7 @@ OrderItemEditorModel::OrderItemEditorModel(QObject *p)
     : m_tableModel(new QSqlTableModel(this)), QAbstractTableModel(p) {
         m_tableModel->setTable("products");
         m_tableModel->select();
+        // tarik semua data dari database agar bisa digunakan untuk lookup di flags width dan height
         while(m_tableModel->canFetchMore()) m_tableModel->fetchMore();
     }
 
@@ -206,19 +207,11 @@ Qt::ItemFlags OrderItemEditorModel::flags(const QModelIndex& mi) const  // fixed
     Qt::ItemFlags f = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 
     // cek apakah produk terkait row ini memiliki flags tertentu yang mempengaruhi editability width dan height
-    auto pr_id = mi.siblingAtColumn(Col_ProductId).data(Qt::EditRole).toInt();
-    auto pr_ix = m_tableModel->match(m_tableModel->index(0, 0), Qt::EditRole, pr_id, 1, Qt::MatchExactly).value(0);
-    if (pr_ix.isValid()) {
-        auto editable = pr_ix.siblingAtColumn(9).data(Qt::EditRole).toBool(); // misal kolom 9 di products use_area 1/0
-        if (!editable) {
-            // jika produk tidak editable untuk width/height, maka buat kedua kolom tersebut read-only
-            if (mi.column() == Col_SizeWidth || mi.column() == Col_SizeHeight) {
-                return f; // tanpa Qt::ItemIsEditable
-            }
-        }
-    }
+    // mengunakan m_tableModel untuk lookup kolom use_area
+    // cari id dari m_tableModel yang sesuai dengan product_id di row ini
+    
     // Make read-only columns non-editable
-    if (mi.column() != Col_Id && mi.column() != Col_OrderId && mi.column() != Col_Subtotal &&
+    if (mi.column() != Col_Id && mi.column() != Col_OrderId &&
         mi.column() != Col_CreatedAt && mi.column() != Col_UpdatedAt)
         f |= Qt::ItemIsEditable;
     return f;

@@ -140,6 +140,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     // dapatkan current product id
     int productId = model->index(index, 0).data(Qt::EditRole).toInt();
     // dapatkan harga berdasarkan price level customer
+
+
     auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
     if (optprice.has_value()) {
         ui->hargaSpinBox->setMinimum(*optprice);
@@ -149,6 +151,11 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
         int basePrice = model->index(index, 4).data(Qt::EditRole).toInt();
         ui->hargaSpinBox->setMinimum(basePrice);
         ui->hargaSpinBox->setValue(basePrice);
+    }
+
+    // diperlukan mekanisme untuk handle by nego
+    if (m_customerPriceLevel == 3) {
+        ui->hargaSpinBox->setMinimum(0);
     }
 }
 

@@ -142,6 +142,9 @@
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
        </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
        <property name="showGroupSeparator" stdset="0">
         <bool>true</bool>
        </property>
@@ -150,6 +153,9 @@
        </property>
        <property name="maximum">
         <number>99999999</number>
+       </property>
+       <property name="singleStep">
+        <number>500</number>
        </property>
       </widget>
      </item>
@@ -194,23 +200,51 @@
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
        </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
        <property name="showGroupSeparator" stdset="0">
         <bool>true</bool>
        </property>
        <property name="maximum">
-        <number>99999</number>
+        <number>999999</number>
+       </property>
+       <property name="singleStep">
+        <number>500</number>
        </property>
       </widget>
      </item>
      <item row="7" column="0">
+      <widget class="QLabel" name="catatanLabel">
+       <property name="text">
+        <string>Catatan</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QPlainTextEdit" name="notesTextEdit">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>66</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
       <widget class="QLabel" name="subtotalLabel">
        <property name="text">
         <string>Subtotal</string>
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
+     <item row="8" column="1">
       <widget class="QSpinBox" name="subtotalSpinBox">
+       <property name="font">
+        <font>
+         <bold>true</bold>
+        </font>
+       </property>
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
        </property>
@@ -225,23 +259,6 @@
        </property>
        <property name="maximum">
         <number>99999999</number>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="catatanLabel">
-       <property name="text">
-        <string>Catatan</string>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="1">
-      <widget class="QPlainTextEdit" name="notesTextEdit">
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>66</height>
-        </size>
        </property>
       </widget>
      </item>
@@ -272,8 +289,8 @@
   <tabstop>hargaSpinBox</tabstop>
   <tabstop>diskonDoubleSpinBox</tabstop>
   <tabstop>diskonRpSpinBox</tabstop>
-  <tabstop>subtotalSpinBox</tabstop>
   <tabstop>notesTextEdit</tabstop>
+  <tabstop>subtotalSpinBox</tabstop>
   <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>

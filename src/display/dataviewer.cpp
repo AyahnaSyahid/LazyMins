@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QTimer>
 #include "src/managers/managers.h"
+#include "src/customs/booleandelegate.h"
 
 DataViewer::DataViewer(QWidget *parent) : ui(new Ui::DataViewer), m_model(this), m_filterTimer(this), QWidget(parent)
 {

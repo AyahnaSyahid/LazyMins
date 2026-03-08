@@ -83,6 +83,7 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/customs/productcategoriescombobox.h
                            src/customs/productcategoriescombobox.cpp
                            src/customs/flexibledelegate.h
+                           src/customs/booleandelegate.h
                            
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui

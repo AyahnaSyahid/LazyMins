@@ -30,8 +30,9 @@ namespace
       {14, "notes"},
       {15, "created_at"},
       {16, "updated_at"},
+  
+  
   };
-
   class ProductDelegate : public QStyledItemDelegate
   {
   public:
@@ -119,7 +120,7 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
   ui->orderItemView->setModel(emodel);
 
   QList<int> hiddenColumns = {0, 1, 2, 4, 10, 11, 12, 14, 15, 16};
-  QList<int> numberColumns = {5, 7, 8, 9, 13};
+  QList<int> numberColumns = {5, 9, 13};
   for (auto col : hiddenColumns)
   {
     ui->orderItemView->hideColumn(col);
@@ -143,10 +144,10 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
         } else if (numberColumns.contains(index.column())) { // Kolom sale_price dan base_price
             option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         }
-        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia); }},
+        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia); },},
       ui->orderItemView);
-  // set delegate untuk kolom quantity, sale_price, base_price, size_width, size_height
-  numberDelegate->setCreator([](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget *
+  // set delegate untuk kolom quantity, sale_price, base_price
+   numberDelegate->setCreator([](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget *
                              {
     auto editor = new QSpinBox(parent);
     editor->setFrame(false);
@@ -155,11 +156,48 @@ OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new Order
     editor->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     editor->setGroupSeparatorShown(true);
     return editor; });
-  for (int col : numberColumns)
-  {
+
+
+  for (int col : numberColumns) {
     ui->orderItemView->setItemDelegateForColumn(col, numberDelegate);
   }
-  connect(emodel, &OrderItemEditorModel::subtotalChanged, this, &OrderDialog::updateSubtotal);
+
+  auto unitDelegate = FlexibleDelegate::create(
+      {.displayer = [](const QVariant &value, const QLocale &locale)
+       { return QString("%L1").arg(value.toString()); },
+       .styler = [](QStyleOptionViewItem &option, const QModelIndex &index)
+       {
+        option.displayAlignment = Qt::AlignHCenter | Qt::AlignVCenter;
+        option.locale = QLocale(); },
+       .creator = [](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget * {
+        auto le = new QLineEdit(parent);
+        le->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+        return le;
+       }},
+      ui->orderItemView
+  );
+
+  auto sizeDelegate = FlexibleDelegate::create(
+    { .displayer = [](const QVariant &value, const QLocale &locale)
+      { return QString("%L1").arg(value.toDouble()); },
+      .styler = [](QStyleOptionViewItem &option, const QModelIndex &index) {
+        option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+        option.locale = QLocale();
+      },
+      .creator = [](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget * {
+        auto ds = new QDoubleSpinBox(parent);
+        ds->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        ds->setGroupSeparatorShown(true);
+        ds->setMaximum(9999999);
+        return ds;
+      }
+    }, ui->orderItemView
+  );
+
+  ui->orderItemView->setItemDelegateForColumn(7, sizeDelegate);
+  ui->orderItemView->setItemDelegateForColumn(8, sizeDelegate);
+  ui->orderItemView->setItemDelegateForColumn(6, unitDelegate);
+  connect(emodel, &OrderItemEditorModel::subtotalChanged, this, &OrderDialog::updateCalculation);
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -218,6 +256,23 @@ void OrderDialog::onOrderItemDialogAccepted()
   editor->resetForm();
 }
 
+void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
+{
+  auto subt = ui->subtotalSpinBox->value();
+  // need to get integer rounded up to 100
+  int rp = static_cast<int>(qRound(arg1 / 100.0) * 100.0);
+  disableSignalAndSet(ui->diskonRpSpinBox, rp);
+  updateCalculation();
+}
+
+void OrderDialog::on_diskonRpSpinBox_valueChanged(int arg1)
+{
+  auto subt = ui->subtotalSpinBox->value();
+  double percent = double(arg1) / subt * 100.0;
+  disableSignalAndSet(ui->diskonDoubleSpinBox, percent);
+  updateCalculation();
+}
+
 void OrderDialog::on_cariButton_clicked()
 {
   // buat dialog pencarian konsumen (CustomerSearchDialog)
@@ -240,7 +295,7 @@ void OrderDialog::on_cariButton_clicked()
   dialog->open();
 }
 
-void OrderDialog::updateSubtotal()
+void OrderDialog::updateCalculation()
 {
   double subtotal = emodel->calculateSubtotal();
   ui->subtotalSpinBox->setValue(subtotal);

@@ -20,7 +20,7 @@ class FormDialog : public QDialog
 
 public:
     explicit FormDialog(QWidget *parent = nullptr);
-
+    virtual ~FormDialog() = default;
     using ValueGetter = std::function<QVariant()>;
     using ValueSetter = std::function<void(const QVariant &)>;
 

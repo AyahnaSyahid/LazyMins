@@ -5,6 +5,8 @@
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
 #include "src/utils/sessionmanager.h"
+#include "src/display/dataviewer.h"
+#include <QDockWidget>
 
 namespace {
   void connectCreateActionToFormDialog(QAction *action, 
@@ -43,6 +45,13 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this](){ return new ProductDialog(this); }, this);
   connectCreateActionToFormDialog(ui->actionOrderCreate, "Buat order baru", [this](){ return new OrderDialog(this); }, this);
   connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", [this](){ return new UserDialog(this); }, this);
+  auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
+  auto dv1 = new DataViewer;
+  dv1->setQueryArgs("SELECT * FROM products");
+  auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
+  addDockWidget(Qt::RightDockWidgetArea, ds);
+  dv1->setPageSize(10);
+  dv1->refresh();
 }
 
 MainWindow::~MainWindow() {delete ui;}

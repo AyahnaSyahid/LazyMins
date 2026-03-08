@@ -25,13 +25,15 @@ protected:
   void onPrepareCreate() override;
   void onPrepareModify(const QSqlRecord &orderRecord);
   void onOrderItemDialogAccepted();
+  void on_diskonDoubleSpinBox_valueChanged(double arg1);
+  void on_diskonRpSpinBox_valueChanged(int arg1);
 
 
 private slots:
   void on_simpanButton_clicked();
   void on_tambahItem_triggered();
   void on_cariButton_clicked();
-  void updateSubtotal();
+  void updateCalculation();
   void on_orderItemView_customContextMenuRequested(const QPoint &pos);
 
 private:

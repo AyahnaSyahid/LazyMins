@@ -27,6 +27,7 @@ DataViewer::DataViewer(QWidget *parent) : ui(new Ui::DataViewer), m_model(this),
         setFilter(ui->filterEdit->text());
     });
     connect(&m_model, &QAbstractItemModel::modelReset, this, &DataViewer::updateNavigation);
+    ui->dataView->setItemDelegateForColumn(10, new BooleanDelegate(this));
     QTimer::singleShot(0, this, &DataViewer::updateNavigation);
 }
 

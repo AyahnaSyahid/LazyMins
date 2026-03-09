@@ -1,6 +1,7 @@
 #include "orderdialog.h"
 #include "ui_orderdialog.h"
 
+#include "src/utils/helper.h"
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
@@ -9,6 +10,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QSqlTableModel>
+#include <QMessageBox>
 
 namespace
 {
@@ -22,14 +24,15 @@ namespace
       {6, "unit"},
       {7, "size_width"},
       {8, "size_height"},
-      {9, "sale_price"},
-      {10, "base_price"},
-      {11, "discount_percentage"},
-      {12, "discount_amount"},
-      {13, "subtotal"},
-      {14, "notes"},
-      {15, "created_at"},
-      {16, "updated_at"},
+      {9, "use_area"},
+      {10, "sale_price"},
+      {11, "base_price"},
+      {12, "discount_percentage"},
+      {13, "discount_amount"},
+      {14, "subtotal"},
+      {15, "notes"},
+      {16, "created_at"},
+      {17, "updated_at"},
   
   
   };
@@ -252,6 +255,7 @@ void OrderDialog::onOrderItemDialogAccepted()
 {
   OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
   QVariantMap itemData = editor->getFieldData();
+  qDebug() << itemData;
   emodel->appendRow(itemData);
   editor->resetForm();
 }
@@ -288,6 +292,8 @@ void OrderDialog::on_cariButton_clicked()
           {
     ui->konsumenLineEdit->setText(record.value("nama_lengkap").toString());
     ui->kontakLineEdit->setText(record.value("nomor_telp").toString());
+    customerSet.id = record.value("id").toInt();
+    customerSet.name = record.value("nama_lengkap").toString();
     // simpan price level untuk digunakan di OrderItemDialog
     int priceLevelId = record.value("pl_id").toInt();
     // qDebug() << "Selected price level ID:" << priceLevelId;
@@ -336,4 +342,23 @@ void OrderDialog::on_tambahItem_triggered()
 
 void OrderDialog::on_simpanButton_clicked()
 {
+  if(ui->konsumenLineEdit->text().isEmpty()) {
+    ui->konsumenLineEdit->setStyleSheet("background-color: rgb(255, 200, 250);");
+    QMessageBox::warning(this, "Peringatan", "Nama konsumen tidak boleh kosong");
+    ui->konsumenLineEdit->setFocus(Qt::ActiveWindowFocusReason);
+    QTimer::singleShot(500, [this]{ui->konsumenLineEdit->setStyleSheet("");});
+    return;
+  }
+  if(mode() == FormMode::Create) {
+    debugMap(collect());
+  }
+}
+
+QVariantMap OrderDialog::collect() const {
+  auto def = FormDialog::collect();
+  // add anythink else
+  if (ui->konsumenLineEdit->text() == customerSet.name) {
+    def["customer_id"] = customerSet.id;
+  }
+  return def;
 }

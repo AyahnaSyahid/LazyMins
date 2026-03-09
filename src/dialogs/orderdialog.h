@@ -17,7 +17,8 @@ public:
   explicit OrderDialog(QWidget * = nullptr);
   ~OrderDialog();
   void prepareModify(const QSqlRecord &r);
-
+  QVariantMap collect() const override;
+  
 protected:
   void setupFields() override;
   void setupBoundFields() override;
@@ -40,4 +41,10 @@ private:
   Ui::OrderDialog *ui;
   OrderItemEditorModel *emodel;
   OrderManager oman;
+  
+  struct KonsumenSet {
+    int id;
+    QString name;
+  } customerSet {};
+
 };

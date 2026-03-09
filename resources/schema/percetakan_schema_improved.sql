@@ -314,10 +314,10 @@ CREATE TABLE order_items (
     use_area INTEGER DEFAULT 0,          -- TAMBAHAN: Hitung berdasar luas
     sale_price INTEGER NOT NULL,         -- Harga jual satuan
     base_price INTEGER NOT NULL,         -- Harga dasar satuan
-    discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item
+    discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item (estimate percent)
     discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
-    subtotal INTEGER NOT NULL,           -- Total = (quantity * base_price) - discount + finishing
-    total INTEGER NOT NULL,              -- TAMBAHAN: Total akhir
+    subtotal INTEGER NOT NULL,           -- Subtotal = (quantity * sale_price * size_width * size_height)
+    total INTEGER NOT NULL,              -- Total =  Subtotal - ( discount + finishing )
     notes TEXT,                          -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -57,4 +57,5 @@ private:
     bool m_autoCommit = true;
     int m_customerPriceLevel = 1;
     ProductPriceManager m_priceManager;
+    ProductManager m_productManager;
 };

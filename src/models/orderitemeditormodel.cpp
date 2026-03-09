@@ -13,14 +13,23 @@ namespace {
         {6,                 "unit"},
         {7,           "size_width"},
         {8,          "size_height"},
-        {9,           "sale_price"},
-        {10,          "base_price"},
-        {11, "discount_percentage"},
-        {12,     "discount_amount"},
-        {13,            "subtotal"},
-        {14,               "notes"},
-        {15,          "created_at"},
-        {16,          "updated_at"},
+        {9,             "use_area"},
+        {10,           "sale_price"},
+        {11,          "base_price"},
+        {12, "discount_percentage"},
+        {13,     "discount_amount"},
+        {14,            "subtotal"},
+        {15,               "total"},
+        {16,               "notes"},
+        {17,          "created_at"},
+        {18,          "updated_at"},
+    };
+    
+    struct ItemCalc {
+      double sizeWidth, sizeHeight;
+      int qty, salePrice, discountAmount;
+      int subtotal() { return qRound(sizeWidth * sizeHeight * qty * salePrice / 100) * 100; }
+      int total() { return subtotal() - discountAmount; }
     };
 }
 QString OrderItemEditorModel::columnKey(int column)
@@ -35,11 +44,13 @@ QString OrderItemEditorModel::columnKey(int column)
         case Col_Unit:               return "unit";
         case Col_SizeWidth:          return "size_width";
         case Col_SizeHeight:         return "size_height";
+        case Col_UseArea:            return "use_area";
         case Col_SalePrice:          return "sale_price";
         case Col_BasePrice:          return "base_price";
         case Col_DiscountPercentage: return "discount_percentage";
         case Col_DiscountAmount:     return "discount_amount";
         case Col_Subtotal:           return "subtotal";
+        case Col_Total:              return "total";
         case Col_Notes:              return "notes";
         case Col_CreatedAt:          return "created_at";
         case Col_UpdatedAt:          return "updated_at";
@@ -133,9 +144,10 @@ bool OrderItemEditorModel::setData(const QModelIndex& ix, const QVariant& value,
     }
     // tambahkan logic perhitungan subtotal jika quantity, sale_price, base_price, discount_percentage, atau discount_amount yang diedit
     bool subtotalChanged = false;
-    if (ix.column() == Col_Quantity || ix.column() == Col_SalePrice || ix.column() == Col_BasePrice ||
-        ix.column() == Col_DiscountPercentage || ix.column() == Col_DiscountAmount) {
-        double quantity = 0, salePrice = 0;
+    QList<int> affectingColumns  { Col_Quantity, Col_SalePrice, Col_DiscountAmount, Col_SizeHeight, Col_SizeWidth };
+    if (affectingColumns.contains(ix.column())) {
+        int quantity = 0, salePrice = 0, disc = 0;
+        double sizeWidth = 0 , sizeHeight = 0;
         if (ix.row() < m_fromDatabase.count()) {
             auto getEditedValue = [this](int row, int column) -> double {
                 auto editKey = qMakePair(row, column);
@@ -146,19 +158,27 @@ bool OrderItemEditorModel::setData(const QModelIndex& ix, const QVariant& value,
             };
             quantity = getEditedValue(ix.row(), Col_Quantity);
             salePrice = getEditedValue(ix.row(), Col_SalePrice);
+            sizeWidth = getEditedValue(ix.row(), Col_SizeWidth);
+            sizeHeight = getEditedValue(ix.row(), Col_SizeHeight);
+            disc = getEditedValue(ix.row(), Col_DiscountAmount);
+            
+            ItemCalc ic {.sizeWidth = sizeWidth, .sizeHeight = sizeHeight, .qty = quantity, .salePrice = salePrice, .discountAmount = disc };
+            
             // masukan subtotal ke editedCells agar langsung update di view
-            double subtotal = quantity * salePrice; // logika sederhana
             auto subtotalKey = qMakePair(ix.row(), Col_Subtotal);
-            if (!m_editedCells.contains(subtotalKey) || m_editedCells[subtotalKey] != subtotal) {
-                m_editedCells[subtotalKey] = subtotal;
+            if (!m_editedCells.contains(subtotalKey) || m_editedCells[subtotalKey] != ic.subtotal()) {
+                m_editedCells[subtotalKey] = ic.subtotal();
                 subtotalChanged = true;
             }
         } else {
             int newDataRow = ix.row() - m_fromDatabase.count();
-            quantity = m_newData.at(newDataRow).value(columnKey(Col_Quantity)).toDouble();
-            salePrice = m_newData.at(newDataRow).value(columnKey(Col_SalePrice)).toDouble();
-            double subtotal = quantity * salePrice;
-            m_newData[newDataRow][columnKey(Col_Subtotal)] = subtotal;
+            quantity = m_newData.at(newDataRow).value(columnKey(Col_Quantity)).toInt();
+            salePrice = m_newData.at(newDataRow).value(columnKey(Col_SalePrice)).toInt();
+            sizeWidth = m_newData.at(newDataRow).value(columnKey(Col_SizeWidth)).toDouble();
+            sizeHeight = m_newData.at(newDataRow).value(columnKey(Col_SizeHeight)).toDouble();
+            disc = m_newData.at(newDataRow).value(columnKey(Col_DiscountAmount)).toInt();
+            ItemCalc ic {.sizeWidth = sizeWidth, .sizeHeight = sizeHeight, .qty = quantity, .salePrice = salePrice, .discountAmount = disc };
+            m_newData[newDataRow][columnKey(Col_Subtotal)] = ic.subtotal();
             subtotalChanged = true;
         }
     }
@@ -188,11 +208,13 @@ QVariant OrderItemEditorModel::headerData(int section, Qt::Orientation orientati
         case Col_Unit:               return "Unit";
         case Col_SizeWidth:          return "Lebar";
         case Col_SizeHeight:         return "Tinggi";
+        case Col_UseArea:            return "Hitung Luas";
         case Col_SalePrice:          return "Harga Jual";
         case Col_BasePrice:          return "Harga Dasar";
         case Col_DiscountPercentage: return "Disc %";
         case Col_DiscountAmount:     return "Disc Amount";
         case Col_Subtotal:           return "Subtotal";
+        case Col_Total:              return "Total";
         case Col_Notes:              return "Catatan";
         case Col_CreatedAt:          return "Created At";
         case Col_UpdatedAt:          return "Updated At";
@@ -206,23 +228,18 @@ Qt::ItemFlags OrderItemEditorModel::flags(const QModelIndex& mi) const  // fixed
 
     Qt::ItemFlags f = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
     
-    bool areaIsEditable = true;
-    auto match = m_tableModel->match(m_tableModel->index(0, 0), 
-                                        Qt::EditRole, 
-                                        mi.siblingAtColumn(Col_ProductId).data(Qt::EditRole), {Qt::MatchExactly});
-    if(match.count()) {
-        areaIsEditable = match[0].siblingAtColumn(9).data(Qt::EditRole).toBool();
-    }
     if (mi.column() == Col_SizeWidth || mi.column() == Col_SizeHeight) {
-        if (!areaIsEditable) {
-            return f; // read-only
+        if(mi.siblingAtColumn(Col_UseArea).data(Qt::EditRole).toInt() == 1) {
+          f |= Qt::ItemIsEditable;
+          return f;
         }
+        return f;
     }
 
     // Make read-only columns non-editable
     if (mi.column() != Col_Id && mi.column() != Col_OrderId &&
         mi.column() != Col_CreatedAt && mi.column() != Col_UpdatedAt &&
-        mi.column() != Col_Subtotal)
+        mi.column() != Col_Subtotal && mi.column() == Col_Total)
         f |= Qt::ItemIsEditable;
     return f;
 }
@@ -246,6 +263,7 @@ bool OrderItemEditorModel::appendRow(const QVariantMap &defaultValues)
     newItem["discount_percentage"] = 0.0;
     newItem["discount_amount"]     = 0.0;
     newItem["subtotal"]            = 0;
+    newItem["total"]               = 0;
     newItem["notes"]               = QString();
     // created_at dan updated_at dibiarkan kosong → diisi oleh database
 
@@ -375,8 +393,14 @@ double OrderItemEditorModel::calculateSubtotal() const
 {
     double total = 0;
     for (int r=0; r < rowCount(); ++r) {
-        double subtotal = data(index(r, Col_Subtotal), Qt::DisplayRole).toInt();
-        total += subtotal;
+        double st = data(index(r, Col_Total), Qt::EditRole).toInt();
+        total += st;
     }
     return total;
+}
+
+int OrderItemEditorModel::orderItemIdForRow(int row) const {
+  if (row < 0 && row >= rowCount()) return -1;
+  auto ix = index(row, 0);
+  return ix.data(Qt::EditRole).toInt();
 }

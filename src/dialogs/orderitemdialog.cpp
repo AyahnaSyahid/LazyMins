@@ -39,7 +39,6 @@ OrderItemDialog::~OrderItemDialog()
 }
 
 bool OrderItemDialog::onSave(const QVariantMap& changes) {
-    qDebug() << changes;
     return true;
 }
 
@@ -93,11 +92,20 @@ QVariantMap OrderItemDialog::collect() const
     auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
     auto costPrice = index.siblingAtColumn(4).data(Qt::EditRole).toInt();
     auto opt = m_priceManager.getPrice(index.data().toInt(), m_customerPriceLevel);
-    if (opt.has_value()) {
+    data["base_price"] = costPrice;
+    if (opt.has_value())
         data["base_price"] = *opt;
-    } else {
-        data["base_price"] = costPrice;
-    }
+    
+    int total, subtotal;
+    total = data["subtotal"].toInt();
+    subtotal = total + data["discount_amount"].toInt();
+    
+    data["total"] = total;
+    data["subtotal"] = subtotal;
+    auto ropt = m_productManager.getById(data["product_id"].toInt());
+    if(ropt.has_value())
+      data["use_area"] = (*ropt).value("use_area");
+    
     return data;
 }
 

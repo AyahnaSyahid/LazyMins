@@ -21,11 +21,13 @@ public:
         Col_Unit,
         Col_SizeWidth,
         Col_SizeHeight,
+        Col_UseArea,
         Col_SalePrice,
         Col_BasePrice,
         Col_DiscountPercentage,
         Col_DiscountAmount,
         Col_Subtotal,
+        Col_Total,
         Col_Notes,
         Col_CreatedAt,
         Col_UpdatedAt,
@@ -57,7 +59,8 @@ public:
 
     // kalkulasi subtotal
     double calculateSubtotal() const;
-
+    int orderItemIdForRow(int r) const;
+    
 signals:
     void subtotalChanged();
 

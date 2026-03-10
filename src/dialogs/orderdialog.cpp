@@ -239,11 +239,25 @@ void OrderDialog::setupBoundFields()
             ui->dLineDateTimeEdit->setDateTime(local); });
 }
 
-bool OrderDialog::onSave(const QVariantMap &mp) { return false; }
+bool OrderDialog::onSave(const QVariantMap &mp) {
+
+  BaseManager::connection.transaction();
+  
+  auto opt_order = oman.create(mp);
+
+  if (opt_order.has_value()) {
+    auto ord_rec = *opt_order;
+    
+  }
+
+  return false;
+}
 
 void OrderDialog::onPrepareCreate()
 {
   ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
+  ui->statusLineEdit->setText("Pending");
+  ui->prioritasLineEdit->setText("Normal");
 }
 
 void OrderDialog::onPrepareModify(const QSqlRecord &orderRecord)
@@ -260,21 +274,45 @@ void OrderDialog::onOrderItemDialogAccepted()
   editor->resetForm();
 }
 
-void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
+void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
 {
-  auto subt = ui->subtotalSpinBox->value();
-  // need to get integer rounded up to 100
-  int rp = static_cast<int>(qRound(arg1 / 100.0) * 100.0);
-  disableSignalAndSet(ui->diskonRpSpinBox, rp);
-  updateCalculation();
+    if (ui->subtotalSpinBox->value() <= 0) {
+        ui->diskonRpSpinBox->setValue(0);
+        return;
+    }
+
+    double subtotal = ui->subtotalSpinBox->value();
+    
+    // Hitung diskon nominal (exact)
+    double disc_exact = subtotal * percent / 100.0;
+    
+    // Bulatkan KE ATAS ke kelipatan 100
+    int disc_amount = static_cast<int>(std::ceil(disc_exact / 100.0)) * 100;
+
+    // Update diskon rupiah tanpa memicu signal loop
+    disableSignalAndSet(ui->diskonRpSpinBox, disc_amount);
+
+    updateCalculation();
 }
 
-void OrderDialog::on_diskonRpSpinBox_valueChanged(int arg1)
+void OrderDialog::on_diskonRpSpinBox_valueChanged(int disc_rupiah)
 {
-  auto subt = ui->subtotalSpinBox->value();
-  double percent = double(arg1) / subt * 100.0;
-  disableSignalAndSet(ui->diskonDoubleSpinBox, percent);
-  updateCalculation();
+    double subtotal = ui->subtotalSpinBox->value();
+    if (subtotal <= 0) {
+        disableSignalAndSet(ui->diskonDoubleSpinBox, 0.0);
+        updateCalculation();
+        return;
+    }
+
+    // Hitung persentase secara akurat (tanpa pembulatan paksa)
+    double percent = (static_cast<double>(disc_rupiah) / subtotal) * 100.0;
+
+    // Optional: bulatkan persen ke 2 desimal jika diinginkan
+    percent = qRound(percent * 100.0) / 100.0;
+
+    disableSignalAndSet(ui->diskonDoubleSpinBox, percent);
+
+    updateCalculation();
 }
 
 void OrderDialog::on_cariButton_clicked()
@@ -303,8 +341,14 @@ void OrderDialog::on_cariButton_clicked()
 
 void OrderDialog::updateCalculation()
 {
-  double subtotal = emodel->calculateSubtotal();
-  ui->subtotalSpinBox->setValue(subtotal);
+    double subtotal = emodel->calculateSubtotal();
+    ui->subtotalSpinBox->setValue(subtotal);
+
+    double diskon = ui->diskonRpSpinBox->value();
+    double pajak  = ui->pajakRpSpinBox->value();
+
+    double total = subtotal - diskon - pajak;
+    ui->totalSpinBox->setValue(total);
 }
 
 void OrderDialog::on_orderItemView_customContextMenuRequested(const QPoint &pos)
@@ -350,7 +394,7 @@ void OrderDialog::on_simpanButton_clicked()
     return;
   }
   if(mode() == FormMode::Create) {
-    debugMap(collect());
+    accept();
   }
 }
 
@@ -361,4 +405,9 @@ QVariantMap OrderDialog::collect() const {
     def["customer_id"] = customerSet.id;
   }
   return def;
+}
+
+void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {
+  Q_UNUSED(ch);
+  updateCalculation();
 }

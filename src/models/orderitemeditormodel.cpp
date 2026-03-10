@@ -14,7 +14,7 @@ namespace {
         {7,           "size_width"},
         {8,          "size_height"},
         {9,             "use_area"},
-        {10,           "sale_price"},
+        {10,          "sale_price"},
         {11,          "base_price"},
         {12, "discount_percentage"},
         {13,     "discount_amount"},
@@ -32,6 +32,7 @@ namespace {
       int total() { return subtotal() - discountAmount; }
     };
 }
+
 QString OrderItemEditorModel::columnKey(int column)
 {
     switch (column) {
@@ -67,6 +68,13 @@ OrderItemEditorModel::OrderItemEditorModel(QObject *p)
     }
 
 OrderItemEditorModel::~OrderItemEditorModel() {}
+
+ModelSaveResult OrderItemEditorModel::saveModel() const {
+  auto newRows = pendingNewRows();
+  auto edited  = editedCells();
+  if(newRows.isEmpty() && edited.isEmpty()) return { .ok = false, .errors = "Tidak ada data untuk disimpan" };
+  
+}
 
 bool OrderItemEditorModel::loadFromOrder(int orderid)
 {
@@ -172,11 +180,11 @@ bool OrderItemEditorModel::setData(const QModelIndex& ix, const QVariant& value,
             }
         } else {
             int newDataRow = ix.row() - m_fromDatabase.count();
-            quantity = m_newData.at(newDataRow).value(columnKey(Col_Quantity)).toInt();
-            salePrice = m_newData.at(newDataRow).value(columnKey(Col_SalePrice)).toInt();
-            sizeWidth = m_newData.at(newDataRow).value(columnKey(Col_SizeWidth)).toDouble();
+            quantity =   m_newData.at(newDataRow).value(columnKey(Col_Quantity  )).toInt();
+            salePrice =  m_newData.at(newDataRow).value(columnKey(Col_SalePrice )).toInt();
+            sizeWidth =  m_newData.at(newDataRow).value(columnKey(Col_SizeWidth )).toDouble();
             sizeHeight = m_newData.at(newDataRow).value(columnKey(Col_SizeHeight)).toDouble();
-            disc = m_newData.at(newDataRow).value(columnKey(Col_DiscountAmount)).toInt();
+            disc =       m_newData.at(newDataRow).value(columnKey(Col_DiscountAmount)).toInt();
             ItemCalc ic {.sizeWidth = sizeWidth, .sizeHeight = sizeHeight, .qty = quantity, .salePrice = salePrice, .discountAmount = disc };
             m_newData[newDataRow][columnKey(Col_Subtotal)] = ic.subtotal();
             subtotalChanged = true;

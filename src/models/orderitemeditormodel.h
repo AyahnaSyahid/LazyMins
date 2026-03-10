@@ -61,6 +61,12 @@ public:
     double calculateSubtotal() const;
     int orderItemIdForRow(int r) const;
     
+    struct ModelSaveResult {
+      bool ok = false;
+      QString errors;
+      QList<int> ids;
+    } saveModel() const;
+    
 signals:
     void subtotalChanged();
 

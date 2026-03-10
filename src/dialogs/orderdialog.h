@@ -26,8 +26,6 @@ protected:
   void onPrepareCreate() override;
   void onPrepareModify(const QSqlRecord &orderRecord);
   void onOrderItemDialogAccepted();
-  void on_diskonDoubleSpinBox_valueChanged(double arg1);
-  void on_diskonRpSpinBox_valueChanged(int arg1);
 
 
 private slots:
@@ -36,6 +34,9 @@ private slots:
   void on_cariButton_clicked();
   void updateCalculation();
   void on_orderItemView_customContextMenuRequested(const QPoint &pos);
+  void on_diskonDoubleSpinBox_valueChanged(double arg1);
+  void on_diskonRpSpinBox_valueChanged(int arg1);
+  void on_pajakRpSpinBox_valueChanged(int arg1);
 
 private:
   Ui::OrderDialog *ui;

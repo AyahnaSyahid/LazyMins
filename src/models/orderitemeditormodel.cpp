@@ -69,11 +69,44 @@ OrderItemEditorModel::OrderItemEditorModel(QObject *p)
 
 OrderItemEditorModel::~OrderItemEditorModel() {}
 
-ModelSaveResult OrderItemEditorModel::saveModel() const {
+OrderItemEditorModel::ModelSaveResult OrderItemEditorModel::saveModel(const QSqlRecord &order) {
   auto newRows = pendingNewRows();
   auto edited  = editedCells();
-  if(newRows.isEmpty() && edited.isEmpty()) return { .ok = false, .errors = "Tidak ada data untuk disimpan" };
+  if(newRows.isEmpty() && edited.isEmpty()) return { .ok = false, .error = "Tidak ada data untuk disimpan" };
+  auto ms = ModelSaveResult {};
+  auto o_id = order.value("order_id");
   
+  QList<qlonglong> insertedId;
+  for(auto &newMap : newRows) {
+    newMap["order_id"] = o_id;
+    auto opt_oitem = oim.create(newMap);
+    if(!opt_oitem.has_value()) {
+      return {.ok = false, .error = oim.errorString()};
+    }
+    auto newItem  = *opt_oitem;
+    insertedId << newItem.value("id").toLongLong();
+  }
+  
+  QList<qlonglong> updatedId;
+  QMap<int, QVariantMap> updates;
+  for(auto const& [pair, edt] : edited.asKeyValueRange()) {
+    auto cindex = index(pair.first, pair.second);
+    auto u_id = index(pair.first, pair.second).siblingAtColumn(0).data(Qt::EditRole).toInt();
+    if (!updates.contains(pair.first)) {
+      updates[u_id] = { { columnKey(pair.second), edt } };
+    } else {
+      updates[u_id][columnKey(pair.second)] = edt;
+    }
+  }
+  for(auto const &[upd_id, updmap] : updates.asKeyValueRange()) {
+    bool updok = oim.update(upd_id, updmap);
+    if (!updok) {
+      return {.ok = false, .error = oim.errorString()};
+    }
+    updatedId << upd_id;
+  }
+  return {.ok = true, .error = ""};
+
 }
 
 bool OrderItemEditorModel::loadFromOrder(int orderid)

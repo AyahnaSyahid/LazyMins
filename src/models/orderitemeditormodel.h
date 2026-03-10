@@ -63,9 +63,10 @@ public:
     
     struct ModelSaveResult {
       bool ok = false;
-      QString errors;
-      QList<int> ids;
-    } saveModel() const;
+      QString error;
+    };
+    
+    ModelSaveResult saveModel(const QSqlRecord& rec);
     
 signals:
     void subtotalChanged();

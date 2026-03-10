@@ -242,14 +242,25 @@ void OrderDialog::setupBoundFields()
 bool OrderDialog::onSave(const QVariantMap &mp) {
 
   BaseManager::connection.transaction();
-  
   auto opt_order = oman.create(mp);
-
+  debugMap(mp);
   if (opt_order.has_value()) {
     auto ord_rec = *opt_order;
-    
+    auto sr = emodel->saveModel(ord_rec);
+    if(!sr.ok) {
+      QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order:\n%1").arg(sr.error));
+      BaseManager::connection.rollback();
+    }
+    // update order
+    if (BaseManager::connection.commit()) {
+      return true;
+    }
+    BaseManager::connection.rollback();
+  } else {
+    QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order:\n%1").arg(oman.errorString()));
+    return false;
   }
-
+  QMessageBox::information(this, "Kesalahan", "Error : tidak terdefinisi");
   return false;
 }
 

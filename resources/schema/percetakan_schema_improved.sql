@@ -481,8 +481,44 @@ CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
 
+
 -- ============================================================================
--- 8. TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)
+-- 8.1 TABEL INVENTORI - STOCK CONSUMES (TAMBAHAN BARU)
+-- ============================================================================
+-- saat ini kita belum bisa menyediakan data barang / stock
+
+CREATE TABLE stock_consumes (
+    id             INTEGER  PRIMARY KEY,
+    product_id     INTEGER  NOT NULL,
+    consumes_type  TEXT     NOT NULL CHECK (consumes_type IN ('in', 'out', 'adjustment') ),
+    quantity       INTEGER  NOT NULL,
+    stock_before   INTEGER  NOT NULL,
+    stock_after    INTEGER  NOT NULL,
+    reference_type TEXT,
+    reference_id   INTEGER,
+    notes          TEXT,
+    admin_id       INTEGER  NOT NULL,
+    consumes_date  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (
+        product_id
+    )
+    REFERENCES products (id) ON DELETE RESTRICT,
+    FOREIGN KEY (
+        admin_id
+    )
+    REFERENCES admins (id)
+);
+
+-- Index untuk stock consumes
+CREATE INDEX idx_stock_consumes_product ON stock_consumes(product_id);
+CREATE INDEX idx_stock_consumes_product_id ON stock_consumes(product_id, id);
+CREATE INDEX idx_stock_consumes_date ON stock_consumes(movement_date);
+CREATE INDEX idx_stock_consumes_type ON stock_consumes(movement_type);
+
+-- ============================================================================
+-- 8.2 TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)
 -- ============================================================================
 
 -- Tabel Stock Movements: Tracking pergerakan stok
@@ -511,6 +547,7 @@ CREATE TABLE stock_movements (
 
 -- Index untuk stock movements
 CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
+CREATE INDEX idx_stock_product_id ON stock_movements(product_id, id);
 CREATE INDEX idx_stock_movements_date ON stock_movements(movement_date);
 CREATE INDEX idx_stock_movements_type ON stock_movements(movement_type);
 

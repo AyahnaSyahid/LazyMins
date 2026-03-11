@@ -621,6 +621,74 @@ void TransaksiManager::beforeCreate(QVariantMap& params)
 }
 
 // ============================================================================
+// StockConsumesRepo
+// ============================================================================
+
+QList<QSqlRecord> StockConsumesRepo::getByProduct(int productId, int limit)
+{
+    return getWhere("product_id = :product_id",
+                    {{"product_id", productId}},
+                    "consumes_date DESC", limit);
+}
+
+QList<QSqlRecord> StockConsumesRepo::getByType(const QString& movementType)
+{
+    return getWhere("movement_type = :movement_type",
+                    {{"movement_type", movementType}}, "consumes_date DESC");
+}
+
+QList<QSqlRecord> StockConsumesRepo::getByDateRange(const QDate& from, const QDate& to)
+{
+    return getWhere(
+        "DATE(movement_date) BETWEEN :from AND :to",
+        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
+        "consumes_date DESC");
+}
+
+QList<QSqlRecord> StockConsumesRepo::getByReference(const QString& referenceType, int referenceId)
+{
+    return getWhere(
+        "reference_type = :rt AND reference_id = :rid",
+        {{"rt", referenceType}, {"rid", referenceId}});
+}
+
+std::optional<QSqlRecord> StockConsumesRepo::recordConsumes(
+    int productId, const QString& type, int quantity,
+    int stockBefore, int stockAfter, int adminId,
+    const QString& referenceType, int referenceId, const QString& notes)
+{
+    QVariantMap p;
+    p["product_id"]     = productId;
+    p["movement_type"]  = type;
+    p["quantity"]       = quantity;
+    p["stock_before"]   = stockBefore;
+    p["stock_after"]    = stockAfter;
+    p["admin_id"]       = adminId;
+    p["consumes_date"]  = QDateTime::currentDateTimeUtc();
+    if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
+    if (referenceId > 0)          p["reference_id"]   = referenceId;
+    if (!notes.isEmpty())         p["notes"]          = notes;
+    return create(p);
+}
+
+QVariantMap StockConsumesRepo::validateParams(const QVariantMap& params)
+{
+    QVariantMap p = params;
+    static const QStringList allowed {
+        "product_id", "movement_type", "quantity",
+        "stock_before", "stock_after",
+        "reference_type", "reference_id",
+        "notes", "admin_id", "consumes_date",
+        "created_at", "updated_at"
+    };
+    for (const QString& key : p.keys())
+        if (!allowed.contains(key)) p.remove(key);
+    return p;
+}
+
+
+
+// ============================================================================
 // StockMovementManager
 // ============================================================================
 

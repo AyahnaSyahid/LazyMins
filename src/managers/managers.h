@@ -298,6 +298,32 @@ protected:
     QVariantMap validateParams(const QVariantMap& params) override;
 };
 
+class StockConsumesRepo : public BaseManager
+{
+public:
+  explicit StockConsumesRepo()
+      : BaseManager("stock_consumes") {}
+
+  QList<QSqlRecord> getByProduct(int productId, int limit = -1);
+  QList<QSqlRecord> getByType(const QString& movementType); // 'in' | 'out' | 'adjustment'
+  QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
+  QList<QSqlRecord> getByReference(const QString& referenceType, int referenceId);
+
+  // Convenience recorder
+  std::optional<QSqlRecord> recordConsumes(int productId,
+                                           const QString& type,
+                                           int quantity,
+                                           int stockBefore,
+                                           int stockAfter,
+                                           int adminId,
+                                           const QString& referenceType = "",
+                                           int referenceId = -1,
+                                           const QString& notes = "");
+protected:
+    QVariantMap validateParams(const QVariantMap& params) override;
+};
+
+
 // ============================================================================
 // ActivityLogManager — tabel: activity_logs
 // ============================================================================

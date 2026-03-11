@@ -78,6 +78,7 @@ private:
     QHash<QPair<int,int>, QVariant> m_editedCells;
     QList<QVariantMap>              m_newData;
     OrderItemManager                oim;
+    StockConsumesRepo               scr;
     // untuk lookup flags width dan height apakah bisa diedit atau tidak
     QSqlTableModel *m_tableModel = nullptr;
 };

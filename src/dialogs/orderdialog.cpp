@@ -255,10 +255,14 @@ bool OrderDialog::onSave(const QVariantMap &mp) {
       QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order item:\n%1").arg(sr.error));
       BaseManager::connection.rollback();
     }
+
     // update order
+    
+    
     if (BaseManager::connection.commit()) {
       return true;
     }
+
     BaseManager::connection.rollback();
   } else {
     QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order:\n%1").arg(oman.errorString()));

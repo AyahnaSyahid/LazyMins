@@ -17,10 +17,6 @@ public:
     void setupFields() override;
     void setupBoundFields() override;
 
-    QVariantMap getFieldData() const {
-        return collect();
-    }
-    
     void setAutoCommit(bool autoCommit) {
         m_autoCommit = autoCommit;
     }

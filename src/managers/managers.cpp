@@ -355,8 +355,8 @@ QVariantMap OrderItemManager::validateParams(const QVariantMap& params)
     QVariantMap p = params;
     static const QStringList allowed {
         "order_id", "product_id", "product_name", "sku", "quantity", "unit",
-        "base_price", "discount_percentage", "discount_amount", "subtotal",
-        "notes", "created_at", "updated_at"
+        "base_price", "sale_price", "discount_percentage", "discount_amount", "subtotal",
+        "notes", "created_at", "updated_at", "total"
     };
     for (const QString& key : p.keys())
         if (!allowed.contains(key)) p.remove(key);

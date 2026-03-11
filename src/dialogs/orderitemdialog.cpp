@@ -2,6 +2,8 @@
 #include "ui_orderitemdialog.h"
 #include <QMessageBox>
 
+void debugMap(const QVariantMap& );
+
 namespace {
     void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
     std::visit([&value](auto* editor) {
@@ -92,6 +94,8 @@ QVariantMap OrderItemDialog::collect() const
     auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
     auto costPrice = index.siblingAtColumn(4).data(Qt::EditRole).toInt();
     auto opt = m_priceManager.getPrice(index.data().toInt(), m_customerPriceLevel);
+    
+
     data["base_price"] = costPrice;
     if (opt.has_value())
         data["base_price"] = *opt;
@@ -105,7 +109,7 @@ QVariantMap OrderItemDialog::collect() const
     auto ropt = m_productManager.getById(data["product_id"].toInt());
     if(ropt.has_value())
       data["use_area"] = (*ropt).value("use_area");
-    
+
     return data;
 }
 
@@ -139,6 +143,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     if (use_area.toInt() == 1) { // jika produk menggunakan area, aktifkan input width & height
         ui->widthBox->setEnabled(true);
         ui->heightBox->setEnabled(true);
+        ui->widthBox->setMinimum(0.01);
+        ui->heightBox->setMinimum(0.01);
     } else {
         ui->widthBox->setEnabled(false);
         ui->heightBox->setEnabled(false);
@@ -147,9 +153,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     }
     // dapatkan current product id
     int productId = model->index(index, 0).data(Qt::EditRole).toInt();
+    
     // dapatkan harga berdasarkan price level customer
-
-
     auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
     if (optprice.has_value()) {
         ui->hargaSpinBox->setMinimum(*optprice);

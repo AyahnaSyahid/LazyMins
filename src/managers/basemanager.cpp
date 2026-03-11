@@ -1,5 +1,8 @@
 #include "basemanager.h"
 #include <QSqlDriver>
+
+void debugMap(const QVariantMap&);
+
 QSqlDatabase BaseManager::connection;
 
 QSqlQuery BaseManager::baseQuery() {
@@ -47,6 +50,8 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   for (auto it = validatedParams.begin(); it != validatedParams.end(); ++it) {
       query.bindValue(":" + it.key(), it.value());
   }
+  
+
   if (query.exec()) {
       int lastId = query.lastInsertId().toInt();
       auto record = getById(lastId);
@@ -57,6 +62,8 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
       
       return record;
   }
+  
+  qDebug() << "exec failed" << query.lastError().text();
   setErrorString(query.lastError().text());
   return std::nullopt;
 }

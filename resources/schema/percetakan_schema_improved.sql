@@ -199,29 +199,29 @@ CREATE TABLE product_prices (
 
 INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, cost_price, use_area) VALUES 
     ('BN-FLEX',    'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30, 15000, 1),
-    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20, 45000, 1),
-    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15, 90000, 1),
-    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10, 90000, 1),
-    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10,120000, 1),
-    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 1),
-    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 1),
-    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 1),
-    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,  3000, 1),
-    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,  5000, 1),
-    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,  8500, 1),
-    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,  8500, 1),
-    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10, 75000, 1),
-    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10, 60000, 1),
-    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 1),
-    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10, 10000, 1),
-    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5, 12000, 1),
-    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5, 20000, 1),
-    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3, 15000, 1),
-    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2, 35000, 1),
-    ('OFF-TOKO',   'CO-TOKO',         4, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 1),
-    ('OFF-SORM-F', 'CO-SORM-F',       4, 'Cetak Offset SORM Full Color',        'set',     80, 20, 20000, 1),
-    ('OFF-P46-F',  'CO-P46-F',        4, 'Cetak Offset P46 Full Color',         'set',     60, 15, 15000, 1),
-    ('OFF-P52-F',  'CO-P52-F',        4, 'Cetak Offset P52 Full Color',         'set',     40, 10, 35000, 1);
+    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20,  45000, 1),
+    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15,  90000, 1),
+    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10,  90000, 1),
+    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10, 120000, 1),
+    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 0),
+    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 0),
+    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 0),
+    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,   3000, 0),
+    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,   5000, 0),
+    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,   8500, 0),
+    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,   8500, 0),
+    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10,  75000, 0),
+    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10,  60000, 0),
+    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 0),
+    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10,  10000, 0),
+    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5,   12000, 0),
+    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5,   20000, 0),
+    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3,   15000, 0),
+    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2,    35000, 0),
+    ('OFF-TOKO',   'CO-TOKO',         4, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 0),
+    ('OFF-SORM-F', 'CO-SORM-F',       4, 'Cetak Offset SORM Full Color',        'set',     80, 20,  20000, 0),
+    ('OFF-P46-F',  'CO-P46-F',        4, 'Cetak Offset P46 Full Color',         'set',     60, 15,  15000, 0),
+    ('OFF-P52-F',  'CO-P52-F',        4, 'Cetak Offset P52 Full Color',         'set',     40, 10,  35000, 0);
 
 -- ============================================================================
 -- 4. TABEL MASTER - LAYANAN FINISHING
@@ -728,64 +728,6 @@ END;
 -- Format: ORD-YYYYMMDD-XXXXX (tanggal + 5 digit urut berdasarkan id)
 -- WHEN NEW.order_number IS NULL memastikan trigger tidak berjalan
 -- jika aplikasi sudah menyediakan nilai sendiri.
-CREATE TRIGGER trg_orders_generate_number
-AFTER INSERT ON orders
-WHEN NEW.order_number IS NULL
-BEGIN
-    UPDATE orders
-    SET order_number = 'ORD-' || STRFTIME('%Y%m%d', 'now') || '-' || PRINTF('%05d', NEW.id)
-    WHERE id = NEW.id;
-END;
-
--- Trigger: Update stok saat order item ditambahkan (untuk produk stok)
-CREATE TRIGGER trg_order_items_reduce_stock
-AFTER INSERT ON order_items
-WHEN NEW.product_id IS NOT NULL
-BEGIN
-    -- Kurangi stok produk
-    UPDATE products 
-    SET stock = stock - NEW.quantity 
-    WHERE id = NEW.product_id;
-    
-    -- Catat stock movement
-    INSERT INTO stock_movements (
-        product_id, movement_type, quantity, 
-        stock_before, stock_after, 
-        reference_type, reference_id, 
-        notes, admin_id
-    )
-    SELECT 
-        NEW.product_id,
-        'out',
-        -NEW.quantity,
-        p.stock + NEW.quantity,
-        p.stock,
-        'order',
-        NEW.order_id,
-        'Stock berkurang dari order #' || (SELECT order_number FROM orders WHERE id = NEW.order_id),
-        (SELECT admin_id FROM orders WHERE id = NEW.order_id)
-    FROM products p
-    WHERE p.id = NEW.product_id;
-END;
-
--- Trigger: Kembalikan stok saat order dibatalkan
-CREATE TRIGGER trg_orders_cancel_restore_stock
-AFTER UPDATE ON orders
-WHEN NEW.status = 'cancelled' AND OLD.status != 'cancelled'
-BEGIN
-    -- Kembalikan stok untuk semua item di order
-    UPDATE products 
-    SET stock = stock + (
-        SELECT SUM(quantity) 
-        FROM order_items 
-        WHERE order_id = NEW.id AND product_id = products.id
-    )
-    WHERE id IN (
-        SELECT product_id 
-        FROM order_items 
-        WHERE order_id = NEW.id AND product_id IS NOT NULL
-    );
-END;
 
 -- Trigger: Update payment status order saat ada pembayaran
 CREATE TRIGGER trg_payments_update_order_status

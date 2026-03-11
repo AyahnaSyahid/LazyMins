@@ -25,7 +25,7 @@ protected:
   bool onSave(const QVariantMap &) override;
   void onPrepareCreate() override;
   void onPrepareModify(const QSqlRecord &orderRecord);
-  void onOrderItemDialogAccepted();
+  void onOrderItemDialogAccepted(const QVariantMap& ss);
 
 
 private slots:

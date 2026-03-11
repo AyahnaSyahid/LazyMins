@@ -74,7 +74,7 @@ OrderItemEditorModel::ModelSaveResult OrderItemEditorModel::saveModel(const QSql
   auto edited  = editedCells();
   if(newRows.isEmpty() && edited.isEmpty()) return { .ok = false, .error = "Tidak ada data untuk disimpan" };
   auto ms = ModelSaveResult {};
-  auto o_id = order.value("order_id");
+  auto o_id = order.value("id");
   
   QList<qlonglong> insertedId;
   for(auto &newMap : newRows) {

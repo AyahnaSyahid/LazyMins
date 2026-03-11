@@ -242,13 +242,17 @@ void OrderDialog::setupBoundFields()
 bool OrderDialog::onSave(const QVariantMap &mp) {
 
   BaseManager::connection.transaction();
-  auto opt_order = oman.create(mp);
-  debugMap(mp);
+  auto mpc = mp;
+  
+  // ambil id dari session
+  mpc["admin_id"] = 1;
+  debugMap(mpc);
+  auto opt_order = oman.create(mpc);
   if (opt_order.has_value()) {
     auto ord_rec = *opt_order;
     auto sr = emodel->saveModel(ord_rec);
     if(!sr.ok) {
-      QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order:\n%1").arg(sr.error));
+      QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order item:\n%1").arg(sr.error));
       BaseManager::connection.rollback();
     }
     // update order
@@ -276,10 +280,10 @@ void OrderDialog::onPrepareModify(const QSqlRecord &orderRecord)
   emodel->loadFromOrder(orderRecord.value("id").toInt());
 }
 
-void OrderDialog::onOrderItemDialogAccepted()
+void OrderDialog::onOrderItemDialogAccepted(const QVariantMap& data)
 {
   OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
-  QVariantMap itemData = editor->getFieldData();
+  QVariantMap itemData = data;
   qDebug() << itemData;
   emodel->appendRow(itemData);
   editor->resetForm();

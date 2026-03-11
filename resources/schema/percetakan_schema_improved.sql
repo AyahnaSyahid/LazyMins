@@ -244,7 +244,8 @@ CREATE TABLE order_items (
     product_id INTEGER,
     product_name TEXT NOT NULL,       -- TAMBAHAN: Denormalisasi nama produk
     sku TEXT,                         -- TAMBAHAN: Denormalisasi SKU
-    quantity INTEGER NOT NULL CHECK(quantity > 0),
+    quantity INTEGER NOT NULL DEFAULT 1 
+        CHECK(quantity > 0),
     unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan
     size_width REAL DEFAULT 1,        -- TAMBAHAN: Panjang - hanya dihitung bila use_area = 1
     size_height REAL DEFAULT 1,       -- TAMBAHAN: Tinggi  - hanya dihitung bila use_area = 1
@@ -253,8 +254,11 @@ CREATE TABLE order_items (
     base_price INTEGER NOT NULL,         -- Harga dasar satuan
     discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Diskon per item (hanya estimasi tidak dihitung)
     discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon (discount real masuk hitungan)
-    subtotal INTEGER NOT NULL,           -- Subtotal = (quantity * sale_price * size_width * size_height)
-    total INTEGER NOT NULL,              -- Total =  Subtotal - ( discount + finishing )
+    subtotal INTEGER GENERATED ALWAYS AS ( -- Subtotal = (quantity * sale_price * size_width * size_height)
+                    CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) VIRTUAL,
+    finishing_total INTEGER NOT NULL DEFAULT 0,
+    total INTEGER GENERATED ALWAYS AS (
+                    (CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) + finishing_total - discount_amount) VIRTUAL,              -- Total =  Subtotal - ( discount + finishing )
     notes TEXT,                          -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -274,11 +278,12 @@ CREATE TABLE order_item_finishings (
     finishing_name TEXT NOT NULL,     -- TAMBAHAN: Denormalisasi nama finishing
     quantity INTEGER DEFAULT 1,       -- TAMBAHAN: Jumlah yang di-finishing
     finishing_price INTEGER NOT NULL,    -- Harga finishing per unit
-    subtotal INTEGER NOT NULL,           -- TAMBAHAN: Total = quantity * finishing_price
+    subtotal        INTEGER  NOT NULL
+                             GENERATED ALWAYS AS (quantity * finishing_price) VIRTUAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
-    FOREIGN KEY (finishing_id) REFERENCES finishing_services(id) ON DELETE RESTRICT
+    FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (finishing_id) REFERENCES finishing_services(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- Index untuk order item finishings
@@ -669,6 +674,50 @@ END;
 -- WHEN NEW.order_number IS NULL memastikan trigger tidak berjalan
 -- jika aplikasi sudah menyediakan nilai sendiri.
 
+-- Trigger : order_item_finishings insert finishing
+CREATE TRIGGER trg_order_item_finishings_add
+    AFTER INSERT ON order_item_finishings
+BEGIN
+    UPDATE orders_item
+    SET finishing_total = finishing_total + NEW.subtotal
+    WHERE id = NEW.order_item_id;
+END;
+
+-- Trigger : order_item_finishings insert finishing
+CREATE TRIGGER trg_order_item_finishings_add
+    AFTER INSERT ON order_item_finishings
+BEGIN
+    UPDATE orders_item
+    SET finishing_total = finishing_total + NEW.subtotal
+    WHERE id = NEW.order_item_id;
+END;
+
+-- Trigger : order_item_finishings update finishing
+CREATE TRIGGER trg_order_item_finishing_adjust
+    AFTER UPDATE OF quantity, finishing_price 
+        ON order_item_finishings
+BEGIN
+    UPDATE orders_item
+    SET finishing_total = finishing_total - OLD.subtotal + NEW.subtotal,
+        updated_at = date('now')
+    WHERE id = NEW.order_item_id;
+    
+    UPDATE order_item_finishings
+    SET updated_at = date('now')
+    WHERE id = NEW.id;
+END;
+
+-- Trigger : order_item_finishings remove finishing
+CREATE TRIGGER trg_order_item_finishing_remove
+    AFTER DELETE ON order_item_finishings
+BEGIN
+    UPDATE orders_item
+    SET finishing_total = finishing_total - OLD.subtotal,
+        updated_at = date('now')
+    WHERE id = NEW.order_item_id;
+    
+END;
+
 -- Trigger: Update payment status order saat ada pembayaran
 CREATE TRIGGER trg_payments_update_order_status
 AFTER INSERT ON payments
@@ -730,84 +779,29 @@ BEGIN
     );
 END;
 
--- Trigger : kurangi stok setelah insert order_items
-CREATE TRIGGER trg_order_items_decrease_stock
+-- Trigger : order_item
+-- insert order_item
+CREATE TRIGGER trg_order_items_insertion
 AFTER INSERT ON order_items
 BEGIN
-    -- Update product Stock
-    UPDATE products
+    UPDATE orders
+    SET subtotal = subtotal + NEW.total,
+        updated_at = date('now')
+    WHERE id = NEW order_id;
+    
+    INSERT INTO stock_movements
+       ( product_id, movement_type, quantity, stock_before
+         stock_after, reference_type, reference_id, notes,
+         admin_id, movement_date )
+    VALUES
+        ( NEW.product_id, 'out', NEW.quantity, 
+        ( SELECT stock FROM products WHERE id = NEW.product_id),
+        ( SELECT stock - NEW.quantity FROM products WHERE id = NEW.product_id),
+          'orders.id', NEW.order_id, 'Penjualan', 1, date('now') );
+    
+    UPDATE products 
     SET stock = stock - NEW.quantity
     WHERE id = NEW.product_id;
-    
-    -- LOG Movements
-    INSERT INTO stock_movements (
-        product_id, movement_type, quantity,
-        stock_before, stock_after, reference_type,
-        reference_id, notes, admin_id, movement_date
-    )
-    VALUES (
-        NEW.product_id, 'out', NEW.quantity,
-        (SELECT stock + NEW.quantity FROM products WHERE id = NEW.product_id),
-        (SELECT stock FROM product WHERE id = NEW.product_id), 'products.id',
-        NEW.product_id, 'Penjualan Produk',
-        1, date('now')
-    );
-END;
-
--- Trigger : sesuaikan stock saat terjadi update
-CREATE TRIGGER trg_order_items_adjust_stock
-AFTER UPDATE OF quantity ON order_items
-WHEN OLD.quantity <> NEW.quantity
-BEGIN
-    -- update products Stock
-    UPDATE products
-    SET stock = stock + (OLD.quantity - NEW.quantity)
-    WHERE id = NEW.products_id;
-    
-    -- LOG movements
-    INSERT INTO stock_movements (
-        product_id, movement_type, quantity,
-        stock_before, stock_after, reference_type,
-        reference_id, notes, admin_id, movement_date
-    )
-    VALUES (
-        NEW.product_id, 
-        CASE WHEN OLD.quantity > NEW.quantity THEN 'in' ELSE 'out' END,
-        ABS(OLD.quantity - NEW.quantity),  
-        (SELECT stock - (OLD.quantity - NEW.quantity) FROM products WHERE id = NEW.product_id),
-        (SELECT stock FROM product WHERE id = NEW.product_id), 'order_items.id',
-        NEW.id, 'Perubahan qty penjualan',
-        1, date('now')
-    );
-    
-END;
-
--- Trigger : sesuaikan stock saat terjadi delete pada order_items
-CREATE TRIGGER trg_order_items_rollback_stock
-AFTER DELETE ON order_items
-BEGIN
-    -- update products Stock
-    UPDATE products
-    SET stock = stock + OLD.quantity
-    WHERE id = NEW.products_id;
-    
-    -- LOG movements
-    INSERT INTO stock_movements (
-        product_id, movement_type, quantity,
-        stock_before, stock_after, reference_type,
-        reference_id, notes, admin_id, movement_date
-    )
-    VALUES (
-        OLD.product_id, 'in',
-        NEW.quantity,  
-        (SELECT stock - OLD.quantity FROM products WHERE id = NEW.product_id),
-        (SELECT stock FROM product WHERE id = NEW.product_id), 'order_items.id',
-        NEW.id, 'Penghapusan penjualan',
-        1, date('now')
-    );
-    
-    -- update order
-    
 END;
 
 -- ============================================================================

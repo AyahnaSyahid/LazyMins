@@ -1,6 +1,12 @@
 #include "initializeschema.h"
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QFile>
+#include <QFileInfo>
+#include <QTextStream>
 
-bool initializeSchemaFile(const QString& fileName, QSqlDatabase &db) {
+
+bool initializeSchemaFile(const QString& fileName, QSqlDatabase db) {
   if (!db.isOpen()) return false;
   QStringList stl;
   QFile sf(fileName);

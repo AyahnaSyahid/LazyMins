@@ -2,4 +2,4 @@
 
 #include <QSqlDatabase>
 
-bool initializeSchemaFile(const QString& schema, const QSqlDatabase &db = QSqlDatabase::database());
+bool initializeSchemaFile(const QString& schema, QSqlDatabase db = QSqlDatabase::database());

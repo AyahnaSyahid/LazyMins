@@ -20,6 +20,7 @@ qt_standard_project_setup()
 qt_add_library(Mgr_LAdmins STATIC 
                        src/utils/authmanager.cpp
                        src/database/databasemanager.cpp
+                       src/database/initializeschema.cpp
                        src/managers/basemanager.cpp
                        src/managers/adminmanager.cpp
                        src/managers/managers.cpp

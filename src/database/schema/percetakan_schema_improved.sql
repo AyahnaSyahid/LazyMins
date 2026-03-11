@@ -20,11 +20,6 @@ CREATE TABLE roles (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Data awal roles
-INSERT INTO roles (id, role_name, description) VALUES
-(1, 'super_admin', 'Akses penuh ke seluruh sistem'),
-(2, 'kasir', 'Menangani transaksi dan pembayaran'),
-(3, 'operator', 'Mengelola order dan produksi');
 
 -- Tabel Admins: Pengguna/staff yang mengoperasikan sistem
 CREATE TABLE admins (
@@ -91,15 +86,6 @@ CREATE TABLE product_categories (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Data awal kategori produk
-INSERT INTO product_categories (category_name, description) VALUES
-('Banner', 'Banner dan spanduk'),
-('Brosur', 'Brosur dan flyer'),
-('Kartu Nama', 'Business card dan kartu'),
-('Stiker', 'Stiker dan label'),
-('Fotocopy', 'Layanan fotocopy'),
-('Lainnya', 'Produk lainnya');
-
 -- Tabel Products: Produk yang dijual (diperbaiki)
 CREATE TABLE products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,11 +117,7 @@ CREATE TABLE price_levels (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Data awal price levels
-INSERT INTO price_levels (id, level_name, discount_percentage, description) VALUES
-(1, 'order', 0, 'Harga normal untuk pelanggan umum'),
-(2, 'reseller', 10, 'Harga untuk reseller dengan diskon 10%'),
-(3, 'wholesale', 15, 'Harga grosir dengan diskon 15%');
+
 
 -- Tabel Product Prices: Harga produk berdasarkan level
 CREATE TABLE product_prices (
@@ -276,14 +258,6 @@ CREATE TABLE payment_methods (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Data awal payment methods
-INSERT INTO payment_methods (method_code, method_name) VALUES
-('cash', 'Tunai'),
-('transfer', 'Transfer Bank'),
-('qris', 'QRIS'),
-('debit', 'Kartu Debit'),
-('credit', 'Kartu Kredit');
-
 -- Tabel Payments: Pembayaran dari customer (diperbaiki)
 CREATE TABLE payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -347,17 +321,6 @@ CREATE TABLE kategori_transaksi (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES kategori_transaksi(id)
 );
-
--- Data awal kategori transaksi
-INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
-('Penjualan Produk', 'pemasukan', 'Pemasukan dari penjualan produk'),
-('Penjualan Jasa', 'pemasukan', 'Pemasukan dari jasa finishing'),
-('Lain-lain (Pemasukan)', 'pemasukan', 'Pemasukan lainnya'),
-('Pembelian Bahan', 'pengeluaran', 'Pengeluaran untuk bahan baku'),
-('Gaji Karyawan', 'pengeluaran', 'Pengeluaran gaji'),
-('Utilitas', 'pengeluaran', 'Listrik, air, internet'),
-('Maintenance', 'pengeluaran', 'Perawatan mesin dan peralatan'),
-('Lain-lain (Pengeluaran)', 'pengeluaran', 'Pengeluaran lainnya');
 
 -- Tabel Transaksi: Catatan pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE transaksi (
@@ -467,19 +430,6 @@ CREATE TABLE app_settings (
     FOREIGN KEY (updated_by) REFERENCES admins(id)
 );
 
--- Data awal settings
-INSERT INTO app_settings (setting_key, setting_value, data_type, description) VALUES
-('company_name', 'Percetakan Maju Jaya', 'string', 'Nama perusahaan'),
-('company_address', '', 'string', 'Alamat perusahaan'),
-('company_phone', '', 'string', 'Nomor telepon perusahaan'),
-('company_email', '', 'string', 'Email perusahaan'),
-('tax_percentage', '11', 'number', 'Persentase PPN'),
-('currency', 'IDR', 'string', 'Mata uang'),
-('order_number_prefix', 'ORD', 'string', 'Prefix nomor order'),
-('payment_number_prefix', 'PAY', 'string', 'Prefix nomor pembayaran'),
-('auto_complete_paid_orders', '1', 'boolean', 'Otomatis selesaikan order yang lunas'),
-('low_stock_alert', '10', 'number', 'Alert jika stok dibawah nilai ini');
-
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)
 -- ============================================================================
@@ -575,6 +525,22 @@ ORDER BY k.total_spent DESC;
 -- ============================================================================
 -- 12. TRIGGERS - AUTOMASI (TAMBAHAN BARU)
 -- ============================================================================
+
+-- Trigger: tambahkan product pada tabel stock_movement (tracking)
+
+CREATE TRIGGER trg_add_product_stock
+AFTER INSERT ON products
+BEGIN
+    INSERT INTO 
+        stock_movement (
+            product_id, movement_type, quantity,
+            stock_before, stock_after, reference_type,
+            reference_id, notes, admin_id, movement_date )
+    VALUES ( NEW.id,      'in',  NEW.stock,
+                  0, NEW.stock, 'products',
+             NEW.id, 'Product stock init',
+                  1, DATE('now'));
+END;
 
 -- Trigger: Update timestamp saat data berubah
 CREATE TRIGGER trg_admins_updated_at 
@@ -699,8 +665,6 @@ END;
 -- SELESAI
 -- ============================================================================
 
-COMMIT;
-
 -- Aktifkan kembali foreign keys
 PRAGMA foreign_keys = ON;
 
@@ -714,3 +678,60 @@ PRAGMA foreign_keys = ON;
 -- 5. Triggers otomatis menangani update timestamp dan stok
 -- 6. Views tersedia untuk laporan cepat
 -- ============================================================================
+
+-- DATA awal
+
+-- Data awal settings
+INSERT INTO app_settings (setting_key, setting_value, data_type, description) VALUES
+('company_name', 'Percetakan Maju Jaya', 'string', 'Nama perusahaan'),
+('company_address', '', 'string', 'Alamat perusahaan'),
+('company_phone', '', 'string', 'Nomor telepon perusahaan'),
+('company_email', '', 'string', 'Email perusahaan'),
+('tax_percentage', '11', 'number', 'Persentase PPN'),
+('currency', 'IDR', 'string', 'Mata uang'),
+('order_number_prefix', 'ORD', 'string', 'Prefix nomor order'),
+('payment_number_prefix', 'PAY', 'string', 'Prefix nomor pembayaran'),
+('auto_complete_paid_orders', '1', 'boolean', 'Otomatis selesaikan order yang lunas'),
+('low_stock_alert', '10', 'number', 'Alert jika stok dibawah nilai ini');
+
+-- Data awal roles
+INSERT INTO roles (id, role_name, description) VALUES
+(1, 'super_admin', 'Akses penuh ke seluruh sistem'),
+(2, 'kasir', 'Menangani transaksi dan pembayaran'),
+(3, 'operator', 'Mengelola order dan produksi');
+
+-- Data awal kategori transaksi
+INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
+('Penjualan Produk', 'pemasukan', 'Pemasukan dari penjualan produk'),
+('Penjualan Jasa', 'pemasukan', 'Pemasukan dari jasa finishing'),
+('Lain-lain (Pemasukan)', 'pemasukan', 'Pemasukan lainnya'),
+('Pembelian Bahan', 'pengeluaran', 'Pengeluaran untuk bahan baku'),
+('Gaji Karyawan', 'pengeluaran', 'Pengeluaran gaji'),
+('Utilitas', 'pengeluaran', 'Listrik, air, internet'),
+('Maintenance', 'pengeluaran', 'Perawatan mesin dan peralatan'),
+('Lain-lain (Pengeluaran)', 'pengeluaran', 'Pengeluaran lainnya');
+
+-- Data awal kategori produk
+INSERT INTO product_categories (category_name, description) VALUES
+('Banner', 'Banner dan spanduk'),
+('Brosur', 'Brosur dan flyer'),
+('Kartu Nama', 'Business card dan kartu'),
+('Stiker', 'Stiker dan label'),
+('Fotocopy', 'Layanan fotocopy'),
+('Lainnya', 'Produk lainnya');
+
+-- Data awal price levels
+INSERT INTO price_levels (id, level_name, discount_percentage, description) VALUES
+(1, 'order', 0, 'Harga normal untuk pelanggan umum'),
+(2, 'reseller', 10, 'Harga untuk reseller dengan diskon 10%'),
+(3, 'wholesale', 15, 'Harga grosir dengan diskon 15%');
+
+-- Data awal payment methods
+INSERT INTO payment_methods (method_code, method_name) VALUES
+('cash', 'Tunai'),
+('transfer', 'Transfer Bank'),
+('qris', 'QRIS'),
+('debit', 'Kartu Debit'),
+('credit', 'Kartu Kredit');
+
+COMMIT;

@@ -20,6 +20,7 @@ public:
 public slots:
     void refresh();
     void setFilter(const QString &filter);
+
 private slots:
     void updateNavigation();
 

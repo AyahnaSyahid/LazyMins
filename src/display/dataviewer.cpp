@@ -65,6 +65,7 @@ void DataViewer::refresh()
 
 void DataViewer::setFilter(const QString &filter)
 {
-    m_model.setFilter(filter);
+    QString base("sku LIKE %'%1'% OR name LIKE %'%1'%")
+    m_model.setFilter(base.arg(filter));
     updateNavigation();
 }

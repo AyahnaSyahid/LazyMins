@@ -754,6 +754,16 @@ INSERT INTO app_settings (setting_key, setting_value, data_type, description) VA
 ('max_login_failCount', '3', 'number', 'Jeda login jika gagal melewati batas ini'),
 ('login_failCount_timeout_sec', '30', 'number', 'Batas waktu agar bisa relogin setelah failCount');
 
+-- Finishing Services
+INSERT INTO finishing_services (code, name, description, price_per_unit) VALUES 
+('A3-DOF', 'L DOFF', 'A3Plus Laminasi Doff', 4000),
+('A3-GLOS', 'L GLOS', 'A3Plus Laminasi Glossy', 4000),
+('A3-CUT-SUMMA', 'CUT SUMMA', 'A3Plus Cutting - Summa', 5000),
+('A3-CUT-SAGA', 'CUT SAGA', 'A3Plus Cutting - SAGA', 4000),
+('A3-PTG-MIN', 'POTONG MIN', 'A3Plus Potong MIN', 4000),
+('A3-PTG-MED', 'POTONG MED', 'A3Plus Potong MED', 8000),
+('A3-PTG-HI', 'POTONG HIGH', 'A3Plus Potong HIGH', 12000);
+
 -- Data awal roles
 INSERT INTO roles (id, role_name, description) VALUES
 (1, 'super_admin', 'Akses penuh ke seluruh sistem'),

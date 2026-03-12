@@ -73,6 +73,8 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
                            src/display/dataviewer.cpp
+                           src/display/finishingservicesviewer.h
+                           src/display/finishingservicesviewer.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp

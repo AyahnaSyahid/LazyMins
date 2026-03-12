@@ -24,6 +24,10 @@ public slots:
 private slots:
     void updateNavigation();
 
+protected:
+  Ui::DataViewer *Ui() { return ui; }
+  AdvancedQueryModel &model() {return m_model; }
+
 private:
     Ui::DataViewer *ui;
     AdvancedQueryModel m_model;

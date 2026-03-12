@@ -195,11 +195,13 @@ CREATE TABLE orders (
     price_level_id INTEGER DEFAULT 1, -- TAMBAHAN: Level harga yang digunakan
     
     -- Informasi finansial
-    subtotal INTEGER DEFAULT 0,          -- TAMBAHAN: Subtotal sebelum diskon
-    discount_amount INTEGER DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
-    discount_percentage INTEGER DEFAULT 0, -- TAMBAHAN: Persentase diskon (hanya estimasi tanpa perhitungan exact)
-    tax_amount INTEGER DEFAULT 0,        -- TAMBAHAN: Jumlah pajak (PPN)
-    total_amount INTEGER DEFAULT 0,      -- Total akhir
+    subtotal INTEGER NOT NULL DEFAULT 0,          -- TAMBAHAN: Subtotal sebelum diskon
+    discount_amount INTEGER NOT NULL DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
+    discount_percentage INTEGER NOT NULL DEFAULT 0, -- TAMBAHAN: Persentase diskon (hanya estimasi tanpa perhitungan exact)
+    tax_amount INTEGER NOT NULL DEFAULT 0,        -- TAMBAHAN: Jumlah pajak (PPN)
+    -- Total akhir
+    total_amount INTEGER GENERATED ALWAYS AS (
+        COALESCE(subtotal,0) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0) ) VIRTUAL,
     
     -- Status dan tracking
     status TEXT DEFAULT 'pending',    -- pending, processing, ready, completed, cancelled
@@ -258,7 +260,8 @@ CREATE TABLE order_items (
                     CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) VIRTUAL,
     finishing_total INTEGER NOT NULL DEFAULT 0,
     total INTEGER GENERATED ALWAYS AS (
-                    (CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) + finishing_total - discount_amount) VIRTUAL,              -- Total =  Subtotal - ( discount + finishing )
+                    (CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) + 
+                        COALESCE(finishing_total, 0) - COALESCE(discount_amount,0) ) VIRTUAL,              -- Total =  Subtotal - ( discount + finishing )
     notes TEXT,                          -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -278,8 +281,7 @@ CREATE TABLE order_item_finishings (
     finishing_name TEXT NOT NULL,     -- TAMBAHAN: Denormalisasi nama finishing
     quantity INTEGER DEFAULT 1,       -- TAMBAHAN: Jumlah yang di-finishing
     finishing_price INTEGER NOT NULL,    -- Harga finishing per unit
-    subtotal        INTEGER  NOT NULL
-                             GENERATED ALWAYS AS (quantity * finishing_price) VIRTUAL,
+    subtotal        INTEGER GENERATED ALWAYS AS (quantity * finishing_price) VIRTUAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -527,11 +529,11 @@ CREATE TABLE invoices (
     price_level_id INTEGER DEFAULT 1,
 
     -- Informasi finansial
-    subtotal INTEGER DEFAULT 0,
-    discount_amount INTEGER DEFAULT 0,
-    tax_amount INTEGER DEFAULT 0,
-    total_amount INTEGER DEFAULT 0,
-    paid_amount INTEGER DEFAULT 0,
+    subtotal INTEGER NOT NULL DEFAULT 0,
+    discount_amount INTEGER NOT NULL DEFAULT 0,
+    tax_amount INTEGER NOT NULL DEFAULT 0,
+    total_amount INTEGER NOT NULL DEFAULT 0,
+    paid_amount INTEGER NOT NULL DEFAULT 0,
 
     -- Status & tanggal
     status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'issued', 'sent', 'partial', 'paid', 'cancelled', 'overdue')),
@@ -659,150 +661,67 @@ ORDER BY k.total_spent DESC;
 -- updated_at untuk konsumen, products, dan orders dikelola di level aplikasi (BaseManager::update).
 -- Trigger updated_at dihapus untuk menghindari recursive trigger dan overhead query tambahan.
 
--- Trigger: Auto-generate customer code
-CREATE TRIGGER trg_konsumen_generate_code
-AFTER INSERT ON konsumen
-WHEN NEW.customer_code IS NULL
+-- Kurangi stok saat item masuk
+CREATE TRIGGER trg_stock_decrease_on_item_insert
+AFTER INSERT ON order_items
 BEGIN
-    UPDATE konsumen 
-    SET customer_code = 'CUST-' || PRINTF('%05d', NEW.id)
-    WHERE id = NEW.id;
-END;
-
--- Trigger: Auto-generate order number jika tidak diisi saat INSERT
--- Format: ORD-YYYYMMDD-XXXXX (tanggal + 5 digit urut berdasarkan id)
--- WHEN NEW.order_number IS NULL memastikan trigger tidak berjalan
--- jika aplikasi sudah menyediakan nilai sendiri.
-
--- Trigger : order_item_finishings insert finishing
-CREATE TRIGGER trg_order_item_finishings_add
-    AFTER INSERT ON order_item_finishings
-BEGIN
-    UPDATE orders_item
-    SET finishing_total = finishing_total + NEW.subtotal
-    WHERE id = NEW.order_item_id;
-END;
-
--- Trigger : order_item_finishings insert finishing
-CREATE TRIGGER trg_order_item_finishings_add
-    AFTER INSERT ON order_item_finishings
-BEGIN
-    UPDATE orders_item
-    SET finishing_total = finishing_total + NEW.subtotal
-    WHERE id = NEW.order_item_id;
-END;
-
--- Trigger : order_item_finishings update finishing
-CREATE TRIGGER trg_order_item_finishing_adjust
-    AFTER UPDATE OF quantity, finishing_price 
-        ON order_item_finishings
-BEGIN
-    UPDATE orders_item
-    SET finishing_total = finishing_total - OLD.subtotal + NEW.subtotal,
-        updated_at = date('now')
-    WHERE id = NEW.order_item_id;
+    UPDATE products SET stock = stock - NEW.quantity WHERE id = NEW.product_id;
     
-    UPDATE order_item_finishings
-    SET updated_at = date('now')
-    WHERE id = NEW.id;
+    INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
+    SELECT NEW.product_id, 'out', NEW.quantity, p.stock + NEW.quantity, p.stock, 'order', NEW.order_id, (SELECT admin_id FROM orders WHERE id = NEW.order_id), 'Item: ' || NEW.product_name
+    FROM products p WHERE p.id = NEW.product_id;
 END;
 
--- Trigger : order_item_finishings remove finishing
-CREATE TRIGGER trg_order_item_finishing_remove
-    AFTER DELETE ON order_item_finishings
+-- Kembalikan stok saat item dihapus
+CREATE TRIGGER trg_stock_increase_on_item_delete
+AFTER DELETE ON order_items
 BEGIN
-    UPDATE orders_item
-    SET finishing_total = finishing_total - OLD.subtotal,
-        updated_at = date('now')
-    WHERE id = NEW.order_item_id;
+    UPDATE products SET stock = stock + OLD.quantity WHERE id = OLD.product_id;
     
+    INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
+    SELECT OLD.product_id, 'in', OLD.quantity, p.stock - OLD.quantity, p.stock, 'adjustment', OLD.order_id, (SELECT admin_id FROM orders WHERE id = OLD.order_id), 'Item Removed'
+    FROM products p WHERE p.id = OLD.product_id;
+END;
+-- Update finishing_total di item saat finishing ditambah/diubah
+CREATE TRIGGER trg_update_item_finishing_total
+AFTER INSERT ON order_item_finishings
+BEGIN
+    UPDATE order_items 
+    SET finishing_total = (SELECT COALESCE(SUM(subtotal), 0) FROM order_item_finishings WHERE order_item_id = NEW.order_item_id)
+    WHERE id = NEW.order_item_id;
 END;
 
--- Trigger: Update payment status order saat ada pembayaran
-CREATE TRIGGER trg_payments_update_order_status
-AFTER INSERT ON payments
+-- Update finishing_total di item saat finishing dihapus
+CREATE TRIGGER trg_update_item_finishing_total_on_delete
+AFTER DELETE ON order_item_finishings
 BEGIN
-    UPDATE orders 
-    SET 
-        paid_amount = (
-            SELECT COALESCE(SUM(amount), 0) 
-            FROM payments 
-            WHERE order_id = NEW.order_id 
-            AND payment_status = 'verified'
-        ),
-        payment_status = CASE
-            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE order_id = NEW.order_id AND payment_status = 'verified') >= total_amount 
-            THEN 'paid'
-            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE order_id = NEW.order_id AND payment_status = 'verified') > 0 
-            THEN 'partial'
-            ELSE 'unpaid'
-        END
+    UPDATE order_items 
+    SET finishing_total = (SELECT COALESCE(SUM(subtotal), 0) FROM order_item_finishings WHERE order_item_id = OLD.order_item_id)
+    WHERE id = OLD.order_item_id;
+END;
+-- Update Subtotal Order saat detail item berubah (Harga, Qty, Finishing, atau Diskon Item)
+CREATE TRIGGER trg_orders_sync_subtotal_on_update
+AFTER UPDATE OF finishing_total, quantity, sale_price, discount_amount ON order_items
+BEGIN
+    UPDATE orders
+    SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = NEW.order_id),
+        updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.order_id;
 END;
 
--- 5. Trigger: Update payment_status & paid_amount di invoice saat ada pembayaran
-CREATE TRIGGER trg_payments_update_invoice
-AFTER INSERT ON payments
-BEGIN
-    UPDATE invoices 
-    SET 
-        paid_amount = (
-            SELECT COALESCE(SUM(amount), 0) 
-            FROM payments 
-            WHERE invoice_id = NEW.invoice_id 
-            AND payment_status = 'verified'
-        ),
-        payment_status = CASE
-            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = NEW.invoice_id AND payment_status = 'verified') >= total_amount 
-            THEN 'paid'
-            WHEN (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = NEW.invoice_id AND payment_status = 'verified') > 0 
-            THEN 'partial'
-            ELSE 'unpaid'
-        END
-    WHERE id = NEW.invoice_id;
-END;
-
--- Trigger : Masukan produk baru kedalam stock_movements untuk tracking
-CREATE TRIGGER trg_products_init_stock
-AFTER INSERT ON products
-BEGIN
-    INSERT INTO stock_movements (
-        product_id, movement_type, quantity,
-        stock_before, stock_after, reference_type,
-        reference_id, notes, admin_id, movement_date
-    )
-    VALUES (
-        NEW.id, 'in', NEW.stock,
-        0, NEW.stock, 'products.id',
-        NEW.id, 'Product stock init',
-        1, date('now')
-    );
-END;
-
--- Trigger : order_item
--- insert order_item
-CREATE TRIGGER trg_order_items_insertion
+-- Update Subtotal Order saat ada item baru atau item dihapus
+CREATE TRIGGER trg_orders_sync_subtotal_on_change
 AFTER INSERT ON order_items
 BEGIN
-    UPDATE orders
-    SET subtotal = subtotal + NEW.total,
-        updated_at = date('now')
-    WHERE id = NEW order_id;
-    
-    INSERT INTO stock_movements
-       ( product_id, movement_type, quantity, stock_before
-         stock_after, reference_type, reference_id, notes,
-         admin_id, movement_date )
-    VALUES
-        ( NEW.product_id, 'out', NEW.quantity, 
-        ( SELECT stock FROM products WHERE id = NEW.product_id),
-        ( SELECT stock - NEW.quantity FROM products WHERE id = NEW.product_id),
-          'orders.id', NEW.order_id, 'Penjualan', 1, date('now') );
-    
-    UPDATE products 
-    SET stock = stock - NEW.quantity
-    WHERE id = NEW.product_id;
+    UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = NEW.order_id) WHERE id = NEW.order_id;
 END;
+
+CREATE TRIGGER trg_orders_sync_subtotal_on_delete
+AFTER DELETE ON order_items
+BEGIN
+    UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = OLD.order_id) WHERE id = OLD.order_id;
+END;
+
 
 -- ============================================================================
 -- CATATAN PENGGUNAAN:

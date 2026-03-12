@@ -97,7 +97,7 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
 target_link_libraries(Mgr_LAdmins PUBLIC Qt6::Sql Qt6::Network)
 target_link_libraries(Ui_LAdmins PUBLIC Mgr_LAdmins Qt6::Widgets)
 
-# add_subdirectory(tests)
+add_subdirectory(tests)
 
 qt_add_executable(test_logform src/main.cpp)
 

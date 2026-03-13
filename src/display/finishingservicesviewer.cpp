@@ -7,6 +7,8 @@
 #include <QComboBox>
 #include <QDateTimeEdit>
 #include <QLineEdit>
+#include <QMenu>
+#include <QAction>
 #include <QPainter>
 
 namespace {
@@ -107,13 +109,7 @@ namespace {
                 }
                 case 6: {
                     auto *cb = qobject_cast<QComboBox*>(editor);
-                    if (cb) {
-                      qDebug() << "Set value to " << cb->currentData();
-                      bool ok = model->setData(mi, cb->currentData(), Qt::EditRole);
-                      if (!ok) {
-                        qDebug() << "Set value Failed";
-                      }
-                    }
+                    if (cb) model->setData(mi, cb->currentData(), Qt::EditRole);
                     break;
                 }
                 case 7:
@@ -159,10 +155,7 @@ namespace {
                     option->displayAlignment = Qt::AlignCenter;
                     // Ambil nilai integer, lalu paksa teks yang tampil menjadi Ya/Tidak
                     int value = mi.data(Qt::EditRole).toInt();
-                    if(!value)
-                      option->text = QString::number(value);
-                    else
-                      option->text = QString::number(value);
+                    option->text = (value == 1) ? "Ya" : "Tidak";
                     break;
                 }
                 case 7:
@@ -211,7 +204,16 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   setColumnVisible("created_at", false);
   setColumnVisible("id", false);
   
-  qDebug() << mod->primaryKeyColumn();
+  ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(ui->dataView, &QTableView::customContextMenuRequested, this, &FinishingServicesViewer::on_dataView_customContextMenuRequested);
 }
 
 FinishingServicesViewer::~FinishingServicesViewer() {}
+
+void FinishingServicesViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
+  auto &m = model();
+  QMenu context;
+  auto simpan = context.addAction("Simpan", &m, &AdvancedQueryModel::submitAll);
+  auto revert = context.addAction("Reset",  &m, &AdvancedQueryModel::revertAll);
+  context.exec(Ui()->dataView->viewport()->mapToGlobal(p));
+}

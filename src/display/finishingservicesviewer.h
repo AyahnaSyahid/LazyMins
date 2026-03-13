@@ -8,4 +8,8 @@ class FinishingServicesViewer : public DataViewer
 public:
   explicit FinishingServicesViewer(QWidget * = nullptr);
   ~FinishingServicesViewer();
+  
+private slots:
+  void on_dataView_customContextMenuRequested(const QPoint& p);
+
 };

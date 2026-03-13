@@ -152,7 +152,7 @@ private:
     bool     isRowFilled(const PendingInsert &insert)      const;
 
     // PK helpers
-    QString getPrimaryKey(int originalRow) const;
+    QString  getPrimaryKey(int originalRow) const;
     QString  resolvePrimaryKeyName()        const;
     QString  resolveTableName()             const;
 

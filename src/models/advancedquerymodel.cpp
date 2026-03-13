@@ -226,7 +226,7 @@ bool AdvancedQueryModel::submitAll()
         m_lastError = "Failed to start database transaction";
         success = false;
     }
-
+    refresh();
     return success;
 }
 
@@ -360,7 +360,7 @@ bool AdvancedQueryModel::setData(const QModelIndex &index, const QVariant &value
     // -----------------------------------------------------------------------
     if (row < baseRows) {
         int      originalRow = mapToOriginalRow(row);
-        QString pk          = getPrimaryKey(originalRow);
+        QString pk           = getPrimaryKey(originalRow);
 
         if (pk.isEmpty())
             return false;
@@ -369,11 +369,24 @@ bool AdvancedQueryModel::setData(const QModelIndex &index, const QVariant &value
         if (m_pendingDeletes.contains(pk))
             return false;
 
-        // Skip if value has not actually changed
+        // Skip if value has not actually changed (ATAU revert ke nilai asli)
         QVariant original = getOriginalValue(originalRow, col);
-        if (original == value)
+        if (original == value) {
+            // Jika sebelumnya pernah diubah, kita harus menghapus perubahannya
+            if (m_pendingUpdates.contains(pk) && m_pendingUpdates[pk].changes.contains(col)) {
+                m_pendingUpdates[pk].changes.remove(col);
+                
+                // Jika baris ini sudah tidak memiliki perubahan lain, hapus dari pending updates
+                if (m_pendingUpdates[pk].changes.isEmpty() && m_pendingUpdates[pk].displayChanges.isEmpty()) {
+                    m_pendingUpdates.remove(pk);
+                }
+                // Beritahu UI untuk me-render ulang sel ini kembali ke nilai aslinya
+                emit dataChanged(index, index, {Qt::EditRole, Qt::DisplayRole, PendingUpdateRole});
+            }
             return true;
+        }
 
+        // Jika nilainya benar-benar baru/berbeda dari database
         m_pendingUpdates[pk].changes[col] = value;
         emit dataChanged(index, index, {Qt::EditRole, Qt::DisplayRole, PendingUpdateRole});
         return true;
@@ -471,7 +484,7 @@ QVariant AdvancedQueryModel::data(const QModelIndex &index, int role) const
         }
 
         int      originalRow = mapToOriginalRow(row);
-        QString pk          = getPrimaryKey(originalRow);
+        QString pk           = getPrimaryKey(originalRow);
 
         if (!pk.isEmpty() && m_pendingUpdates.contains(pk)) {
             const QMap<int, QVariant> &changes = m_pendingUpdates[pk].changes;
@@ -479,7 +492,7 @@ QVariant AdvancedQueryModel::data(const QModelIndex &index, int role) const
                 return changes[col];
         }
 
-        return QSqlQueryModel::data(QSqlQueryModel::index(originalRow, col), Qt::EditRole);
+        return QSqlQueryModel::data(QSqlQueryModel::index(originalRow, col), Qt::DisplayRole);
     }
 
     // -----------------------------------------------------------------------

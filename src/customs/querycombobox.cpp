@@ -24,6 +24,7 @@ qmodel(new QSqlQueryModel(this)), boxView(new QTableView), QComboBox(p)
   boxView->setSelectionBehavior(QTableView::SelectRows);
   boxView->horizontalHeader()->hide();
   boxView->setAlternatingRowColors(true);
+  boxView->setMaximumHeight(20 * 10);
 }
 
 void QueryComboBox::setQuery(const QString& s, QSqlDatabase &db){

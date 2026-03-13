@@ -10,11 +10,11 @@
 #include <QPainter>
 
 namespace {
-    class DelegateFinishingServicesViewer : public QStyledItemDelegate
+    class Delegate : public QStyledItemDelegate
     {
     public:
-        DelegateFinishingServicesViewer(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
-        ~DelegateFinishingServicesViewer() override = default;
+        Delegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+        ~Delegate() override = default;
 
         QWidget* createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &mi) const override {
             QWidget *ed = nullptr;
@@ -86,7 +86,12 @@ namespace {
                 }
                 default: {
                     auto *le = qobject_cast<QLineEdit*>(editor);
-                    if (le) le->setText(mi.data(Qt::EditRole).toString());
+                    if (le) {
+                      le->setText(mi.data(Qt::EditRole).toString());
+                      if (mi.column() == 5) {
+                        le->setAlignment(Qt::AlignCenter);
+                      }
+                    }
                     break;
                 }
             }
@@ -123,55 +128,6 @@ namespace {
                 }
             }
         }
-        /**
-        void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &mi) const override {
-            // Copy option bawaan agar kita bisa memodifikasi teks dan perataannya
-            QStyleOptionViewItem opt = option;
-            initStyleOption(&opt, mi); // Memuat data default dari model ke 'opt'
-
-            switch (mi.column()) {
-                case 0: {
-                    // Hanya perataan kanan
-                    opt.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-                    break;
-                }
-                case 4: {
-                    // Perataan kanan dan tampilkan pemisah ribuan (Group Separator)
-                    opt.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-                    int value = mi.data(Qt::EditRole).toInt();
-                    opt.text = QLocale().toString(value); 
-                    break;
-                }
-                case 6: {
-                    // Tampilkan "Ya" atau "Tidak" di tengah, sesuai nilai integer di model
-                    opt.displayAlignment = Qt::AlignCenter;
-                    int value = mi.data(Qt::EditRole).toInt();
-                    opt.text = value ? "Ya" : "Tidak";
-                    break;
-                }
-                case 7:
-                case 8: {
-                    // Konversi dari UTC (di model) ke Local Time untuk ditampilkan
-                    QDateTime utcDate = mi.data(Qt::EditRole).toDateTime();
-                    if (utcDate.isValid()) {
-                        QDateTime localDate(utcDate.toTimeZone(QTimeZone::LocalTime));
-                        // Kamu bisa menyesuaikan format string ini sesuai selera
-                        opt.text = localDate.toString("dd/MM/yyyy HH:mm"); 
-                    } else {
-                        opt.text = "-"; // Jika tanggal kosong/tidak valid
-                    }
-                    break;
-                }
-                default: {
-                    // Biarkan default untuk QLineEdit (biasanya AlignLeft)
-                    break;
-                }
-            }
-
-            // Biarkan base class yang menggambar semuanya dengan 'opt' yang sudah kita modifikasi
-            QStyledItemDelegate::paint(painter, opt, mi);
-        }
-        **/
         
         void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &mi) const override {
             // 1. Panggil base class untuk memuat data default (termasuk warna seleksi dll)
@@ -226,6 +182,24 @@ namespace {
 
 FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   auto ui = Ui();
-  ui->dataView->setItemDelegate(new DelegateFinishingServicesViewer(this));
+  auto mod = &model();
+
+  setQueryArgs("SELECT * FROM finishing_services");
+  setFilterColumnNames({"code", "name", "description"});
+  ui->dataView->setItemDelegate(new Delegate(this));
+  
+  auto record = mod->record();
+  mod->setHeaderData(0, Qt::Horizontal, "ID", Qt::DisplayRole);
+  mod->setHeaderData(1, Qt::Horizontal, "Kode", Qt::DisplayRole);
+  mod->setHeaderData(2, Qt::Horizontal, "Nama", Qt::DisplayRole);
+  mod->setHeaderData(3, Qt::Horizontal, "Deskripsi", Qt::DisplayRole);
+  mod->setHeaderData(4, Qt::Horizontal, "Harga", Qt::DisplayRole);
+  mod->setHeaderData(5, Qt::Horizontal, "Unit", Qt::DisplayRole);
+  mod->setHeaderData(6, Qt::Horizontal, "Aktif", Qt::DisplayRole);
+  
+  setColumnVisible("updated_at", false);
+  setColumnVisible("created_at", false);
+  setColumnVisible("id", false);
 }
+
 FinishingServicesViewer::~FinishingServicesViewer() {}

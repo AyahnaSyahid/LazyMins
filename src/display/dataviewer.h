@@ -16,11 +16,14 @@ public:
     virtual ~DataViewer();
     void setQueryArgs(const QString &query, const QVariantMap &bindings = {});
     void setPageSize(int size) { m_model.setPageSize(size); }
+    void setColumnVisible(const QString& name, bool vis);
+    void setColumnVisible(int col, bool vis);
+    void setFilterColumnNames(const QStringList& sl);
 
 public slots:
     void refresh();
     void setFilter(const QString &filter);
-
+    
 private slots:
     void updateNavigation();
 
@@ -29,7 +32,9 @@ protected:
   AdvancedQueryModel &model() {return m_model; }
 
 private:
+    QHash<int, QString> m_columns;
     Ui::DataViewer *ui;
     AdvancedQueryModel m_model;
     QTimer m_filterTimer;
+    QStringList m_filterColumnNames;
 };

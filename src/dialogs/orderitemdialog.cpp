@@ -29,6 +29,7 @@ OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui->setupUi(this);
     setupFields();
     ui->produkComboBox->setQuery("SELECT id, name, description, use_area, cost_price FROM products");
+    ui->produkComboBox->showColumn(0, false); // Sembunyikan kolom id
     ui->produkComboBox->showColumn(3, false); // Sembunyikan kolom use_area
     ui->produkComboBox->showColumn(4, false); // Sembunyikan kolom cost_price
     ui->produkComboBox->boxViewAutoResize();

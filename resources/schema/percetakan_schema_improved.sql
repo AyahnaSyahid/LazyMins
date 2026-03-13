@@ -722,6 +722,22 @@ BEGIN
     UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = OLD.order_id) WHERE id = OLD.order_id;
 END;
 
+================================================
+-- Trigger : finishing_services save update time
+CREATE TRIGGER trg_saveUpdate_time
+         AFTER UPDATE OF id,
+                         code,
+                         name,
+                         description,
+                         price_per_unit,
+                         unit,
+                         is_active,
+                         created_at
+            ON finishing_services
+BEGIN
+    UPDATE finishing_services
+       SET updated_at = datetime('now');
+END;
 
 -- ============================================================================
 -- CATATAN PENGGUNAAN:

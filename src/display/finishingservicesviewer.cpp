@@ -107,7 +107,13 @@ namespace {
                 }
                 case 6: {
                     auto *cb = qobject_cast<QComboBox*>(editor);
-                    if (cb) model->setData(mi, cb->currentData(), Qt::EditRole);
+                    if (cb) {
+                      qDebug() << "Set value to " << cb->currentData();
+                      bool ok = model->setData(mi, cb->currentData(), Qt::EditRole);
+                      if (!ok) {
+                        qDebug() << "Set value Failed";
+                      }
+                    }
                     break;
                 }
                 case 7:
@@ -153,7 +159,10 @@ namespace {
                     option->displayAlignment = Qt::AlignCenter;
                     // Ambil nilai integer, lalu paksa teks yang tampil menjadi Ya/Tidak
                     int value = mi.data(Qt::EditRole).toInt();
-                    option->text = (value == 1) ? "Ya" : "Tidak";
+                    if(!value)
+                      option->text = QString::number(value);
+                    else
+                      option->text = QString::number(value);
                     break;
                 }
                 case 7:
@@ -189,6 +198,7 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   ui->dataView->setItemDelegate(new Delegate(this));
   
   auto record = mod->record();
+  mod->setPrimaryKeyColumn("id");
   mod->setHeaderData(0, Qt::Horizontal, "ID", Qt::DisplayRole);
   mod->setHeaderData(1, Qt::Horizontal, "Kode", Qt::DisplayRole);
   mod->setHeaderData(2, Qt::Horizontal, "Nama", Qt::DisplayRole);
@@ -200,6 +210,8 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   setColumnVisible("updated_at", false);
   setColumnVisible("created_at", false);
   setColumnVisible("id", false);
+  
+  qDebug() << mod->primaryKeyColumn();
 }
 
 FinishingServicesViewer::~FinishingServicesViewer() {}

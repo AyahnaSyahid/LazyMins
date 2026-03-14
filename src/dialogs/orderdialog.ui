@@ -207,16 +207,10 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_5">
       <item>
-       <widget class="QTableView" name="orderItemView">
+       <widget class="QListView" name="orderItemList">
         <property name="contextMenuPolicy">
          <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
         </property>
-        <attribute name="verticalHeaderMinimumSectionSize">
-         <number>20</number>
-        </attribute>
-        <attribute name="verticalHeaderDefaultSectionSize">
-         <number>22</number>
-        </attribute>
        </widget>
       </item>
      </layout>
@@ -463,7 +457,7 @@ Internal</string>
   <tabstop>prioritasLineEdit</tabstop>
   <tabstop>tOrderDateTimeEdit</tabstop>
   <tabstop>dLineDateTimeEdit</tabstop>
-  <tabstop>orderItemView</tabstop>
+  <tabstop>orderItemList</tabstop>
   <tabstop>catatan1TextEdit</tabstop>
   <tabstop>catatan2TextEdit</tabstop>
   <tabstop>subtotalSpinBox</tabstop>

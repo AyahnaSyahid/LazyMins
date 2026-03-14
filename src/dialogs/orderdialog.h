@@ -5,28 +5,18 @@ namespace Ui
   class OrderDialog;
 }
 
-#include "formdialog.h"
 #include "src/managers/managers.h"
 #include "src/models/orderitemeditormodel.h"
 
-class OrderDialog : public FormDialog
+class OrderDialog : public QDialog
 {
   Q_OBJECT
 
 public:
   explicit OrderDialog(QWidget * = nullptr);
   ~OrderDialog();
-  void prepareModify(const QSqlRecord &r);
-  QVariantMap collect() const override;
   
 protected:
-  void setupFields() override;
-  void setupBoundFields() override;
-  bool onSave(const QVariantMap &) override;
-  void onPrepareCreate() override;
-  void onPrepareModify(const QSqlRecord &orderRecord);
-  void onOrderItemDialogAccepted(const QVariantMap& ss);
-
 
 private slots:
   void on_simpanButton_clicked();

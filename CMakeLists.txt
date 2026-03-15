@@ -27,8 +27,10 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/managers/rolesmanager.cpp
                        src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
-                       src/models/orderitemeditormodel.h
-                       src/models/orderitemeditormodel.cpp
+                       # src/models/orderitemeditormodel.h
+                       # src/models/orderitemeditormodel.cpp
+                       src/models/ordermodel.h
+                       src/models/ordermodel.cpp
                        src/models/advancedquerymodel.h
                        src/models/advancedquerymodel.cpp
                        )

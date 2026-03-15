@@ -44,7 +44,13 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
   connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this](){ return new ProductDialog(this); }, this);
-  connectCreateActionToFormDialog(ui->actionOrderCreate, "Buat order baru", [this](){ return new OrderDialog(this); }, this);
+  // connectCreateActionToFormDialog(ui->actionOrderCreate, "Buat order baru", [this](){ return new OrderDialog(this); }, this);
+  auto createOrderDialog = [this]() {
+    auto d = new OrderDialog(this);
+    d->setAttribute(Qt::WA_DeleteOnClose);
+    d->open();
+  };
+  connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
   connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", [this](){ return new UserDialog(this); }, this);
   auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
   

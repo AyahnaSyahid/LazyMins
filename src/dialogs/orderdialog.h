@@ -6,8 +6,8 @@ namespace Ui
 }
 
 #include "src/managers/managers.h"
-#include "src/models/orderitemeditormodel.h"
-
+#include "src/models/ordermodel.h"
+#include <QDialog>
 class OrderDialog : public QDialog
 {
   Q_OBJECT
@@ -23,14 +23,14 @@ private slots:
   void on_tambahItem_triggered();
   void on_cariButton_clicked();
   void updateCalculation();
-  void on_orderItemView_customContextMenuRequested(const QPoint &pos);
+  void on_orderItemList_customContextMenuRequested(const QPoint &pos);
   void on_diskonDoubleSpinBox_valueChanged(double arg1);
   void on_diskonRpSpinBox_valueChanged(int arg1);
   void on_pajakRpSpinBox_valueChanged(int arg1);
 
 private:
   Ui::OrderDialog *ui;
-  OrderItemEditorModel *emodel;
+  OrderModel *m_model;
   OrderManager oman;
   
   struct KonsumenSet {

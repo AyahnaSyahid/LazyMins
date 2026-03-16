@@ -33,6 +33,8 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/models/ordermodel.cpp
                        src/models/advancedquerymodel.h
                        src/models/advancedquerymodel.cpp
+                       src/models/finishinglistmodel.h
+                       src/models/finishinglistmodel.cpp
                        )
 
 qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
@@ -72,6 +74,11 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/konsumenpickerdialog.h
                            src/dialogs/konsumenpickerdialog.ui
                            src/dialogs/konsumenpickerdialog.cpp
+                           src/dialogs/finishingdialog.h
+                           src/dialogs/finishingdialog.ui
+                           src/dialogs/finishingdialog.cpp
+                           
+                           
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
                            src/display/dataviewer.cpp

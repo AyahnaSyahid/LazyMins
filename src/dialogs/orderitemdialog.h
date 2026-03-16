@@ -43,12 +43,14 @@ private slots:
     void on_widthBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void on_heightBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void recalculateSubtotal();
+    
+    void on_tambahButton_clicked();
 
 signals:
     void editFinished(const QVariantMap& itemData);
 
 private:
-    double calculatedPrice() const;
+    int calculatedPrice() const;
     Ui::OrderItemDialog *ui;
     bool m_autoCommit = true;
     int m_customerPriceLevel = 1;

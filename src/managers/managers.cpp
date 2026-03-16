@@ -109,7 +109,7 @@ QVariantMap ProductManager::validateParams(const QVariantMap& params)
     QVariantMap p = params;
     static const QStringList allowed {
         "sku", "name", "category_id", "description", "unit",
-        "stock", "min_stock", "cost_price", "is_active", "created_at", "updated_at"
+        "stock", "min_stock", "cost_price", "use_area", "is_active", "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
         if (!allowed.contains(key)) p.remove(key);

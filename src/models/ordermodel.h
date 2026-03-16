@@ -87,7 +87,10 @@ struct OrderItem
     qreal   discount_percentage = 0.0;
     int     discount_amount     = 0;
     int     finishing_total     = 0;
+    
     QString notes;
+    
+    const QString descriptionText() const;
 
     int subtotal() const;   // mirrors DB GENERATED column
     int total()    const;   // mirrors DB GENERATED column
@@ -97,7 +100,7 @@ struct OrderItem
 
     // Called only by OrderModel::commit(). Not called during normal editing.
     bool save(QSqlDatabase &db) const;
-
+    
     QList<FinishingItem> finishings;
 };
 

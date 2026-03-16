@@ -787,3 +787,18 @@ bool OrderItem::save(QSqlDatabase &db) const
     }
     return true;
 }
+
+const QString OrderItem::descriptionText() const {
+  QString desc(sku);
+  if (use_area) {
+    desc += " | " + QString("%1 x %2 %3").arg(size_width).arg(size_height).arg(unit);
+    desc += QString(" x%1 ").arg(quantity);
+  } else {
+    desc += " | " + QString("x%1 %2").arg(quantity).arg(unit);
+  }
+  QStringList fins;
+  for(auto const& fin : finishings) {
+    fins << QString("%1:%2").arg(fin.finishing_name).arg(fin.quantity);
+  }
+  return desc + QString(" | %1").arg(fins.join(" | "));
+}

@@ -101,16 +101,66 @@ namespace
   private:
     QSqlTableModel *m_productModel;
   };
-  
-  class OrderItemDelegate : public QStyledItemDelegate
-  {
-    public:
-      OrderItemDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
-      ~OrderItemDelegate() {}
-      
-    protected:
-      void initStyleOption(QStyleOptionViewItem *opt, const QModelIndex& ix) const override {
-        auto rect = opt->rect.adjusted()
+
+  class OrderItemDelegate : public QStyledItemDelegate {
+  public:
+      using QStyledItemDelegate::QStyledItemDelegate;
+
+      // 1. Calculate the dynamic height based on 3 lines + padding
+      QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override {
+          QSize size = QStyledItemDelegate::sizeHint(option, index);
+          
+          QFontMetrics fm(option.font);
+          int lineHeight = fm.height();
+          int padding = 10;
+          
+          // Total height = (3 lines * height) + top/bottom padding + spacing between lines
+          int totalHeight = (lineHeight * 3) + (padding * 2);
+          
+          size.setHeight(totalHeight);
+          return size;
+      }
+
+      // 2. Custom rendering logic
+      void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {
+          // Prepare the painter (colors, selection highlighting, etc.)
+          auto model = qobject_cast<const OrderModel*>(index.model());
+          auto order_item = model->itemAt(index.row());
+          QStyleOptionViewItem opt = option;
+          initStyleOption(&opt, index);
+          
+          opt.text = "";
+          painter->save();
+          
+          // Draw the background (handles selection and hover colors automatically)
+          painter->setRenderHint(QPainter::Antialiasing);
+          opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
+
+          // Setup the drawing area (apply some horizontal padding)
+          QRect rect = opt.rect.adjusted(10, 5, -10, -5); 
+          QFontMetrics fm(opt.font);
+          int lineHeight = fm.height();
+
+          // --- LINE 1: Nama Jual ---
+          painter->setPen(opt.palette.text().color());
+          QFont boldFont = opt.font;
+          boldFont.setBold(true);
+          painter->setFont(boldFont);
+          
+          QRect line1Rect = rect.adjusted(0, 0, 0, -(lineHeight * 2));
+          painter->drawText(line1Rect, Qt::AlignLeft | Qt::AlignVCenter, index.data(Qt::UserRole + 3).toString());
+
+          // --- LINE 2: Ukuran & finishing ---
+          painter->setFont(opt.font); // Reset to normal font
+          QRect line2Rect = rect.adjusted(0, lineHeight, 0, -lineHeight);
+          painter->drawText(line2Rect, Qt::AlignLeft | Qt::AlignVCenter, order_item.descriptionText());
+
+          // --- LINE 3: Muted/Small (e.g., Timestamp or Status) ---
+          painter->setPen(opt.palette.placeholderText().color()); // Muted color
+          QRect line3Rect = rect.adjusted(0, lineHeight * 2, 0, 0);
+          painter->drawText(line3Rect, Qt::AlignLeft | Qt::AlignVCenter, "Line 3: 12:45 PM");
+
+          painter->restore();
       }
   };
   
@@ -137,6 +187,7 @@ OrderDialog::OrderDialog(QWidget *p) :
 {
   ui->setupUi(this);
   ui->orderItemList->setModel(m_model);
+  ui->orderItemList->setItemDelegate(new OrderItemDelegate(this));
   ui->orderNumberLineEdit->setText(oman.generateOrderNumber());
   connect(m_model, &OrderModel::orderTotalChanged, this, &OrderDialog::updateCalculation);
 }
@@ -155,7 +206,7 @@ void OrderDialog::addOrderItem(const QVariantMap &map)
     .unit = map["unit"].toString(),
     .size_width = map["size_width"].toDouble(),
     .size_height = map["size_height"].toDouble(),
-    .use_area = map["size_height"].toBool(),
+    .use_area = map["use_area"].toBool(),
     .sale_price = map["sale_price"].toInt(),
     .base_price = map["base_price"].toInt(),
     .discount_percentage = map["discount_percentage"].toDouble(),
@@ -233,7 +284,12 @@ void OrderDialog::on_cariButton_clicked()
 
 void OrderDialog::updateCalculation()
 {
-    
+  auto subtotal = 0;
+  for(int i=0; i<m_model->rowCount(); ++i) {
+    subtotal += m_model->itemAt(i).total();
+  }
+  ui->subtotalSpinBox->setValue(subtotal);
+  ui->totalSpinBox->setValue(subtotal - ui->pajakRpSpinBox->value() - ui->diskonRpSpinBox->value());
 }
 
 void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)

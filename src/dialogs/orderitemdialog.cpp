@@ -1,5 +1,9 @@
 #include "orderitemdialog.h"
 #include "ui_orderitemdialog.h"
+
+#include "finishingdialog.h"
+#include "src/models/finishinglistmodel.h"
+#include "src/models/ordermodel.h"
 #include <QMessageBox>
 
 void debugMap(const QVariantMap& );
@@ -19,8 +23,9 @@ namespace {
                 editor->setPlainText(value.toString());
             editor->blockSignals(false);
         }, editor);
-    }
+    } 
 }
+
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui(new Ui::OrderItemDialog),
     m_autoCommit(true),
@@ -34,6 +39,9 @@ OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui->produkComboBox->showColumn(4, false); // Sembunyikan kolom cost_price
     ui->produkComboBox->boxViewAutoResize();
     ui->produkComboBox->setCurrentIndex(-1);
+    
+    auto f_model = new FinishingListModel(this);
+    ui->finishingView->setModel(f_model);
 }
 
 OrderItemDialog::~OrderItemDialog()
@@ -96,7 +104,7 @@ QVariantMap OrderItemDialog::collect() const
     auto costPrice = index.siblingAtColumn(4).data(Qt::EditRole).toInt();
     auto opt = m_priceManager.getPrice(index.data().toInt(), m_customerPriceLevel);
     
-
+    
     data["base_price"] = costPrice;
     if (opt.has_value())
         data["base_price"] = *opt;
@@ -104,13 +112,15 @@ QVariantMap OrderItemDialog::collect() const
     int total, subtotal;
     total = data["subtotal"].toInt();
     subtotal = total + data["discount_amount"].toInt();
-    
     data["total"] = total;
     data["subtotal"] = subtotal;
     auto ropt = m_productManager.getById(data["product_id"].toInt());
-    if(ropt.has_value())
-      data["use_area"] = (*ropt).value("use_area");
-
+    if(ropt.has_value()) {
+      auto popt = *ropt;
+      data["use_area"] = popt.value("use_area");
+      data["sku"]      = popt.value("sku");
+      data["unit"]      = popt.value("unit");
+    }
     return data;
 }
 
@@ -146,6 +156,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
         ui->heightBox->setEnabled(true);
         ui->widthBox->setMinimum(0.01);
         ui->heightBox->setMinimum(0.01);
+        ui->widthBox->setValue(1);
+        ui->heightBox->setValue(1);
     } else {
         ui->widthBox->setEnabled(false);
         ui->heightBox->setEnabled(false);
@@ -187,7 +199,7 @@ void OrderItemDialog::on_qtySpinBox_valueChanged(int arg1)
 
 void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
 {
-    double calcullatedSubtotal = calculatedPrice();
+    int calcullatedSubtotal = calculatedPrice();
     double diskonRp = calcullatedSubtotal * (arg1 / 100.0);
     // diskon Rp harus dibulatkan menjadi kelipatan 100
     diskonRp = qRound(diskonRp / 100.0) * 100.0;
@@ -197,7 +209,7 @@ void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
 void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
 {
     // kalkulasi berapa persen diskon
-    double calcullatedSubtotal = calculatedPrice();
+    int calcullatedSubtotal = calculatedPrice();
     double diskonPersen = (arg1 / calcullatedSubtotal) * 100.0;
     disableSignalAndSet(ui->diskonDoubleSpinBox, diskonPersen);
     recalculateSubtotal();
@@ -209,14 +221,14 @@ void OrderItemDialog::recalculateSubtotal()
     // jika user mengatur diskonPersen maka diskonRp harus dihitung ulang, begitu pula sebaliknya. 
     // Untuk menyederhanakan, kita asumsikan user hanya akan mengatur salah satu jenis diskon, dan kita prioritaskan diskonRp jika keduanya diisi.
     // double diskonPersen = ui->diskonDoubleSpinBox->value();
-    double subtotal = calculatedPrice();
+    int subtotal = calculatedPrice();
     ui->diskonRpSpinBox->setMaximum(subtotal);
     double diskonRp = ui->diskonRpSpinBox->value();
     subtotal -= diskonRp; // Diskon nominal
     ui->subtotalSpinBox->setValue(subtotal);
 }
 
-double OrderItemDialog::calculatedPrice() const
+int OrderItemDialog::calculatedPrice() const
 {
     if (ui->produkComboBox->currentIndex() < 0) {
         return 0.0;
@@ -228,5 +240,11 @@ double OrderItemDialog::calculatedPrice() const
     double harga = ui->hargaSpinBox->value();
     auto use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole);
     double areaMultiplier = (width > 0 && height > 0) ? (width * height) : 1.0;
-    return harga * areaMultiplier * qty;
+    return qCeil((harga * areaMultiplier * qty) / 100.0) * 100;
+}
+
+void OrderItemDialog::on_tambahButton_clicked() {
+  auto fd = new FinishingDialog(this);
+  fd->setAttribute(Qt::WA_DeleteOnClose);
+  fd->open();
 }

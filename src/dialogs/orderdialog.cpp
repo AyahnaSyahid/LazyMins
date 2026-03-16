@@ -206,7 +206,19 @@ void OrderDialog::updateCalculation()
 }
 
 void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
-{}
+{
+  QMenu contextMenu;
+  auto add = contextMenu.addAction("Tambah");
+  connect(add, &QAction::triggered, [this](){
+    auto eod = new EditOrderDialog(this);
+  });
+  auto ix = ui->orderItemList->indexAt(pos);
+  if (ix.isValid()) {
+    auto edit = contextMenu.addAction("Edit");
+    auto del = contextMenu.addAction("Hapus");
+  }
+  contextMenu.exec(ui->orderItemList->viewport()->mapToGlobal(pos));
+}
 
 void OrderDialog::on_tambahItem_triggered()
 {

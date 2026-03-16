@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QAction>
 #include <QMenu>
+#include <QPainter>
 #include <QSqlTableModel>
 #include <QMessageBox>
 
@@ -36,6 +37,7 @@ namespace
   
   
   };
+
   class ProductDelegate : public QStyledItemDelegate
   {
   public:
@@ -99,6 +101,19 @@ namespace
   private:
     QSqlTableModel *m_productModel;
   };
+  
+  class OrderItemDelegate : public QStyledItemDelegate
+  {
+    public:
+      OrderItemDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+      ~OrderItemDelegate() {}
+      
+    protected:
+      void initStyleOption(QStyleOptionViewItem *opt, const QModelIndex& ix) const override {
+        auto rect = opt->rect.adjusted()
+      }
+  };
+  
   void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
     std::visit([&value](auto* editor) {
             using T = std::decay_t<decltype(*editor)>;
@@ -128,12 +143,28 @@ OrderDialog::OrderDialog(QWidget *p) :
 
 OrderDialog::~OrderDialog() { delete ui; }
 
-// void OrderDialog::onOrderItemDialogAccepted(const QVariantMap& data)
-// {
-  // OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
-  // QVariantMap itemData = data;
-  // qDebug() << itemData; 
-// }
+
+void OrderDialog::addOrderItem(const QVariantMap &map)
+{
+  OrderItem oi {
+    .order_id = map["order_id"].toInt(),
+    .product_id = map["product_id"].toInt(),
+    .product_name = map["product_name"].toString(),
+    .sku = map["sku"].toString(),
+    .quantity = map["quantity"].toInt(),
+    .unit = map["unit"].toString(),
+    .size_width = map["size_width"].toDouble(),
+    .size_height = map["size_height"].toDouble(),
+    .use_area = map["size_height"].toBool(),
+    .sale_price = map["sale_price"].toInt(),
+    .base_price = map["base_price"].toInt(),
+    .discount_percentage = map["discount_percentage"].toDouble(),
+    .discount_amount = map["discount_amount"].toInt(),
+    .finishing_total = map["finishing_total"].toInt(),
+    .notes = map["notes"].toString(),
+  };
+  auto ix = m_model->addItem(oi);
+}
 
 void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
 {
@@ -208,10 +239,7 @@ void OrderDialog::updateCalculation()
 void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
 {
   QMenu contextMenu;
-  auto add = contextMenu.addAction("Tambah");
-  connect(add, &QAction::triggered, [this](){
-    auto eod = new EditOrderDialog(this);
-  });
+  contextMenu.addAction(ui->tambahItem);
   auto ix = ui->orderItemList->indexAt(pos);
   if (ix.isValid()) {
     auto edit = contextMenu.addAction("Edit");
@@ -229,6 +257,7 @@ void OrderDialog::on_tambahItem_triggered()
   // get level harga pelanggan
   auto priceLevel = ui->priceLevelComboBox->currentId();
   editor->setCustomerPriceLevel(priceLevel);
+  connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::addOrderItem);
   editor->open();
 }
 

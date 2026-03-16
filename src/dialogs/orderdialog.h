@@ -19,6 +19,8 @@ public:
 protected:
 
 private slots:
+  void addOrderItem(const QVariantMap& vm);
+  
   void on_simpanButton_clicked();
   void on_tambahItem_triggered();
   void on_cariButton_clicked();

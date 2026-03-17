@@ -12,7 +12,7 @@ public:
   explicit FinishingListModel(QObject *p=nullptr);
   ~FinishingListModel();
   
-  void setItems(QList<FinishingItem> *fi);
+  void setItems(QList<FinishingItem> *finishings);
   
   int rowCount(const QModelIndex& par=QModelIndex()) const override;
   QVariant data(const QModelIndex &ix, int role) const override;
@@ -20,9 +20,9 @@ public:
   
   bool addItem(const FinishingItem& fi);
   bool removeItem(int a);
-  
+
   int total() const;
-  
+
   const QList<FinishingItem> getItems() const { return *m_items; }
   
 private:

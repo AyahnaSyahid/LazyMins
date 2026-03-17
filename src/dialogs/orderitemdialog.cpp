@@ -5,6 +5,7 @@
 #include "src/models/finishinglistmodel.h"
 #include "src/models/ordermodel.h"
 #include <QMessageBox>
+#include <QTimer>
 
 void debugMap(const QVariantMap& );
 
@@ -28,20 +29,17 @@ namespace {
 
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui(new Ui::OrderItemDialog),
-    m_autoCommit(true),
-    FormDialog(parent)
+    m_mode(Create),
+    QDialog(parent)
 {
     ui->setupUi(this);
-    setupFields();
     ui->produkComboBox->setQuery("SELECT id, name, description, use_area, cost_price FROM products");
     ui->produkComboBox->showColumn(0, false); // Sembunyikan kolom id
     ui->produkComboBox->showColumn(3, false); // Sembunyikan kolom use_area
     ui->produkComboBox->showColumn(4, false); // Sembunyikan kolom cost_price
     ui->produkComboBox->boxViewAutoResize();
     ui->produkComboBox->setCurrentIndex(-1);
-    
-    auto f_model = new FinishingListModel(this);
-    ui->finishingView->setModel(f_model);
+    ui->finishingView->setModel(&m_finModel);
 }
 
 OrderItemDialog::~OrderItemDialog()
@@ -49,79 +47,32 @@ OrderItemDialog::~OrderItemDialog()
     delete ui;
 }
 
-bool OrderItemDialog::onSave(const QVariantMap& changes) {
-    return true;
-}
-
-void OrderItemDialog::setupFields() {
-    setFields({
-        { ui->namaLineEdit, "product_name" },
-        { ui->hargaSpinBox, "sale_price" },
-        { ui->qtySpinBox, "quantity" },
-        { ui->subtotalSpinBox, "subtotal" },
-        { ui->diskonDoubleSpinBox, "discount_percentage" },
-        { ui->diskonRpSpinBox, "discount_amount" },
-        { ui->notesTextEdit, "notes" },
-        { ui->widthBox, "size_width" },
-        { ui->heightBox, "size_height" }
-    });
-}
-
-void OrderItemDialog::setupBoundFields() {
-    addBoundField( "product_id",
-            [&]() -> QVariant {
-                return ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0).data(Qt::EditRole);}, 
-            [&](const QVariant& value) {
-                int id = value.toInt();
-                int index = ui->produkComboBox->findValue(id);
-                ui->produkComboBox->setCurrentIndex(index);
-            });
+void OrderItemDialog::setOrder(OrderItem *order) {
+  // initializeFrom *OrderItem
+  ui->namaLineEdit->setText(order->product_name);
+  if(!order->use_area) {
+    ui->heightBox->setValue(1);
+    ui->heightBox->setEnabled(false);
+    ui->widthBox->setValue(1);
+    ui->widthBox->setEnabled(false);
+  } else {
+    ui->heightBox->setValue(order->size_width);
+    ui->heightBox->setEnabled(true);
+    ui->widthBox->setValue(order->size_height);
+    ui->widthBox->setEnabled(true);  
+  }
+  ui->qtySpinBox->setValue(order->quantity);
+  ui->hargaSpinBox->setValue(order->sale_price);
+  ui->diskonDoubleSpinBox->setValue(order->discount_percentage);
+  ui->diskonRpSpinBox->setValue(order->discount_amount);
+  ui->notesTextEdit->setPlainText(order->notes);
+  ui->totalSpinBox->setValue(order->total());
+  m_finModel->setItems(&order->finishings);
 }
 
 void OrderItemDialog::resetForm()
 {
-    for (const auto& f : m_fields) {
-        std::visit([](auto* editor) {
-            using T = std::decay_t<decltype(*editor)>;
-            if constexpr (std::is_same_v<T, QLineEdit>)
-                editor->clear();
-            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
-                editor->setValue(0);
-            else if constexpr (std::is_same_v<T, QSpinBox>)
-                editor->setValue(0);
-            else if constexpr (std::is_same_v<T, QPlainTextEdit>)
-                editor->clear();
-        }, f.editor);
-    }
-    ui->produkComboBox->setCurrentIndex(-1);
-}
-
-QVariantMap OrderItemDialog::collect() const
-{
-    auto data = FormDialog::collect();
-    // tambahkan field base_price yang diambil dari produkComboBox
-    auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
-    auto costPrice = index.siblingAtColumn(4).data(Qt::EditRole).toInt();
-    auto opt = m_priceManager.getPrice(index.data().toInt(), m_customerPriceLevel);
-    
-    
-    data["base_price"] = costPrice;
-    if (opt.has_value())
-        data["base_price"] = *opt;
-    
-    int total, subtotal;
-    total = data["subtotal"].toInt();
-    subtotal = total + data["discount_amount"].toInt();
-    data["total"] = total;
-    data["subtotal"] = subtotal;
-    auto ropt = m_productManager.getById(data["product_id"].toInt());
-    if(ropt.has_value()) {
-      auto popt = *ropt;
-      data["use_area"] = popt.value("use_area");
-      data["sku"]      = popt.value("sku");
-      data["unit"]      = popt.value("unit");
-    }
-    return data;
+  ui->produkComboBox->setCurrentIndex(-1);
 }
 
 void OrderItemDialog::on_simpanButton_clicked()
@@ -136,11 +87,6 @@ void OrderItemDialog::on_simpanButton_clicked()
         QMessageBox::warning(this, "Validasi", "Nama produk tidak boleh kosong");
         return;
     }
-    if (m_autoCommit) {
-        accept();
-        return;
-    }
-    emit editFinished(collect());
 }
 
 void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
@@ -240,11 +186,23 @@ int OrderItemDialog::calculatedPrice() const
     double harga = ui->hargaSpinBox->value();
     auto use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole);
     double areaMultiplier = (width > 0 && height > 0) ? (width * height) : 1.0;
-    return qCeil((harga * areaMultiplier * qty) / 100.0) * 100;
+    auto pr = qCeil((harga * areaMultiplier * qty) / 100.0) * 100;
+    return pr + m_finModel.total();
 }
 
 void OrderItemDialog::on_tambahButton_clicked() {
   auto fd = new FinishingDialog(this);
+  connect(fd, &FinishingDialog::createItem, this, &OrderItemDialog::onCreateFinishing);
   fd->setAttribute(Qt::WA_DeleteOnClose);
   fd->open();
+}
+
+// handle createFinishing
+void OrderItemDialog::onCreateFinishing(const FinishingItem& item) {
+  m_finModel.addItem(item);
+}
+
+// handle editFinishing
+void OrderItemDialog::onFinishingAccepted() {
+  QTimer::singleShot(0, [this](){ recalculateSubtotal(); });
 }

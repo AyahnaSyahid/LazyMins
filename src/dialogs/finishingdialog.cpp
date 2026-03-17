@@ -4,14 +4,16 @@
 #include <QSqlQueryModel>
 #include <QTableView>
 #include <QHeaderView>
+#include <QMessageBox>
+#include <QTimer>
 
 #include "src/managers/basemanager.h"
 
 FinishingDialog::FinishingDialog(QWidget *parent) :
-  ui(new Ui::FinishingDialog), m_finishingModel(new QSqlQueryModel(this)), QDialog(parent)
+  ui(new Ui::FinishingDialog), m_finishingModel(new QSqlQueryModel(this)), m_mode(Mode::Create), QDialog(parent)
 {
   ui->setupUi(this);
-  
+
   // setting up finishing_services model
   m_finishingModel->setQuery(R"--(
     SELECT id, code, name, description, price_per_unit, unit
@@ -57,4 +59,37 @@ FinishingDialog::~FinishingDialog() {
 
 void FinishingDialog::recalculate() {
   ui->totalSpinBox->setValue(ui->hargaSpinBox->value() * ui->qtySpinBox->value());
+}
+
+void FinishingDialog::setItem(FinishingItem *item) {
+  m_mode = Mode::Modify;
+  m_item = item;
+  
+  auto indexes = m_finishingModel->match(m_finishingModel->index(0, 0), Qt::DisplayRole, item->finishing_id, 1, Qt::MatchExactly);
+  ui->finishingComboBox->setCurrentIndex(indexes.at(0).data().toInt());
+  ui->hargaSpinBox->setValue(item->finishing_price);
+  ui->qtySpinBox->setValue(item->quantity);
+};
+
+void FinishingDialog::on_simpanButton_clicked() {
+  if (ui->finishingComboBox->currentText().isEmpty() || ui->finishingComboBox->currentIndex() == -1) {
+    QMessageBox::information(this, "Periksa masukkan", "Anda belum menentukan jenis finishing");
+    return ;
+  }
+  auto modelIndex = m_finishingModel->index(ui->finishingComboBox->currentIndex(), 0);
+  auto f_id = modelIndex.data().toInt();
+  if (m_mode == Create) {
+    FinishingItem item;
+    item.finishing_id = f_id;
+    item.finishing_name = ui->finishingComboBox->currentText();
+    item.quantity = ui->qtySpinBox->value();
+    item.finishing_price = ui->hargaSpinBox->value();
+    emit createItem(item);
+  } else {
+    m_item->finishing_id = f_id;
+    m_item->finishing_name = ui->finishingComboBox->currentText();
+    m_item->quantity = ui->qtySpinBox->value();
+    m_item->finishing_price = ui->hargaSpinBox->value();
+  }
+  accept();
 }

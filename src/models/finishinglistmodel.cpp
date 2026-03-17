@@ -1,25 +1,24 @@
 #include "finishinglistmodel.h"
 
 FinishingListModel::FinishingListModel(QObject *p) :
-  m_items(nullptr), QAbstractListModel(p) {}
+  m_items {} , QAbstractListModel(p) {}
 
 FinishingListModel::~FinishingListModel() {}
 
-void FinishingListModel::setItems(QList<FinishingItem> *fi) {
+void FinishingListModel::setItems(const QList<FinishingItem> &fi) {
   beginResetModel();
   m_items = fi;
   endResetModel();
 }
 
 int FinishingListModel::rowCount(const QModelIndex& par) const {
-  if(!m_items) return 0;
   if(par.isValid()) return 0;
-  return m_items->count();
+  return m_items.count();
 }
 
 QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
   if(!ix.isValid()) return QVariant();
-  auto const& item = m_items->at(ix.row());
+  auto const& item = m_items.at(ix.row());
   switch (role) {
     case Qt::UserRole + 1: {
       return item.id;
@@ -48,8 +47,8 @@ QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
 }
 
 bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int role) {
-  if(!m_items && ix.isValid()) return false;
-  auto &item = m_items->at(ix.row());
+  if(!ix.isValid()) return false;
+  auto &item = m_items[ix.row()];
   auto meta = va.metaType();
   switch (role) {
     case Qt::UserRole + 1: {
@@ -68,7 +67,7 @@ bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int 
     }
     case Qt::UserRole + 3: {
       if(meta.id() == QMetaType::Int || meta.id() == QMetaType::LongLong || meta.id() == QMetaType::Long) {
-        item.order_finishing_id = va.toInt();
+        item.finishing_id = va.toInt();
         break;
       }
       return false;
@@ -98,12 +97,13 @@ bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int 
       return false;
   }
   emit dataChanged(ix, ix, {role});
+  return true;
 }
 
 int FinishingListModel::total() const {
-  if(!m_items) return 0;
+  if(m_items.count() < 1) return 0;
   int t = 0;
-  for(auto const& item : *m_items) {
+  for(auto const& item : m_items) {
     t += item.subtotal();
   }
   return t;
@@ -111,18 +111,16 @@ int FinishingListModel::total() const {
 
 bool FinishingListModel::addItem(const FinishingItem &fi)
 {
-  if(!m_items) return false;
   beginInsertRows(QModelIndex(), rowCount(), rowCount() + 1);
-  m_items->push_back(fi);
-  endInsertRow();
+  m_items.push_back(fi);
+  endInsertRows();
   return true;
 }
 
 bool FinishingListModel::removeItem(int at) {
-  if(!m_items) return false;
   if(at >=0 && at < rowCount()) {
-    beginRemoveRow(QModelIndex(), at, at);
-    m_items->remove(at, 1);
+    beginRemoveRows(QModelIndex(), at, at);
+    m_items.remove(at, 1);
     endRemoveRows();
   }
   return true;

@@ -255,12 +255,12 @@
         <item row="8" column="0">
          <widget class="QLabel" name="subtotalLabel">
           <property name="text">
-           <string>Subtotal</string>
+           <string>Total</string>
           </property>
          </widget>
         </item>
         <item row="8" column="1">
-         <widget class="QSpinBox" name="subtotalSpinBox">
+         <widget class="QSpinBox" name="totalSpinBox">
           <property name="font">
            <font>
             <bold>true</bold>
@@ -360,7 +360,7 @@
   <tabstop>diskonDoubleSpinBox</tabstop>
   <tabstop>diskonRpSpinBox</tabstop>
   <tabstop>notesTextEdit</tabstop>
-  <tabstop>subtotalSpinBox</tabstop>
+  <tabstop>totalSpinBox</tabstop>
   <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>

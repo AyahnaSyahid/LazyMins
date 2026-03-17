@@ -194,26 +194,8 @@ OrderDialog::OrderDialog(QWidget *p) :
 
 OrderDialog::~OrderDialog() { delete ui; }
 
-
-void OrderDialog::addOrderItem(const QVariantMap &map)
+void OrderDialog::addOrderItem(const OrderItem& oi)
 {
-  OrderItem oi {
-    .order_id = map["order_id"].toInt(),
-    .product_id = map["product_id"].toInt(),
-    .product_name = map["product_name"].toString(),
-    .sku = map["sku"].toString(),
-    .quantity = map["quantity"].toInt(),
-    .unit = map["unit"].toString(),
-    .size_width = map["size_width"].toDouble(),
-    .size_height = map["size_height"].toDouble(),
-    .use_area = map["use_area"].toBool(),
-    .sale_price = map["sale_price"].toInt(),
-    .base_price = map["base_price"].toInt(),
-    .discount_percentage = map["discount_percentage"].toDouble(),
-    .discount_amount = map["discount_amount"].toInt(),
-    .finishing_total = map["finishing_total"].toInt(),
-    .notes = map["notes"].toString(),
-  };
   auto ix = m_model->addItem(oi);
 }
 
@@ -308,8 +290,6 @@ void OrderDialog::on_tambahItem_triggered()
 {
   auto editor = new OrderItemDialog(this);
   editor->setAttribute(Qt::WA_DeleteOnClose);
-  editor->prepareCreate();
-  editor->setAutoCommit(false);
   // get level harga pelanggan
   auto priceLevel = ui->priceLevelComboBox->currentId();
   editor->setCustomerPriceLevel(priceLevel);

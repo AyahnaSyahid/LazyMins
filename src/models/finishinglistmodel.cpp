@@ -5,12 +5,6 @@ FinishingListModel::FinishingListModel(QObject *p) :
 
 FinishingListModel::~FinishingListModel() {}
 
-void FinishingListModel::setItems(const QList<FinishingItem> &fi) {
-  beginResetModel();
-  m_items = fi;
-  endResetModel();
-}
-
 int FinishingListModel::rowCount(const QModelIndex& par) const {
   if(par.isValid()) return 0;
   return m_items.count();
@@ -18,7 +12,7 @@ int FinishingListModel::rowCount(const QModelIndex& par) const {
 
 QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
   if(!ix.isValid()) return QVariant();
-  auto const& item = m_items.at(ix.row());
+  auto item = (*m_items)[ix.row()];
   switch (role) {
     case Qt::UserRole + 1: {
       return item.id;
@@ -46,9 +40,15 @@ QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
   }
 }
 
+void FinishingListModel::setList(QList<FinishingItem> *list) {
+  beginResetModel();
+  m_items = list;
+  endResetModel();
+}
+
 bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int role) {
   if(!ix.isValid()) return false;
-  auto &item = m_items[ix.row()];
+  auto &item = (*m_items)[ix.row()];
   auto meta = va.metaType();
   switch (role) {
     case Qt::UserRole + 1: {
@@ -101,6 +101,7 @@ bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int 
 }
 
 int FinishingListModel::total() const {
+  if(!m_items) return 0;
   if(m_items.count() < 1) return 0;
   int t = 0;
   for(auto const& item : m_items) {
@@ -111,16 +112,18 @@ int FinishingListModel::total() const {
 
 bool FinishingListModel::addItem(const FinishingItem &fi)
 {
+  if (!m_items) return false;
   beginInsertRows(QModelIndex(), rowCount(), rowCount() + 1);
-  m_items.push_back(fi);
+  m_items->push_back(fi);
   endInsertRows();
   return true;
 }
 
 bool FinishingListModel::removeItem(int at) {
+  if (!m_items) return false;
   if(at >=0 && at < rowCount()) {
     beginRemoveRows(QModelIndex(), at, at);
-    m_items.remove(at, 1);
+    m_items->remove(at, 1);
     endRemoveRows();
   }
   return true;

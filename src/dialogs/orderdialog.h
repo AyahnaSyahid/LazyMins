@@ -15,12 +15,10 @@ class OrderDialog : public QDialog
 public:
   explicit OrderDialog(QWidget * = nullptr);
   ~OrderDialog();
-  
-protected:
 
 private slots:
+
   void addOrderItem(const OrderItem& oi);
-  
   void on_simpanButton_clicked();
   void on_tambahItem_triggered();
   void on_cariButton_clicked();

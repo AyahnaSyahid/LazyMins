@@ -5,12 +5,13 @@
 #include "src/models/finishinglistmodel.h"
 #include "src/models/ordermodel.h"
 #include <QMessageBox>
+#include <QStyledItemDelegate>
 #include <QTimer>
 
 void debugMap(const QVariantMap& );
 
 namespace {
-    void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
+  void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
     std::visit([&value](auto* editor) {
             using T = std::decay_t<decltype(*editor)>;
             editor->blockSignals(true);
@@ -24,7 +25,8 @@ namespace {
                 editor->setPlainText(value.toString());
             editor->blockSignals(false);
         }, editor);
-    } 
+    }
+  
 }
 
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
@@ -33,10 +35,11 @@ OrderItemDialog::OrderItemDialog(QWidget *parent) :
     QDialog(parent)
 {
     ui->setupUi(this);
-    ui->produkComboBox->setQuery("SELECT id, name, description, use_area, cost_price FROM products");
+    ui->produkComboBox->setQuery("SELECT id, name, description, use_area, cost_price, sku FROM products");
     ui->produkComboBox->showColumn(0, false); // Sembunyikan kolom id
     ui->produkComboBox->showColumn(3, false); // Sembunyikan kolom use_area
     ui->produkComboBox->showColumn(4, false); // Sembunyikan kolom cost_price
+    ui->produkComboBox->showColumn(5, false); // Sembunyikan kolom sku
     ui->produkComboBox->boxViewAutoResize();
     ui->produkComboBox->setCurrentIndex(-1);
     ui->finishingView->setModel(&m_finModel);
@@ -67,7 +70,7 @@ void OrderItemDialog::setOrder(OrderItem *order) {
   ui->diskonRpSpinBox->setValue(order->discount_amount);
   ui->notesTextEdit->setPlainText(order->notes);
   ui->totalSpinBox->setValue(order->total());
-  m_finModel->setItems(&order->finishings);
+  m_finModel.setList(&order->finishings);
 }
 
 void OrderItemDialog::resetForm()
@@ -77,16 +80,45 @@ void OrderItemDialog::resetForm()
 
 void OrderItemDialog::on_simpanButton_clicked()
 {   
-    // validasi ui->produkComboBox harus >= 0
-    if (ui->produkComboBox->currentIndex() < 0) {
-        QMessageBox::warning(this, "Validasi", "Produk harus dipilih");
-        return;
+  // validasi ui->produkComboBox harus >= 0
+  if (ui->produkComboBox->currentIndex() < 0) {
+      QMessageBox::warning(this, "Validasi", "Produk harus dipilih");
+      return;
+  }
+  
+  //validasi nama tidak boleh kosong
+  if (ui->namaLineEdit->text().trimmed().isEmpty()) {
+      QMessageBox::warning(this, "Validasi", "Nama produk tidak boleh kosong");
+      return;
+  }
+  
+  if (m_mode == Create) {
+    auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
+    auto opt_pr = m_productManager.getById(index.siblingAtColumn(0).data().toInt());
+    if (opt_pr) {
+      auto pr = *opt_pr;
+      OrderItem oi;
+      oi.product_id = pr.value("id").toInt();
+      oi.product_name = ui->namaLineEdit->text().trimmed();
+      oi.sku = pr.value("sku").toString();
+      oi.quantity = ui->qtySpinBox->value();
+      oi.unit = pr.value("unit").toString();
+      oi.use_area = pr.value("use_area").toBool();
+      oi.size_width = oi.use_area ? ui->widthBox->value() : 1.0;
+      oi.size_height = oi.use_area ? ui->heightBox->value() : 1.0;
+      oi.sale_price = ui->hargaSpinBox->value();
+      oi.base_price = pr.value("base_price").toInt();
+      oi.discount_percentage = ui->diskonDoubleSpinBox->value();
+      oi.discount_amount = ui->diskonRpSpinBox->value();
+      oi.finishing_total = m_finModel.total();
+      oi.notes = ui->notesTextEdit->toPlainText();
+      oi.finishings = *(m_finModel.getItems());
+      editFinished(oi);
     }
-    //validasi nama tidak boleh kosong
-    if (ui->namaLineEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "Validasi", "Nama produk tidak boleh kosong");
-        return;
-    }
+  } else {
+    // edit mode here
+  }
+  accept();
 }
 
 void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
@@ -171,7 +203,7 @@ void OrderItemDialog::recalculateSubtotal()
     ui->diskonRpSpinBox->setMaximum(subtotal);
     double diskonRp = ui->diskonRpSpinBox->value();
     subtotal -= diskonRp; // Diskon nominal
-    ui->subtotalSpinBox->setValue(subtotal);
+    ui->totalSpinBox->setValue(subtotal);
 }
 
 int OrderItemDialog::calculatedPrice() const

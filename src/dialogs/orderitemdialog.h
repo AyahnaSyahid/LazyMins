@@ -64,6 +64,7 @@ private:
     int m_customerPriceLevel = 1;
     FinishingListModel m_finModel;
     ProductPriceManager m_priceManager;
+    ProductManager m_productManager;
     Mode m_mode;
     OrderItem *m_orderItem;
 };

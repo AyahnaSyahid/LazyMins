@@ -7,7 +7,8 @@ FinishingListModel::~FinishingListModel() {}
 
 int FinishingListModel::rowCount(const QModelIndex& par) const {
   if(par.isValid()) return 0;
-  return m_items.count();
+  if(!m_items) return 0;
+  return m_items->count();
 }
 
 QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
@@ -102,9 +103,9 @@ bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int 
 
 int FinishingListModel::total() const {
   if(!m_items) return 0;
-  if(m_items.count() < 1) return 0;
+  if(m_items->count() < 1) return 0;
   int t = 0;
-  for(auto const& item : m_items) {
+  for(auto const& item : (*m_items)) {
     t += item.subtotal();
   }
   return t;
@@ -116,6 +117,7 @@ bool FinishingListModel::addItem(const FinishingItem &fi)
   beginInsertRows(QModelIndex(), rowCount(), rowCount() + 1);
   m_items->push_back(fi);
   endInsertRows();
+  qDebug() << "Finishing Model AddItem" << m_items->count();
   return true;
 }
 

@@ -13,6 +13,7 @@ public:
   ~FinishingListModel();
   
   int rowCount(const QModelIndex& par=QModelIndex()) const override;
+  int columnCount(const QModelIndex& par=QModelIndex()) const override { return 1; }
   QVariant data(const QModelIndex &ix, int role) const override;
   bool setData(const QModelIndex &ix, const QVariant& va, int role);
   
@@ -23,7 +24,7 @@ public:
 
   int total() const;
 
-  const QList<FinishingItem> getItems() const { return &m_items; }
+  const QList<FinishingItem> *getItems() const { return m_items; }
 
 private:
   QList<FinishingItem> *m_items;

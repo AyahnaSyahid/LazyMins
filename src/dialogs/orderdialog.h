@@ -34,7 +34,7 @@ private:
   OrderManager oman;
   
   struct KonsumenSet {
-    int id;
+    int id = -1;
     QString name;
   } customerSet {};
 

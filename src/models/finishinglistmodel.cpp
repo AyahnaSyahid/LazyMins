@@ -1,7 +1,7 @@
 #include "finishinglistmodel.h"
 
 FinishingListModel::FinishingListModel(QObject *p) :
-  m_items {} , QAbstractListModel(p) {}
+  QAbstractListModel(p), m_items(nullptr) {}
 
 FinishingListModel::~FinishingListModel() {}
 
@@ -13,6 +13,7 @@ int FinishingListModel::rowCount(const QModelIndex& par) const {
 
 QVariant FinishingListModel::data(const QModelIndex &ix, int role) const {
   if(!ix.isValid()) return QVariant();
+  if(!m_items || ix.row() < 0 || ix.row() >= m_items->count()) return QVariant();
   auto item = (*m_items)[ix.row()];
   switch (role) {
     case Qt::UserRole + 1: {
@@ -49,6 +50,8 @@ void FinishingListModel::setList(QList<FinishingItem> *list) {
 
 bool FinishingListModel::setData(const QModelIndex &ix, const QVariant& va, int role) {
   if(!ix.isValid()) return false;
+  if(!m_items) return false;
+  if(ix.row() < 0 || ix.row() >= m_items->count()) return false;
   auto &item = (*m_items)[ix.row()];
   auto meta = va.metaType();
   switch (role) {
@@ -114,7 +117,8 @@ int FinishingListModel::total() const {
 bool FinishingListModel::addItem(const FinishingItem &fi)
 {
   if (!m_items) return false;
-  beginInsertRows(QModelIndex(), rowCount(), rowCount() + 1);
+  const int newRow = m_items->count();
+  beginInsertRows(QModelIndex(), newRow, newRow);
   m_items->push_back(fi);
   endInsertRows();
   qDebug() << "Finishing Model AddItem" << m_items->count();

@@ -14,8 +14,12 @@ public:
   
   int rowCount(const QModelIndex& par=QModelIndex()) const override;
   int columnCount(const QModelIndex& par=QModelIndex()) const override { return 1; }
-  QVariant data(const QModelIndex &ix, int role) const override;
-  bool setData(const QModelIndex &ix, const QVariant& va, int role);
+  QVariant data(const QModelIndex &ix, int role=Qt::DisplayRole) const override;
+  bool setData(const QModelIndex &ix, const QVariant& va, int role=Qt::EditRole) override;
+  Qt::ItemFlags flags(const QModelIndex &ix) const override {
+    if (!ix.isValid()) return Qt::NoItemFlags;
+    return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+  }
   
   void setList(QList<FinishingItem> *item);
   

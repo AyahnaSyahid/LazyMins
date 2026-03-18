@@ -1,6 +1,5 @@
 #pragma once
 
-#include "formdialog.h"
 #include "src/managers/managers.h"
 #include "src/models/finishinglistmodel.h"
 
@@ -56,15 +55,17 @@ private slots:
     void onFinishingAccepted();
     
 signals:
-    void editFinished(const OrderItem& orderItem);
+    void itemCreated(const OrderItem& orderItem);
+    void editFinished();
 
 private:
     int calculatedPrice() const;
     Ui::OrderItemDialog *ui;
     int m_customerPriceLevel = 1;
     FinishingListModel m_finModel;
+    QList<FinishingItem> new_fItems;
     ProductPriceManager m_priceManager;
     ProductManager m_productManager;
     Mode m_mode;
-    OrderItem *m_orderItem;
+    OrderItem *m_orderItem = nullptr;
 };

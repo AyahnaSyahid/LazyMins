@@ -5,6 +5,7 @@
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
+#include "src/managers/basemanager.h"
 #include <QHeaderView>
 #include <QTimer>
 #include <QAction>
@@ -12,6 +13,7 @@
 #include <QPainter>
 #include <QSqlTableModel>
 #include <QMessageBox>
+#include <cmath>
 
 namespace
 {
@@ -41,7 +43,8 @@ namespace
   class ProductDelegate : public QStyledItemDelegate
   {
   public:
-    explicit ProductDelegate(QObject *parent = nullptr) : m_productModel(new QSqlTableModel(this)), QStyledItemDelegate(parent)
+    explicit ProductDelegate(QObject *parent = nullptr)
+      : QStyledItemDelegate(parent), m_productModel(new QSqlTableModel(this))
     {
       m_productModel->setTable("products");
       m_productModel->select();
@@ -123,8 +126,11 @@ namespace
 
       // 2. Custom rendering logic
       void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {
-          // Prepare the painter (colors, selection highlighting, etc.)
           auto model = qobject_cast<const OrderModel*>(index.model());
+          if (!model) {
+              QStyledItemDelegate::paint(painter, option, index);
+              return;
+          }
           auto order_item = model->itemAt(index.row());
           QStyleOptionViewItem opt = option;
           initStyleOption(&opt, index);
@@ -155,10 +161,12 @@ namespace
           QRect line2Rect = rect.adjusted(0, lineHeight, 0, -lineHeight);
           painter->drawText(line2Rect, Qt::AlignLeft | Qt::AlignVCenter, order_item.descriptionText());
 
-          // --- LINE 3: Muted/Small (e.g., Timestamp or Status) ---
+          // --- LINE 3: Price summary (subtotal) ---
           painter->setPen(opt.palette.placeholderText().color()); // Muted color
           QRect line3Rect = rect.adjusted(0, lineHeight * 2, 0, 0);
-          painter->drawText(line3Rect, Qt::AlignLeft | Qt::AlignVCenter, "Line 3: 12:45 PM");
+          const int itemTotal = order_item.total();
+          const QString priceText = QString("Rp %L1").arg(itemTotal);
+          painter->drawText(line3Rect, Qt::AlignLeft | Qt::AlignVCenter, priceText);
 
           painter->restore();
       }
@@ -182,8 +190,9 @@ namespace
 }
 
 OrderDialog::OrderDialog(QWidget *p) : 
+  QDialog(p),
   ui(new Ui::OrderDialog), 
-  m_model(new OrderModel(this)), QDialog(p)
+  m_model(new OrderModel(this))
 {
   ui->setupUi(this);
   ui->orderItemList->setModel(m_model);
@@ -192,7 +201,13 @@ OrderDialog::OrderDialog(QWidget *p) :
   auto crDate = QDateTime::currentDateTime();
   ui->tOrderDateTimeEdit->setDateTime(crDate);
   ui->dLineDateTimeEdit->setDateTime(crDate.addDays(5));
-  connect(m_model, &OrderModel::orderTotalChanged, this, &OrderDialog::updateCalculation);
+
+  // Subtotal and total are computed fields – prevent user editing them,
+  // which would otherwise fire valueChanged and create signal loops.
+  ui->subtotalSpinBox->setReadOnly(true);
+  ui->totalSpinBox->setReadOnly(true);
+
+  connect(m_model, &OrderModel::orderTotalChanged, this, [this](int){ updateCalculation(); });
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
@@ -205,19 +220,17 @@ void OrderDialog::addOrderItem(const OrderItem& oi)
 void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
 {
     if (ui->subtotalSpinBox->value() <= 0) {
-        ui->diskonRpSpinBox->setValue(0);
+        disableSignalAndSet(ui->diskonRpSpinBox, 0);
+        updateCalculation();
         return;
     }
 
     double subtotal = ui->subtotalSpinBox->value();
-    
-    // Hitung diskon nominal (exact)
     double disc_exact = subtotal * percent / 100.0;
-    
-    // Bulatkan KE ATAS ke kelipatan 100
+    // Round UP to nearest 100
     int disc_amount = static_cast<int>(std::ceil(disc_exact / 100.0)) * 100;
 
-    // Update diskon rupiah tanpa memicu signal loop
+    // Block re-entry: setting diskonRpSpinBox would fire on_diskonRpSpinBox_valueChanged
     disableSignalAndSet(ui->diskonRpSpinBox, disc_amount);
 
     updateCalculation();
@@ -283,8 +296,32 @@ void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
   contextMenu.addAction(ui->tambahItem);
   auto ix = ui->orderItemList->indexAt(pos);
   if (ix.isValid()) {
+    int row = ix.row();
+
     auto edit = contextMenu.addAction("Edit");
+    connect(edit, &QAction::triggered, this, [this, row]() {
+      auto editor = new OrderItemDialog(this);
+      editor->setAttribute(Qt::WA_DeleteOnClose);
+      auto priceLevel = ui->priceLevelComboBox->currentId();
+      editor->setCustomerPriceLevel(priceLevel);
+      // Pass a mutable copy; on accept we replace the item in the model
+      // OrderItem item = m_model->itemAt(row);
+      auto &item = m_model->itemRef(row);
+      editor->setOrder(&item);
+      connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::updateCalculation);
+      editor->open();
+    });
+
     auto del = contextMenu.addAction("Hapus");
+    connect(del, &QAction::triggered, this, [this, row]() {
+      auto res = QMessageBox::question(this, "Hapus Item",
+        "Yakin ingin menghapus item ini?",
+        QMessageBox::Yes | QMessageBox::No);
+      if (res == QMessageBox::Yes) {
+        m_model->removeItem(row);
+        updateCalculation();
+      }
+    });
   }
   contextMenu.exec(ui->orderItemList->viewport()->mapToGlobal(pos));
 }
@@ -296,7 +333,7 @@ void OrderDialog::on_tambahItem_triggered()
   // get level harga pelanggan
   auto priceLevel = ui->priceLevelComboBox->currentId();
   editor->setCustomerPriceLevel(priceLevel);
-  connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::addOrderItem);
+  connect(editor, &OrderItemDialog::itemCreated, this, &OrderDialog::addOrderItem);
   editor->open();
 }
 
@@ -309,6 +346,43 @@ void OrderDialog::on_simpanButton_clicked()
     QTimer::singleShot(500, [this]{ui->konsumenLineEdit->setStyleSheet("");});
     return;
   }
+
+  if (m_model->rowCount() == 0) {
+    QMessageBox::warning(this, "Peringatan", "Tambahkan minimal satu item pesanan");
+    return;
+  }
+
+  // Build the order header from the form fields
+  OrderHeader header;
+  header.admin_id           = 1; // oman.currentAdminId();
+  header.customer_id        = customerSet.id > 0 ? customerSet.id : -1;
+  header.customer_name      = ui->konsumenLineEdit->text().trimmed();
+  header.customer_phone     = ui->kontakLineEdit->text().trimmed();
+  header.price_level_id     = ui->priceLevelComboBox->currentId();
+  header.discount_amount    = ui->diskonRpSpinBox->value();
+  header.discount_percentage= static_cast<int>(ui->diskonDoubleSpinBox->value());
+  header.tax_amount         = ui->pajakRpSpinBox->value();
+  header.order_date         = ui->tOrderDateTimeEdit->dateTime();
+  header.deadline_date      = ui->dLineDateTimeEdit->dateTime();
+  header.status             = "pending";
+  header.priority           = "normal";
+  header.payment_status     = "unpaid";
+  header.notes              = ui->catatan1TextEdit->toPlainText();
+  header.internal_notes     = ui->catatan2TextEdit->toPlainText();
+
+  if (m_model->orderId() == -1) {
+    m_model->setHeader(header);
+  } else {
+    m_model->setHeaderField(header);
+  }
+
+  auto db = BaseManager::connection;
+  if (!m_model->commit(db)) {
+    QMessageBox::critical(this, "Gagal", "Gagal menyimpan pesanan ke database.");
+    return;
+  }
+
+  accept();
 }
 
 void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {

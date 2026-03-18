@@ -4,9 +4,13 @@
 #include "finishingdialog.h"
 #include "src/models/finishinglistmodel.h"
 #include "src/models/ordermodel.h"
+#include "src/customs/finishingitemdelegate.h"
 #include <QMessageBox>
+#include <QMenu>
 #include <QStyledItemDelegate>
 #include <QTimer>
+#include <memory>
+#include <cmath>
 
 void debugMap(const QVariantMap& );
 
@@ -30,9 +34,9 @@ namespace {
 }
 
 OrderItemDialog::OrderItemDialog(QWidget *parent) :
+    QDialog(parent),
     ui(new Ui::OrderItemDialog),
-    m_mode(Create),
-    QDialog(parent)
+    m_mode(Create)
 {
     ui->setupUi(this);
     ui->produkComboBox->setQuery("SELECT id, name, description, use_area, cost_price, sku FROM products");
@@ -42,7 +46,44 @@ OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui->produkComboBox->showColumn(5, false); // Sembunyikan kolom sku
     ui->produkComboBox->boxViewAutoResize();
     ui->produkComboBox->setCurrentIndex(-1);
+    m_finModel.setList(&new_fItems);
     ui->finishingView->setModel(&m_finModel);
+    ui->finishingView->setItemDelegate(new FinishingItemDelegate(this));
+
+    // Context menu for finishing view: edit and remove
+    ui->finishingView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->finishingView, &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        auto ix = ui->finishingView->indexAt(pos);
+        if (!ix.isValid()) return;
+        int row = ix.row();
+        QMenu menu;
+        auto editAct = menu.addAction("Edit");
+        auto delAct  = menu.addAction("Hapus");
+        auto chosen  = menu.exec(ui->finishingView->viewport()->mapToGlobal(pos));
+        if (chosen == editAct) {
+            const QList<FinishingItem> *items = m_finModel.getItems();
+            if (!items || row >= items->count()) return;
+            // Use shared_ptr so the dialog's pointer and the accepted-lambda
+            // both refer to the same FinishingItem instance.
+            auto fi = std::make_shared<FinishingItem>((*items)[row]);
+            auto fd = new FinishingDialog(this);
+            fd->setAttribute(Qt::WA_DeleteOnClose);
+            fd->setItem(fi.get());
+            connect(fd, &QDialog::accepted, this, [this, row, fi]() {
+                // FinishingDialog wrote back into *fi via the stored pointer.
+                auto modelIx = m_finModel.index(row);
+                m_finModel.setData(modelIx, fi->finishing_id,    Qt::UserRole + 3);
+                m_finModel.setData(modelIx, fi->finishing_name,  Qt::UserRole + 4);
+                m_finModel.setData(modelIx, fi->quantity,        Qt::UserRole + 5);
+                m_finModel.setData(modelIx, fi->finishing_price, Qt::UserRole + 6);
+                QTimer::singleShot(0, this, [this]{ recalculateSubtotal(); });
+            });
+            fd->open();
+        } else if (chosen == delAct) {
+            m_finModel.removeItem(row);
+            QTimer::singleShot(0, this, [this]{ recalculateSubtotal(); });
+        }
+    });
 }
 
 OrderItemDialog::~OrderItemDialog()
@@ -51,26 +92,51 @@ OrderItemDialog::~OrderItemDialog()
 }
 
 void OrderItemDialog::setOrder(OrderItem *order) {
-  // initializeFrom *OrderItem
+  m_mode = Modify;
+  m_orderItem = order;
+  
+
+  // Block all input signals while we populate – avoids re-entrant
+  // recalculation triggered by individual setValue/setText calls.
+  const QList<QWidget*> inputs {
+    ui->namaLineEdit, ui->qtySpinBox, ui->hargaSpinBox,
+    ui->diskonDoubleSpinBox, ui->diskonRpSpinBox,
+    ui->widthBox, ui->heightBox, ui->notesTextEdit, ui->totalSpinBox,
+    ui->produkComboBox
+  };
+
+  // get the combobox index
+  int currentProductId = order->product_id;
+  qDebug() << "Current Product ID:" << currentProductId;
+  auto prmodel = ui->produkComboBox->model();
+  auto indexes = prmodel->match(prmodel->index(0, 0), Qt::DisplayRole, currentProductId, 1, Qt::MatchExactly);
+  auto currentIndex = indexes.at(0).row();
+  ui->produkComboBox->setCurrentIndex(currentIndex);
+  
+  for (auto *w : inputs) w->blockSignals(true);
+  
   ui->namaLineEdit->setText(order->product_name);
-  if(!order->use_area) {
+  if (!order->use_area) {
     ui->heightBox->setValue(1);
     ui->heightBox->setEnabled(false);
     ui->widthBox->setValue(1);
     ui->widthBox->setEnabled(false);
   } else {
-    ui->heightBox->setValue(order->size_width);
+    ui->heightBox->setValue(order->size_height);
     ui->heightBox->setEnabled(true);
-    ui->widthBox->setValue(order->size_height);
-    ui->widthBox->setEnabled(true);  
+    ui->widthBox->setValue(order->size_width);
+    ui->widthBox->setEnabled(true);
   }
-  ui->qtySpinBox->setValue(order->quantity);
   ui->hargaSpinBox->setValue(order->sale_price);
   ui->diskonDoubleSpinBox->setValue(order->discount_percentage);
   ui->diskonRpSpinBox->setValue(order->discount_amount);
   ui->notesTextEdit->setPlainText(order->notes);
-  ui->totalSpinBox->setValue(order->total());
   m_finModel.setList(&order->finishings);
+
+  for (auto *w : inputs) w->blockSignals(false);
+  // Now do one clean recalculation with all values in place.
+  ui->qtySpinBox->setValue(order->quantity);
+  // recalculateSubtotal();
 }
 
 void OrderItemDialog::resetForm()
@@ -112,11 +178,37 @@ void OrderItemDialog::on_simpanButton_clicked()
       oi.discount_amount = ui->diskonRpSpinBox->value();
       oi.finishing_total = m_finModel.total();
       oi.notes = ui->notesTextEdit->toPlainText();
-      oi.finishings = *(m_finModel.getItems());
-      editFinished(oi);
+      auto p = m_finModel.getItems();
+      oi.finishings.clear();
+      for(auto const fp : *p) {
+        oi.finishings << fp;
+      }
+      emit itemCreated(oi);
     }
   } else {
-    // edit mode here
+    // Edit mode: update the existing item in place
+    if (m_orderItem) {
+      auto index = ui->produkComboBox->model()->index(ui->produkComboBox->currentIndex(), 0);
+      auto opt_pr = m_productManager.getById(index.siblingAtColumn(0).data().toInt());
+      if (opt_pr) {
+        auto pr = *opt_pr;
+        m_orderItem->product_id          = pr.value("id").toInt();
+        m_orderItem->product_name        = ui->namaLineEdit->text().trimmed();
+        m_orderItem->sku                 = pr.value("sku").toString();
+        m_orderItem->quantity            = ui->qtySpinBox->value();
+        m_orderItem->unit                = pr.value("unit").toString();
+        m_orderItem->use_area            = pr.value("use_area").toBool();
+        m_orderItem->size_width          = m_orderItem->use_area ? ui->widthBox->value() : 1.0;
+        m_orderItem->size_height         = m_orderItem->use_area ? ui->heightBox->value() : 1.0;
+        m_orderItem->sale_price          = ui->hargaSpinBox->value();
+        m_orderItem->base_price          = pr.value("base_price").toInt();
+        m_orderItem->discount_percentage = ui->diskonDoubleSpinBox->value();
+        m_orderItem->discount_amount     = ui->diskonRpSpinBox->value();
+        m_orderItem->finishing_total     = m_finModel.total();
+        m_orderItem->notes               = ui->notesTextEdit->toPlainText();
+        emit editFinished();
+      }
+    }
   }
   accept();
 }
@@ -128,8 +220,8 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
         return;
     }
     auto model = ui->produkComboBox->model();
-    auto use_area = model->index(index, 3).data(Qt::EditRole);
-    if (use_area.toInt() == 1) { // jika produk menggunakan area, aktifkan input width & height
+    bool use_area = model->index(index, 3).data(Qt::EditRole).toBool();
+    if (use_area) {
         ui->widthBox->setEnabled(true);
         ui->heightBox->setEnabled(true);
         ui->widthBox->setMinimum(0.01);
@@ -142,25 +234,27 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
         ui->widthBox->setValue(1);
         ui->heightBox->setValue(1);
     }
-    // dapatkan current product id
-    int productId = model->index(index, 0).data(Qt::EditRole).toInt();
-    
-    // dapatkan harga berdasarkan price level customer
-    auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
-    if (optprice.has_value()) {
-        ui->hargaSpinBox->setMinimum(*optprice);
-        ui->hargaSpinBox->setValue(*optprice);
-    } else {
-        // fallback ke harga dasar dari tabel products
-        int basePrice = model->index(index, 4).data(Qt::EditRole).toInt();
-        ui->hargaSpinBox->setMinimum(basePrice);
-        ui->hargaSpinBox->setValue(basePrice);
+
+    // In Modify mode the price is already set correctly; don't override it.
+    if (m_mode == Modify) {
+      auto ans = QMessageBox::question(this, "Terdeteksi perubahan pada jenis produk", "Sesuaikan harga dengan harga produk baru ?");
+      if (ans != QMessageBox::Yes) return;
     }
 
-    // diperlukan mekanisme untuk handle by nego
-    if (m_customerPriceLevel == 3) {
-        ui->hargaSpinBox->setMinimum(0);
+    int productId = model->index(index, 0).data(Qt::EditRole).toInt();
+    auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
+    int suggestedPrice = 0;
+    if (optprice.has_value()) {
+        suggestedPrice = *optprice;
+    } else {
+        // Fallback to cost_price column (index 4 in the query)
+        suggestedPrice = model->index(index, 4).data(Qt::EditRole).toInt();
     }
+
+    // Allow price=0 floor for negotiated (price level 3), otherwise use suggested.
+    int minPrice = (m_customerPriceLevel == 3) ? 0 : suggestedPrice;
+    ui->hargaSpinBox->setMinimum(minPrice);
+    ui->hargaSpinBox->setValue(suggestedPrice);
 }
 
 void OrderItemDialog::on_hargaSpinBox_valueChanged(int arg1)
@@ -177,48 +271,53 @@ void OrderItemDialog::on_qtySpinBox_valueChanged(int arg1)
 
 void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
 {
-    int calcullatedSubtotal = calculatedPrice();
-    double diskonRp = calcullatedSubtotal * (arg1 / 100.0);
-    // diskon Rp harus dibulatkan menjadi kelipatan 100
+    int calculatedSubtotal = calculatedPrice();
+    double diskonRp = calculatedSubtotal * (arg1 / 100.0);
+    // Round to nearest 100
     diskonRp = qRound(diskonRp / 100.0) * 100.0;
-    ui->diskonRpSpinBox->setValue(diskonRp);
+    // FIX: block signals to avoid triggering on_diskonRpSpinBox_valueChanged
+    // which would re-enter and overwrite the percentage we just received.
+    disableSignalAndSet(ui->diskonRpSpinBox, static_cast<int>(diskonRp));
+    recalculateSubtotal();
 }
 
 void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
 {
-    // kalkulasi berapa persen diskon
     int calcullatedSubtotal = calculatedPrice();
-    double diskonPersen = (arg1 / calcullatedSubtotal) * 100.0;
+    // FIX: guard against division by zero
+    if (calcullatedSubtotal <= 0) {
+        disableSignalAndSet(ui->diskonDoubleSpinBox, 0.0);
+        recalculateSubtotal();
+        return;
+    }
+    double diskonPersen = (static_cast<double>(arg1) / static_cast<double>(calcullatedSubtotal)) * 100.0;
     disableSignalAndSet(ui->diskonDoubleSpinBox, diskonPersen);
     recalculateSubtotal();
 }
 
 void OrderItemDialog::recalculateSubtotal()
 {
-    // diskonPersen dan diskonRp adalah entitas yang sama, 
-    // jika user mengatur diskonPersen maka diskonRp harus dihitung ulang, begitu pula sebaliknya. 
-    // Untuk menyederhanakan, kita asumsikan user hanya akan mengatur salah satu jenis diskon, dan kita prioritaskan diskonRp jika keduanya diisi.
-    // double diskonPersen = ui->diskonDoubleSpinBox->value();
     int subtotal = calculatedPrice();
     ui->diskonRpSpinBox->setMaximum(subtotal);
-    double diskonRp = ui->diskonRpSpinBox->value();
-    subtotal -= diskonRp; // Diskon nominal
-    ui->totalSpinBox->setValue(subtotal);
+    int diskonRp = ui->diskonRpSpinBox->value();
+    int total = subtotal - diskonRp;
+    ui->totalSpinBox->setValue(total);
 }
 
 int OrderItemDialog::calculatedPrice() const
 {
     if (ui->produkComboBox->currentIndex() < 0) {
-        return 0.0;
+        return 0;
     }
     auto model = ui->produkComboBox->model();
     int qty = ui->qtySpinBox->value();
-    double width = ui->widthBox->value();
+    double width  = ui->widthBox->value();
     double height = ui->heightBox->value();
-    double harga = ui->hargaSpinBox->value();
-    auto use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole);
-    double areaMultiplier = (width > 0 && height > 0) ? (width * height) : 1.0;
-    auto pr = qCeil((harga * areaMultiplier * qty) / 100.0) * 100;
+    double harga  = ui->hargaSpinBox->value();
+    // FIX: actually use the use_area flag to decide the multiplier
+    bool use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole).toBool();
+    double areaMultiplier = (use_area && width > 0 && height > 0) ? (width * height) : 1.0;
+    int pr = static_cast<int>(std::ceil((harga * areaMultiplier * qty) / 100.0)) * 100;
     return pr + m_finModel.total();
 }
 
@@ -229,9 +328,10 @@ void OrderItemDialog::on_tambahButton_clicked() {
   fd->open();
 }
 
-// handle createFinishing
 void OrderItemDialog::onCreateFinishing(const FinishingItem& item) {
   m_finModel.addItem(item);
+  // Recalculate: calculatedPrice() includes m_finModel.total()
+  recalculateSubtotal();
 }
 
 // handle editFinishing

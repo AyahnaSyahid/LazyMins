@@ -170,6 +170,7 @@ public:
     // ── Accessors ─────────────────────────────────────────────────────────────
     const OrderItem &itemAt(int row) const { return m_items.at(row); }
     int  orderId() const { return m_orderId; }
+    OrderItem &itemRef(int ix) { return m_items[ix]; }
 
 signals:
     // Emitted after every in-memory mutation so a UI total label can update

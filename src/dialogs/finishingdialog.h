@@ -36,6 +36,6 @@ private:
   Ui::FinishingDialog *ui;
   QSqlQueryModel *m_finishingModel;
   QTableView *m_finishingView;
-  FinishingItem *m_item;
+  FinishingItem *m_item = nullptr;
   Mode m_mode;
 };

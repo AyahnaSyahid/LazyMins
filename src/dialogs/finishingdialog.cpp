@@ -10,7 +10,7 @@
 #include "src/managers/basemanager.h"
 
 FinishingDialog::FinishingDialog(QWidget *parent) :
-  ui(new Ui::FinishingDialog), m_finishingModel(new QSqlQueryModel(this)), m_mode(Mode::Create), QDialog(parent)
+  QDialog(parent), ui(new Ui::FinishingDialog), m_finishingModel(new QSqlQueryModel(this)), m_mode(Mode::Create), m_item(nullptr)
 {
   ui->setupUi(this);
 
@@ -49,8 +49,8 @@ FinishingDialog::FinishingDialog(QWidget *parent) :
     }
   });
 
-  connect(ui->hargaSpinBox, &QSpinBox::valueChanged, this, FinishingDialog::recalculate);
-  connect(ui->qtySpinBox, &QSpinBox::valueChanged, this, FinishingDialog::recalculate);
+  connect(ui->hargaSpinBox, &QSpinBox::valueChanged, this, &FinishingDialog::recalculate);
+  connect(ui->qtySpinBox, &QSpinBox::valueChanged, this, &FinishingDialog::recalculate);
 }
 
 FinishingDialog::~FinishingDialog() {
@@ -65,8 +65,12 @@ void FinishingDialog::setItem(FinishingItem *item) {
   m_mode = Mode::Modify;
   m_item = item;
   
+  // FIX: use .row() to get the combobox row index, not .data() which returns
+  // the finishing_id (column 0 value) and would set the wrong combo index.
   auto indexes = m_finishingModel->match(m_finishingModel->index(0, 0), Qt::DisplayRole, item->finishing_id, 1, Qt::MatchExactly);
-  ui->finishingComboBox->setCurrentIndex(indexes.at(0).data().toInt());
+  if (!indexes.isEmpty()) {
+    ui->finishingComboBox->setCurrentIndex(indexes.at(0).row());
+  }
   ui->hargaSpinBox->setValue(item->finishing_price);
   ui->qtySpinBox->setValue(item->quantity);
 };

@@ -104,3 +104,7 @@ void DataViewer::setColumnVisible(int col, bool vis) {
       ui->dataView->hideColumn(col);
   }
 }
+
+void DataViewer::setEditable(bool editable) {
+  ui->dataView->setEditTriggers(editable ? QTableView::AllEditTriggers : QTableView::NoEditTriggers);
+}

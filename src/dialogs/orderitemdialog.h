@@ -1,36 +1,38 @@
 #pragma once
 
-#include "formdialog.h"
 #include "src/managers/managers.h"
+#include "src/models/finishinglistmodel.h"
+
 namespace Ui {
     class OrderItemDialog;
 }
 
-class OrderItemDialog : public FormDialog {
+#include <QDialog>
+
+class OrderItemDialog : public QDialog {
     Q_OBJECT
 
 public:
+    enum Mode {
+      Create,
+      Modify
+    };
+
     explicit OrderItemDialog(QWidget *parent = nullptr);
     ~OrderItemDialog();
-    
-    bool onSave(const QVariantMap& changes) override;
-    void setupFields() override;
-    void setupBoundFields() override;
 
-    void setAutoCommit(bool autoCommit) {
-        m_autoCommit = autoCommit;
-    }
-    
     void setCustomerPriceLevel(int priceLevel) {
         // kita handle ini di implementasi on_produkComboBox_currentIndexChanged, jadi simpan saja di member variable
         m_customerPriceLevel = priceLevel;
     }
+    
+    void setOrder(OrderItem *order);
+    
+    const FinishingListModel& finishingModel() const { return m_finModel; }
+    const Mode &mode() { return m_mode; }
 
 public slots:
     void resetForm();
-
-protected:
-    QVariantMap collect() const override;
 
 private slots:
     void on_produkComboBox_currentIndexChanged(int index);
@@ -43,15 +45,27 @@ private slots:
     void on_widthBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void on_heightBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void recalculateSubtotal();
+    
+    void on_tambahButton_clicked();
 
+    // handle createFinishing
+    void onCreateFinishing(const FinishingItem& item);
+    
+    // handle editFinishing
+    void onFinishingAccepted();
+    
 signals:
-    void editFinished(const QVariantMap& itemData);
+    void itemCreated(const OrderItem& orderItem);
+    void editFinished();
 
 private:
-    double calculatedPrice() const;
+    int calculatedPrice() const;
     Ui::OrderItemDialog *ui;
-    bool m_autoCommit = true;
     int m_customerPriceLevel = 1;
+    FinishingListModel m_finModel;
+    QList<FinishingItem> new_fItems;
     ProductPriceManager m_priceManager;
     ProductManager m_productManager;
+    Mode m_mode;
+    OrderItem *m_orderItem = nullptr;
 };

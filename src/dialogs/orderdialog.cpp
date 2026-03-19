@@ -5,12 +5,15 @@
 #include "src/customs/flexibledelegate.h"
 #include "src/dialogs/konsumenpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
+#include "src/managers/basemanager.h"
 #include <QHeaderView>
 #include <QTimer>
 #include <QAction>
 #include <QMenu>
+#include <QPainter>
 #include <QSqlTableModel>
 #include <QMessageBox>
+#include <cmath>
 
 namespace
 {
@@ -36,10 +39,12 @@ namespace
   
   
   };
+
   class ProductDelegate : public QStyledItemDelegate
   {
   public:
-    explicit ProductDelegate(QObject *parent = nullptr) : m_productModel(new QSqlTableModel(this)), QStyledItemDelegate(parent)
+    explicit ProductDelegate(QObject *parent = nullptr)
+      : QStyledItemDelegate(parent), m_productModel(new QSqlTableModel(this))
     {
       m_productModel->setTable("products");
       m_productModel->select();
@@ -99,6 +104,74 @@ namespace
   private:
     QSqlTableModel *m_productModel;
   };
+
+  class OrderItemDelegate : public QStyledItemDelegate {
+  public:
+      using QStyledItemDelegate::QStyledItemDelegate;
+
+      // 1. Calculate the dynamic height based on 3 lines + padding
+      QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override {
+          QSize size = QStyledItemDelegate::sizeHint(option, index);
+          
+          QFontMetrics fm(option.font);
+          int lineHeight = fm.height();
+          int padding = 10;
+          
+          // Total height = (3 lines * height) + top/bottom padding + spacing between lines
+          int totalHeight = (lineHeight * 3) + (padding * 2);
+          
+          size.setHeight(totalHeight);
+          return size;
+      }
+
+      // 2. Custom rendering logic
+      void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {
+          auto model = qobject_cast<const OrderModel*>(index.model());
+          if (!model) {
+              QStyledItemDelegate::paint(painter, option, index);
+              return;
+          }
+          auto order_item = model->itemAt(index.row());
+          QStyleOptionViewItem opt = option;
+          initStyleOption(&opt, index);
+          
+          opt.text = "";
+          painter->save();
+          
+          // Draw the background (handles selection and hover colors automatically)
+          painter->setRenderHint(QPainter::Antialiasing);
+          opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
+
+          // Setup the drawing area (apply some horizontal padding)
+          QRect rect = opt.rect.adjusted(10, 5, -10, -5); 
+          QFontMetrics fm(opt.font);
+          int lineHeight = fm.height();
+
+          // --- LINE 1: Nama Jual ---
+          painter->setPen(opt.palette.text().color());
+          QFont boldFont = opt.font;
+          boldFont.setBold(true);
+          painter->setFont(boldFont);
+          
+          QRect line1Rect = rect.adjusted(0, 0, 0, -(lineHeight * 2));
+          painter->drawText(line1Rect, Qt::AlignLeft | Qt::AlignVCenter, index.data(Qt::UserRole + 3).toString());
+
+          // --- LINE 2: Ukuran & finishing ---
+          painter->setFont(opt.font); // Reset to normal font
+          QRect line2Rect = rect.adjusted(0, lineHeight, 0, -lineHeight);
+          painter->drawText(line2Rect, Qt::AlignLeft | Qt::AlignVCenter, order_item.descriptionText());
+
+          // --- LINE 3: Price summary (subtotal) ---
+          painter->setPen(opt.palette.placeholderText().color()); // Muted color
+          QRect line3Rect = rect.adjusted(0, lineHeight * 2, 0, 0);
+          const int itemTotal = order_item.total();
+          const QString priceText = QString("Rp %L1").arg(itemTotal);
+          painter->drawText(line3Rect, Qt::AlignLeft | Qt::AlignVCenter, priceText);
+
+          painter->restore();
+      }
+  };
+  
   void disableSignalAndSet(std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*> editor, const QVariant &value) {
     std::visit([&value](auto* editor) {
             using T = std::decay_t<decltype(*editor)>;
@@ -116,199 +189,48 @@ namespace
   }
 }
 
-OrderDialog::OrderDialog(QWidget *p) : ui(new Ui::OrderDialog), emodel(new OrderItemEditorModel(this)), FormDialog(p)
+OrderDialog::OrderDialog(QWidget *p) : 
+  QDialog(p),
+  ui(new Ui::OrderDialog), 
+  m_model(new OrderModel(this))
 {
   ui->setupUi(this);
+  ui->orderItemList->setModel(m_model);
+  ui->orderItemList->setItemDelegate(new OrderItemDelegate(this));
+  ui->orderNumberLineEdit->setText(oman.generateOrderNumber());
+  auto crDate = QDateTime::currentDateTime();
+  ui->tOrderDateTimeEdit->setDateTime(crDate);
+  ui->dLineDateTimeEdit->setDateTime(crDate.addDays(5));
 
-  ui->orderItemView->setModel(emodel);
+  // Subtotal and total are computed fields – prevent user editing them,
+  // which would otherwise fire valueChanged and create signal loops.
+  ui->subtotalSpinBox->setReadOnly(true);
+  ui->totalSpinBox->setReadOnly(true);
 
-  QList<int> hiddenColumns = {0, 1, 2, 4, 10, 11, 12, 14, 15, 16};
-  QList<int> numberColumns = {5, 9, 13};
-  for (auto col : hiddenColumns)
-  {
-    ui->orderItemView->hideColumn(col);
-  }
-  ui->orderItemView->horizontalHeader()->setStretchLastSection(true);
-
-  ui->orderItemView->setItemDelegateForColumn(2, new ProductDelegate(this));
-  ui->orderItemView->addAction(ui->tambahItem);
-
-  ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
-  ui->tOrderDateTimeEdit->setDateTime(QDateTime::currentDateTime());
-  ui->dLineDateTimeEdit->setDateTime(QDateTime::currentDateTime().addDays(1));
-
-  auto numberDelegate = FlexibleDelegate::create(
-      {.displayer = [](const QVariant &value, const QLocale &locale)
-       { return QString("%L1").arg(value.toInt()); },
-       .styler = [numberColumns](QStyleOptionViewItem &option, const QModelIndex &index)
-       {
-        if (index.column() == 5) { // Kolom quantity
-            option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-        } else if (numberColumns.contains(index.column())) { // Kolom sale_price dan base_price
-            option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-        }
-        option.locale = QLocale(QLocale::Indonesian, QLocale::Indonesia); },},
-      ui->orderItemView);
-  // set delegate untuk kolom quantity, sale_price, base_price
-   numberDelegate->setCreator([](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget *
-                             {
-    auto editor = new QSpinBox(parent);
-    editor->setFrame(false);
-    editor->setMinimum(0);
-    editor->setMaximum(9999999);
-    editor->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    editor->setGroupSeparatorShown(true);
-    return editor; });
-
-
-  for (int col : numberColumns) {
-    ui->orderItemView->setItemDelegateForColumn(col, numberDelegate);
-  }
-
-  auto unitDelegate = FlexibleDelegate::create(
-      {.displayer = [](const QVariant &value, const QLocale &locale)
-       { return QString("%L1").arg(value.toString()); },
-       .styler = [](QStyleOptionViewItem &option, const QModelIndex &index)
-       {
-        option.displayAlignment = Qt::AlignHCenter | Qt::AlignVCenter;
-        option.locale = QLocale(); },
-       .creator = [](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget * {
-        auto le = new QLineEdit(parent);
-        le->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-        return le;
-       }},
-      ui->orderItemView
-  );
-
-  auto sizeDelegate = FlexibleDelegate::create(
-    { .displayer = [](const QVariant &value, const QLocale &locale)
-      { return QString("%L1").arg(value.toDouble()); },
-      .styler = [](QStyleOptionViewItem &option, const QModelIndex &index) {
-        option.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-        option.locale = QLocale();
-      },
-      .creator = [](QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) -> QWidget * {
-        auto ds = new QDoubleSpinBox(parent);
-        ds->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        ds->setGroupSeparatorShown(true);
-        ds->setMaximum(9999999);
-        return ds;
-      }
-    }, ui->orderItemView
-  );
-
-  ui->orderItemView->setItemDelegateForColumn(7, sizeDelegate);
-  ui->orderItemView->setItemDelegateForColumn(8, sizeDelegate);
-  ui->orderItemView->setItemDelegateForColumn(6, unitDelegate);
-  connect(emodel, &OrderItemEditorModel::subtotalChanged, this, &OrderDialog::updateCalculation);
+  connect(m_model, &OrderModel::orderTotalChanged, this, [this](int){ updateCalculation(); });
 }
 
 OrderDialog::~OrderDialog() { delete ui; }
 
-void OrderDialog::setupFields()
+void OrderDialog::addOrderItem(const OrderItem& oi)
 {
-  setFields({{ui->orderNumberLineEdit, "order_number"},
-             {ui->konsumenLineEdit, "customer_name"},
-             {ui->kontakLineEdit, "customer_phone"},
-             {ui->statusLineEdit, "status"},
-             {ui->prioritasLineEdit, "priority"},
-             {ui->catatan1TextEdit, "notes"},
-             {ui->catatan2TextEdit, "internal_notes"},
-             {ui->subtotalSpinBox, "subtotal"},
-             {ui->diskonDoubleSpinBox, "discount_percentage"},
-             {ui->diskonRpSpinBox, "discount_amount"},
-             {ui->pajakRpSpinBox, "tax_amount"},
-             {ui->totalSpinBox, "total_amount"}});
-}
-
-void OrderDialog::setupBoundFields()
-{
-  addBoundField("order_date", [this]()
-                { auto local = ui->tOrderDateTimeEdit->dateTime();
-            return local.toTimeZone(QTimeZone::UTC); }, [this](QVariant val)
-                { 
-            auto local = val.toDateTime();
-            local.setTimeZone(QTimeZone::LocalTime);
-            ui->tOrderDateTimeEdit->setDateTime(local); });
-  addBoundField("deadline_date", [this]()
-                { auto local = ui->dLineDateTimeEdit->dateTime();
-            return local.toTimeZone(QTimeZone::UTC); }, [this](QVariant val)
-                { 
-            auto local = val.toDateTime();
-            local.setTimeZone(QTimeZone::LocalTime);
-            ui->dLineDateTimeEdit->setDateTime(local); });
-}
-
-bool OrderDialog::onSave(const QVariantMap &mp) {
-
-  BaseManager::connection.transaction();
-  auto mpc = mp;
-  
-  // ambil id dari session
-  mpc["admin_id"] = 1;
-  debugMap(mpc);
-  auto opt_order = oman.create(mpc);
-  if (opt_order.has_value()) {
-    auto ord_rec = *opt_order;
-    auto sr = emodel->saveModel(ord_rec);
-    if(!sr.ok) {
-      QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order item:\n%1").arg(sr.error));
-      BaseManager::connection.rollback();
-    }
-
-    // update order
-    
-    
-    if (BaseManager::connection.commit()) {
-      return true;
-    }
-
-    BaseManager::connection.rollback();
-  } else {
-    QMessageBox::information(this, "Kesalahan", QString("Tidak dapat menyimpan order:\n%1").arg(oman.errorString()));
-    return false;
-  }
-  QMessageBox::information(this, "Kesalahan", "Error : tidak terdefinisi");
-  return false;
-}
-
-void OrderDialog::onPrepareCreate()
-{
-  ui->orderNumberLineEdit->setText(OrderManager::generateOrderNumber());
-  ui->statusLineEdit->setText("Pending");
-  ui->prioritasLineEdit->setText("Normal");
-}
-
-void OrderDialog::onPrepareModify(const QSqlRecord &orderRecord)
-{
-  emodel->loadFromOrder(orderRecord.value("id").toInt());
-}
-
-void OrderDialog::onOrderItemDialogAccepted(const QVariantMap& data)
-{
-  OrderItemDialog *editor = qobject_cast<OrderItemDialog *>(sender());
-  QVariantMap itemData = data;
-  qDebug() << itemData;
-  emodel->appendRow(itemData);
-  editor->resetForm();
+  auto ix = m_model->addItem(oi);
 }
 
 void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
 {
     if (ui->subtotalSpinBox->value() <= 0) {
-        ui->diskonRpSpinBox->setValue(0);
+        disableSignalAndSet(ui->diskonRpSpinBox, 0);
+        updateCalculation();
         return;
     }
 
     double subtotal = ui->subtotalSpinBox->value();
-    
-    // Hitung diskon nominal (exact)
     double disc_exact = subtotal * percent / 100.0;
-    
-    // Bulatkan KE ATAS ke kelipatan 100
+    // Round UP to nearest 100
     int disc_amount = static_cast<int>(std::ceil(disc_exact / 100.0)) * 100;
 
-    // Update diskon rupiah tanpa memicu signal loop
+    // Block re-entry: setting diskonRpSpinBox would fire on_diskonRpSpinBox_valueChanged
     disableSignalAndSet(ui->diskonRpSpinBox, disc_amount);
 
     updateCalculation();
@@ -360,47 +282,59 @@ void OrderDialog::on_cariButton_clicked()
 
 void OrderDialog::updateCalculation()
 {
-    double subtotal = emodel->calculateSubtotal();
-    ui->subtotalSpinBox->setValue(subtotal);
-
-    double diskon = ui->diskonRpSpinBox->value();
-    double pajak  = ui->pajakRpSpinBox->value();
-
-    double total = subtotal - diskon - pajak;
-    ui->totalSpinBox->setValue(total);
+  auto subtotal = 0;
+  for(int i=0; i<m_model->rowCount(); ++i) {
+    subtotal += m_model->itemAt(i).total();
+  }
+  ui->subtotalSpinBox->setValue(subtotal);
+  ui->totalSpinBox->setValue(subtotal - ui->pajakRpSpinBox->value() - ui->diskonRpSpinBox->value());
 }
 
-void OrderDialog::on_orderItemView_customContextMenuRequested(const QPoint &pos)
+void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
 {
   QMenu contextMenu;
   contextMenu.addAction(ui->tambahItem);
-  if(ui->orderItemView->indexAt(pos).isValid())
-  {
-    contextMenu.addSeparator();
-    contextMenu.addAction("Hapus Item", [this, pos]()
-                          {
-      QModelIndex index = ui->orderItemView->indexAt(pos);
-      if (index.isValid()) {
-          emodel->removeRow(index.row());
+  auto ix = ui->orderItemList->indexAt(pos);
+  if (ix.isValid()) {
+    int row = ix.row();
+
+    auto edit = contextMenu.addAction("Edit");
+    connect(edit, &QAction::triggered, this, [this, row]() {
+      auto editor = new OrderItemDialog(this);
+      editor->setAttribute(Qt::WA_DeleteOnClose);
+      auto priceLevel = ui->priceLevelComboBox->currentId();
+      editor->setCustomerPriceLevel(priceLevel);
+      // Pass a mutable copy; on accept we replace the item in the model
+      // OrderItem item = m_model->itemAt(row);
+      auto &item = m_model->itemRef(row);
+      editor->setOrder(&item);
+      connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::updateCalculation);
+      editor->open();
+    });
+
+    auto del = contextMenu.addAction("Hapus");
+    connect(del, &QAction::triggered, this, [this, row]() {
+      auto res = QMessageBox::question(this, "Hapus Item",
+        "Yakin ingin menghapus item ini?",
+        QMessageBox::Yes | QMessageBox::No);
+      if (res == QMessageBox::Yes) {
+        m_model->removeItem(row);
+        updateCalculation();
       }
     });
   }
-  contextMenu.addSeparator();
-  contextMenu.addAction("Resize Kolom", [this](){ui->orderItemView->resizeColumnsToContents();});
-  contextMenu.exec(ui->orderItemView->viewport()->mapToGlobal(pos));
+  contextMenu.exec(ui->orderItemList->viewport()->mapToGlobal(pos));
 }
 
 void OrderDialog::on_tambahItem_triggered()
 {
   auto editor = new OrderItemDialog(this);
   editor->setAttribute(Qt::WA_DeleteOnClose);
-  editor->prepareCreate();
-  editor->setAutoCommit(false);
   // get level harga pelanggan
   auto priceLevel = ui->priceLevelComboBox->currentId();
   editor->setCustomerPriceLevel(priceLevel);
+  connect(editor, &OrderItemDialog::itemCreated, this, &OrderDialog::addOrderItem);
   editor->open();
-  connect(editor, &OrderItemDialog::editFinished, this, &OrderDialog::onOrderItemDialogAccepted);
 }
 
 void OrderDialog::on_simpanButton_clicked()
@@ -412,18 +346,43 @@ void OrderDialog::on_simpanButton_clicked()
     QTimer::singleShot(500, [this]{ui->konsumenLineEdit->setStyleSheet("");});
     return;
   }
-  if(mode() == FormMode::Create) {
-    accept();
-  }
-}
 
-QVariantMap OrderDialog::collect() const {
-  auto def = FormDialog::collect();
-  // add anythink else
-  if (ui->konsumenLineEdit->text() == customerSet.name) {
-    def["customer_id"] = customerSet.id;
+  if (m_model->rowCount() == 0) {
+    QMessageBox::warning(this, "Peringatan", "Tambahkan minimal satu item pesanan");
+    return;
   }
-  return def;
+
+  // Build the order header from the form fields
+  OrderHeader header;
+  header.admin_id           = 1; // oman.currentAdminId();
+  header.order_number       = ui->orderNumberLineEdit->text();
+  header.customer_id        = customerSet.id > 0 ? customerSet.id : -1;
+  header.customer_name      = ui->konsumenLineEdit->text().trimmed();
+  header.customer_phone     = ui->kontakLineEdit->text().trimmed();
+  header.price_level_id     = ui->priceLevelComboBox->currentId();
+  header.discount_amount    = ui->diskonRpSpinBox->value();
+  header.discount_percentage= static_cast<int>(ui->diskonDoubleSpinBox->value());
+  header.tax_amount         = ui->pajakRpSpinBox->value();
+  header.order_date         = ui->tOrderDateTimeEdit->dateTime();
+  header.deadline_date      = ui->dLineDateTimeEdit->dateTime();
+  header.status             = "pending";
+  header.priority           = "normal";
+  header.payment_status     = "unpaid";
+  header.notes              = ui->catatan1TextEdit->toPlainText();
+  header.internal_notes     = ui->catatan2TextEdit->toPlainText();
+
+  if (m_model->orderId() == -1) {
+    m_model->setHeader(header);
+  } else {
+    m_model->setHeaderField(header);
+  }
+
+  auto db = BaseManager::connection;
+  if (!m_model->commit(db)) {
+    QMessageBox::critical(this, "Gagal", "Gagal menyimpan pesanan ke database.");
+    return;
+  }
+  accept();
 }
 
 void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {

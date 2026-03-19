@@ -492,3 +492,7 @@ QString BaseManager::getDeleteCondition() const
 void BaseManager::resetErrorString() {
   m_errorString = "";
 }
+
+QSqlRecord BaseManager::empty() const {
+  return QSqlRecord();
+}

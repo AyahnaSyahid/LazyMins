@@ -27,10 +27,14 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/managers/rolesmanager.cpp
                        src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
-                       src/models/orderitemeditormodel.h
-                       src/models/orderitemeditormodel.cpp
+                       # src/models/orderitemeditormodel.h
+                       # src/models/orderitemeditormodel.cpp
+                       src/models/ordermodel.h
+                       src/models/ordermodel.cpp
                        src/models/advancedquerymodel.h
                        src/models/advancedquerymodel.cpp
+                       src/models/finishinglistmodel.h
+                       src/models/finishinglistmodel.cpp
                        )
 
 qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
@@ -70,11 +74,18 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/konsumenpickerdialog.h
                            src/dialogs/konsumenpickerdialog.ui
                            src/dialogs/konsumenpickerdialog.cpp
+                           src/dialogs/finishingdialog.h
+                           src/dialogs/finishingdialog.ui
+                           src/dialogs/finishingdialog.cpp
+                           
+                           
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
                            src/display/dataviewer.cpp
                            src/display/finishingservicesviewer.h
                            src/display/finishingservicesviewer.cpp
+                           src/display/orderdataviewer.h
+                           src/display/orderdataviewer.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp
@@ -87,6 +98,8 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/customs/productcategoriescombobox.cpp
                            src/customs/flexibledelegate.h
                            src/customs/booleandelegate.h
+                           src/customs/finishingitemdelegate.h
+                           src/customs/finishingitemdelegate.cpp
                            
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui

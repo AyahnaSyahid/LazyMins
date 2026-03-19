@@ -1,5 +1,8 @@
 #include "ordermodel.h"
 
+#include "src/managers/basemanager.h"
+#include "src/managers/managers.h"
+
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -335,7 +338,7 @@ bool OrderModel::commit(QSqlDatabase &db)
                       " (admin_id or customer_name missing)";
         return false;
     }
-
+    
     if (!db.transaction()) {
         qWarning() << "OrderModel::commit – could not begin transaction:"
                    << db.lastError().text();
@@ -349,149 +352,91 @@ bool OrderModel::commit(QSqlDatabase &db)
     for (const OrderItem &it : m_items)
         subtotal += it.total();
 
+    OrderManager oman;
     if (m_orderId == -1) {
-        // Brand-new order – INSERT.
-        QSqlQuery oq(db);
-        oq.prepare(R"(
-            INSERT INTO orders
-                (admin_id, customer_id, customer_name, customer_phone,
-                 price_level_id,
-                 subtotal, discount_amount, discount_percentage, tax_amount,
-                 status, priority, payment_status,
-                 order_date, deadline_date,
-                 notes, internal_notes, order_number)
-            VALUES
-                (:admin_id, :customer_id, :customer_name, :customer_phone,
-                 :price_level_id,
-                 :subtotal, :discount_amount, :discount_percentage, :tax_amount,
-                 :status, :priority, :payment_status,
-                 :order_date, :deadline_date,
-                 :notes, :internal_notes, :order_number)
-        )");
-        oq.bindValue(":admin_id",           m_header.admin_id);
-        oq.bindValue(":customer_id",        m_header.customer_id == -1
-                                                ? QVariant() : QVariant(m_header.customer_id));
-        oq.bindValue(":customer_name",      m_header.customer_name);
-        oq.bindValue(":customer_phone",     m_header.customer_phone.isEmpty()
-                                                ? QVariant() : QVariant(m_header.customer_phone));
-        oq.bindValue(":price_level_id",     m_header.price_level_id);
-        oq.bindValue(":subtotal",           subtotal);
-        oq.bindValue(":discount_amount",    m_header.discount_amount);
-        oq.bindValue(":discount_percentage",m_header.discount_percentage);
-        oq.bindValue(":tax_amount",         m_header.tax_amount);
-        oq.bindValue(":status",             m_header.status);
-        oq.bindValue(":priority",           m_header.priority);
-        oq.bindValue(":payment_status",     m_header.payment_status);
-        oq.bindValue(":order_date",         m_header.order_date.isNull()
-                                                ? QVariant() : QVariant(m_header.order_date));
-        oq.bindValue(":deadline_date",      m_header.deadline_date.isNull()
-                                                ? QVariant() : QVariant(m_header.deadline_date));
-        oq.bindValue(":notes",              m_header.notes.isEmpty()
-                                                ? QVariant() : QVariant(m_header.notes));
-        oq.bindValue(":internal_notes",     m_header.internal_notes.isEmpty()
-                                                ? QVariant() : QVariant(m_header.internal_notes));
-        oq.bindValue(":order_number",       m_header.order_number);
-
-        if (!oq.exec()) {
+        QVariantMap createParams {
+          {"admin_id",           m_header.admin_id},
+          {"customer_id",        m_header.customer_id == -1 ? QVariant() : QVariant(m_header.customer_id)},
+          {"customer_name",      m_header.customer_name},
+          {"customer_phone",     m_header.customer_phone.isEmpty() ? QVariant() : QVariant(m_header.customer_phone)},
+          {"price_level_id",     m_header.price_level_id},
+          {"subtotal",           subtotal},
+          {"discount_amount",    m_header.discount_amount},
+          {"discount_percentage",m_header.discount_percentage},
+          {"tax_amount",         m_header.tax_amount},
+          {"status",             m_header.status},
+          {"priority",           m_header.priority},
+          {"payment_status",     m_header.payment_status},
+          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
+          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
+          {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
+          {"internal_notes",     m_header.internal_notes.isEmpty() ? QVariant() : QVariant(m_header.internal_notes)},
+          {"order_number",       m_header.order_number}
+        };
+        
+        auto opt_order = oman.create(createParams);
+        if (!opt_order.has_value()) {
             qWarning() << "OrderModel::commit – INSERT orders failed:"
-                       << oq.lastError().text();
+                       << oman.errorString();
             db.rollback();
             return false;
         }
+        
 
-        m_orderId    = oq.lastInsertId().toInt();
+        m_orderId    = (*opt_order).value("id").toInt();
         m_header.id  = m_orderId;
-
-        // Fetch the auto-generated order_number (assigned by DB trigger).
-        QSqlQuery nq(db);
-        nq.prepare("SELECT order_number FROM orders WHERE id = :id");
-        nq.bindValue(":id", m_orderId);
-        if (nq.exec() && nq.next())
-            m_header.order_number = nq.value(0).toString();
-
-        // Stamp all pending items with the new order id.
-        for (OrderItem &it : m_items)
-            it.order_id = m_orderId;
 
     } else {
         // Existing order – UPDATE header fields and subtotal together.
-        QSqlQuery oq(db);
-        oq.prepare(R"(
-            UPDATE orders SET
-                admin_id            = :admin_id,
-                customer_id         = :customer_id,
-                customer_name       = :customer_name,
-                customer_phone      = :customer_phone,
-                price_level_id      = :price_level_id,
-                subtotal            = :subtotal,
-                discount_amount     = :discount_amount,
-                discount_percentage = :discount_percentage,
-                tax_amount          = :tax_amount,
-                status              = :status,
-                priority            = :priority,
-                payment_status      = :payment_status,
-                order_date          = :order_date,
-                deadline_date       = :deadline_date,
-                notes               = :notes,
-                internal_notes      = :internal_notes,
-                updated_at          = datetime('now')
-            WHERE id = :id
-        )");
-        oq.bindValue(":id",                 m_orderId);
-        oq.bindValue(":admin_id",           m_header.admin_id);
-        oq.bindValue(":customer_id",        m_header.customer_id == -1
-                                                ? QVariant() : QVariant(m_header.customer_id));
-        oq.bindValue(":customer_name",      m_header.customer_name);
-        oq.bindValue(":customer_phone",     m_header.customer_phone.isEmpty()
-                                                ? QVariant() : QVariant(m_header.customer_phone));
-        oq.bindValue(":price_level_id",     m_header.price_level_id);
-        oq.bindValue(":subtotal",           subtotal);
-        oq.bindValue(":discount_amount",    m_header.discount_amount);
-        oq.bindValue(":discount_percentage",m_header.discount_percentage);
-        oq.bindValue(":tax_amount",         m_header.tax_amount);
-        oq.bindValue(":status",             m_header.status);
-        oq.bindValue(":priority",           m_header.priority);
-        oq.bindValue(":payment_status",     m_header.payment_status);
-        oq.bindValue(":order_date",         m_header.order_date.isNull()
-                                                ? QVariant() : QVariant(m_header.order_date));
-        oq.bindValue(":deadline_date",      m_header.deadline_date.isNull()
-                                                ? QVariant() : QVariant(m_header.deadline_date));
-        oq.bindValue(":notes",              m_header.notes.isEmpty()
-                                                ? QVariant() : QVariant(m_header.notes));
-        oq.bindValue(":internal_notes",     m_header.internal_notes.isEmpty()
-                                                ? QVariant() : QVariant(m_header.internal_notes));
-
-        if (!oq.exec()) {
+        QVariantMap updateParams {
+          {"admin_id",           m_header.admin_id},
+          {"customer_id",        m_header.customer_id == -1 ? QVariant() : QVariant(m_header.customer_id)},
+          {"customer_name",      m_header.customer_name},
+          {"customer_phone",     m_header.customer_phone.isEmpty() ? QVariant() : QVariant(m_header.customer_phone)},
+          {"price_level_id",     m_header.price_level_id},
+          {"subtotal",           subtotal},
+          {"discount_amount",    m_header.discount_amount},
+          {"discount_percentage",m_header.discount_percentage},
+          {"tax_amount",         m_header.tax_amount},
+          {"status",             m_header.status},
+          {"priority",           m_header.priority},
+          {"payment_status",     m_header.payment_status},
+          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
+          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
+          {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
+          {"internal_notes",     m_header.internal_notes.isEmpty() ? QVariant() : QVariant(m_header.internal_notes)},
+          {"order_number",       m_header.order_number}
+        };
+        
+        bool updateOk = oman.update(m_orderId, updateParams);
+        if (!updateOk) {
             qWarning() << "OrderModel::commit – UPDATE orders failed:"
-                       << oq.lastError().text();
+                       << oman.errorString();
             db.rollback();
             return false;
         }
     }
-
+    
+    
     // ── Step 2: DELETE removed order_items ───────────────────────────────────
     // CASCADE removes their finishings automatically.
+    OrderItemManager oim;
     for (int itemId : m_deletedItemIds) {
-        QSqlQuery q(db);
-        q.prepare("DELETE FROM order_items WHERE id = :id");
-        q.bindValue(":id", itemId);
-        if (!q.exec()) {
-            qWarning() << "OrderModel::commit – DELETE order_item failed:"
-                       << q.lastError().text();
-            db.rollback();
-            return false;
-        }
+      if (!oim.remove(itemId)) {
+        qWarning() << "OrderModel::commit – DELETE order_item:"
+                   << oim.errorString();
+        db.rollback();
+        return false;
+      }
     }
 
     // ── Step 3: DELETE removed finishings ────────────────────────────────────
+    OrderItemFinishingManager oifm;
     for (auto it = m_deletedFinishingIds.begin(); it != m_deletedFinishingIds.end(); ++it) {
         for (int fiId : it.value()) {
-            QSqlQuery q(db);
-            q.prepare("DELETE FROM order_item_finishings WHERE id = :id");
-            q.bindValue(":id", fiId);
-            if (!q.exec()) {
+            if (!oifm.remove(fiId)) {
                 qWarning() << "OrderModel::commit – DELETE finishing failed:"
-                           << q.lastError().text();
+                           << oifm.errorString();
                 db.rollback();
                 return false;
             }
@@ -500,47 +445,13 @@ bool OrderModel::commit(QSqlDatabase &db)
 
     // ── Step 4: INSERT / UPDATE dirty items and their finishings ─────────────
     for (int row : m_dirtyRows) {
-        OrderItem &item = m_items[row];
-        item.order_id = m_orderId;
+      OrderItem &item = m_items[row];
+      item.order_id = m_orderId;
 
-        if (!item.save(db)) {
-            db.rollback();
-            return false;
-        }
-
-        // If this was a fresh INSERT, save() is const so it cannot write the
-        // new id back. Fetch it by finding the highest id for this order.
-        if (item.id == -1) {
-            QSqlQuery idQ(db);
-            idQ.prepare(R"(
-                SELECT id FROM order_items
-                WHERE  order_id = :oid
-                ORDER  BY id DESC LIMIT 1
-            )");
-            idQ.bindValue(":oid", m_orderId);
-            if (!idQ.exec() || !idQ.next()) {
-                qWarning() << "OrderModel::commit – could not fetch new item id:"
-                           << idQ.lastError().text();
-                db.rollback();
-                return false;
-            }
-            item.id = idQ.value(0).toInt();
-            for (FinishingItem &fi : item.finishings)
-                fi.order_item_id = item.id;
-        }
-
-        // Sync finishing ids that were just inserted (id was -1 before save).
-        QSqlQuery fq(db);
-        fq.prepare(R"(
-            SELECT id FROM order_item_finishings
-            WHERE  order_item_id = :oid ORDER BY id
-        )");
-        fq.bindValue(":oid", item.id);
-        if (fq.exec()) {
-            int fi = 0;
-            while (fq.next() && fi < item.finishings.size())
-                item.finishings[fi++].id = fq.value(0).toInt();
-        }
+      if (!item.save(db)) {
+          db.rollback();
+          return false;
+      }
     }
 
     // ── Step 5: Commit the transaction ───────────────────────────────────────
@@ -599,18 +510,14 @@ int FinishingItem::subtotal() const
 
 FinishingItem FinishingItem::loadFromId(int id)
 {
+  
     FinishingItem fi;
-    QSqlQuery q;
-    q.prepare(R"(
-        SELECT id, order_item_id, finishing_id, finishing_name, quantity, finishing_price
-        FROM   order_item_finishings WHERE id = :id
-    )");
-    q.bindValue(":id", id);
-    if (!q.exec() || !q.next()) {
-        qWarning() << "FinishingItem::loadFromId failed for id" << id
-                   << ":" << q.lastError().text();
-        return fi;
+    OrderItemFinishingManager oifm;
+    auto opt_fin = oifm.getById(id);
+    if (!opt_fin.has_value()) {
+      return fi;
     }
+    auto q = *opt_fin;
     fi.id              = q.value("id").toInt();
     fi.order_item_id   = q.value("order_item_id").toInt();
     fi.finishing_id    = q.value("finishing_id").toInt();
@@ -644,20 +551,14 @@ int OrderItem::total() const
 
 OrderItem &OrderItem::loadFromId(int id)
 {
-    QSqlQuery q;
-    q.prepare(R"(
-        SELECT id, order_id, product_id, product_name, sku,
-               quantity, unit, size_width, size_height, use_area,
-               sale_price, base_price, discount_percentage, discount_amount,
-               finishing_total, notes
-        FROM   order_items WHERE id = :id
-    )");
-    q.bindValue(":id", id);
-    if (!q.exec() || !q.next()) {
-        qWarning() << "OrderItem::loadFromId failed for id" << id
-                   << ":" << q.lastError().text();
-        return *this;
+    OrderManager oman;
+    auto opt_ord = oman.getById(id);
+    if (!opt_ord.has_value()) {
+      return *this;
     }
+    
+    auto q = *opt_ord;
+
     this->id            = q.value("id").toInt();
     order_id            = q.value("order_id").toInt();
     product_id          = q.value("product_id").toInt();
@@ -676,115 +577,90 @@ OrderItem &OrderItem::loadFromId(int id)
     notes               = q.value("notes").toString();
 
     finishings.clear();
-    QSqlQuery fq;
-    fq.prepare("SELECT id FROM order_item_finishings WHERE order_item_id = :oid ORDER BY id");
-    fq.bindValue(":oid", this->id);
-    if (fq.exec())
-        while (fq.next())
-            finishings.append(FinishingItem::loadFromId(fq.value(0).toInt()));
+    
+    OrderItemFinishingManager oifm;
+    auto recs = oifm.getByOrderItem(id);
+    for(auto const &rc : recs)
+      finishings.append(FinishingItem::loadFromId(rc.value(0).toInt()));
     return *this;
 }
 
-bool OrderItem::save(QSqlDatabase &db) const
+bool OrderItem::save(QSqlDatabase &db)
 {
-    QSqlQuery q(db);
+    OrderItemManager oim;
+    OrderItemFinishingManager oifm;
+    QVariantMap params {
+      {"order_id",            order_id},
+      {"product_id",          product_id == -1 ? QVariant() : QVariant(product_id)},
+      {"product_name",        product_name},
+      {"sku",                 sku},
+      {"quantity",            quantity},
+      {"unit",                unit},
+      {"size_width",          size_width},
+      {"size_height",         size_height},
+      {"use_area",            static_cast<int>(use_area)},
+      {"sale_price",          sale_price},
+      {"base_price",          base_price},
+      {"discount_percentage", discount_percentage},
+      {"discount_amount",     discount_amount},
+      {"finishing_total",     finishing_total},
+      {"notes",               notes.isEmpty() ? QVariant() : QVariant(notes)}
+    };
+    bool saveOk = false;
+    int liveId = id;
     if (id == -1) {
-        q.prepare(R"(
-            INSERT INTO order_items
-                (order_id, product_id, product_name, sku,
-                 quantity, unit, size_width, size_height, use_area,
-                 sale_price, base_price, discount_percentage, discount_amount,
-                 finishing_total, notes)
-            VALUES
-                (:order_id, :product_id, :product_name, :sku,
-                 :quantity, :unit, :size_width, :size_height, :use_area,
-                 :sale_price, :base_price, :discount_percentage, :discount_amount,
-                 :finishing_total, :notes)
-        )");
+      auto opt_order = oim.create(params);
+      if(opt_order.has_value()) {
+        liveId = (*opt_order).value("id").toInt();
+        id = liveId;
+        saveOk = true;
+      }
     } else {
-        q.prepare(R"(
-            UPDATE order_items SET
-                order_id = :order_id, product_id = :product_id,
-                product_name = :product_name, sku = :sku,
-                quantity = :quantity, unit = :unit,
-                size_width = :size_width, size_height = :size_height,
-                use_area = :use_area,
-                sale_price = :sale_price, base_price = :base_price,
-                discount_percentage = :discount_percentage,
-                discount_amount = :discount_amount,
-                finishing_total = :finishing_total, notes = :notes,
-                updated_at = datetime('now')
-            WHERE id = :id
-        )");
-        q.bindValue(":id", id);
+      saveOk = oim.update(id, params);
     }
-    q.bindValue(":order_id",            order_id);
-    q.bindValue(":product_id",          product_id == -1 ? QVariant() : QVariant(product_id));
-    q.bindValue(":product_name",        product_name);
-    q.bindValue(":sku",                 sku);
-    q.bindValue(":quantity",            quantity);
-    q.bindValue(":unit",                unit);
-    q.bindValue(":size_width",          size_width);
-    q.bindValue(":size_height",         size_height);
-    q.bindValue(":use_area",            static_cast<int>(use_area));
-    q.bindValue(":sale_price",          sale_price);
-    q.bindValue(":base_price",          base_price);
-    q.bindValue(":discount_percentage", discount_percentage);
-    q.bindValue(":discount_amount",     discount_amount);
-    q.bindValue(":finishing_total",     finishing_total);
-    q.bindValue(":notes",               notes.isEmpty() ? QVariant() : QVariant(notes));
-
-    if (!q.exec()) {
-        qWarning() << "OrderItem::save failed:" << q.lastError().text();
+    if (!saveOk) {
+        qWarning() << "OrderItem::save failed:" << oim.errorString();
         return false;
     }
-
-    const int liveId = (id == -1) ? q.lastInsertId().toInt() : id;
-
+    
     // Upsert finishings: delete orphans first, then insert/update survivors.
-    QStringList keepIds;
+    QList<int> keepIds;
+    
     for (const FinishingItem &fi : finishings)
-        if (fi.id != -1) keepIds << QString::number(fi.id);
-
-    {
-        QSqlQuery dq(db);
-        if (!keepIds.isEmpty()) {
-            dq.prepare(QString(
-                "DELETE FROM order_item_finishings "
-                "WHERE order_item_id = :oid AND id NOT IN (%1)").arg(keepIds.join(',')));
-        } else {
-            dq.prepare("DELETE FROM order_item_finishings WHERE order_item_id = :oid");
+        if (fi.id != -1) keepIds << fi.id;
+    
+    auto allFinishingsByOrderItem = oifm.getByOrderItem(id);
+    for (auto &rec : allFinishingsByOrderItem) {
+      int fId = rec.value("id").toInt();
+      if (!keepIds.contains(fId)) {
+        if(!oifm.remove(fId)){
+          qWarning() << "OrderItem save : finishing delete failed"
+                     << oifm.errorString();
+          return false;
         }
-        dq.bindValue(":oid", liveId);
-        if (!dq.exec())
-            qWarning() << "OrderItem::save – finishing delete failed:" << dq.lastError().text();
+      }
     }
 
-    for (const FinishingItem &fi : finishings) {
-        QSqlQuery fq(db);
-        if (fi.id == -1) {
-            fq.prepare(R"(
-                INSERT INTO order_item_finishings
-                    (order_item_id, finishing_id, finishing_name, quantity, finishing_price)
-                VALUES (:order_item_id, :finishing_id, :finishing_name, :quantity, :finishing_price)
-            )");
-        } else {
-            fq.prepare(R"(
-                UPDATE order_item_finishings SET
-                    finishing_id = :finishing_id, finishing_name = :finishing_name,
-                    quantity = :quantity, finishing_price = :finishing_price,
-                    updated_at = datetime('now')
-                WHERE id = :id
-            )");
-            fq.bindValue(":id", fi.id);
-        }
-        fq.bindValue(":order_item_id",  liveId);
-        fq.bindValue(":finishing_id",   fi.finishing_id == -1 ? QVariant() : QVariant(fi.finishing_id));
-        fq.bindValue(":finishing_name", fi.finishing_name);
-        fq.bindValue(":quantity",       fi.quantity);
-        fq.bindValue(":finishing_price",fi.finishing_price);
-        if (!fq.exec())
-            qWarning() << "OrderItem::save – finishing upsert failed:" << fq.lastError().text();
+    for (auto &fi : finishings) {
+      QVariantMap fiParams {
+        {"order_item_id",  liveId},
+        {"finishing_id",   fi.finishing_id == -1 ? QVariant() : QVariant(fi.finishing_id)},
+        {"finishing_name", fi.finishing_name},
+        {"quantity",       fi.quantity},
+        {"finishing_price",fi.finishing_price}
+      };
+      bool succes = false;
+      if (fi.id == -1) {
+        auto opt_fin = oifm.create(fiParams);
+        succes = opt_fin.has_value();
+        if (succes) fi.id = (*opt_fin).value("id").toInt();
+      } else {
+        succes = oifm.update(fi.id, fiParams);
+      }
+      if (!succes) {
+          qWarning() << "OrderItem::save – finishing upsert failed:" << oifm.errorString();
+          return false;
+      }
     }
     return true;
 }

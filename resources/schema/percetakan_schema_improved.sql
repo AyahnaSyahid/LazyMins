@@ -186,58 +186,52 @@ CREATE INDEX idx_finishing_name ON finishing_services(name);
 
 -- Tabel Orders: Header order/pesanan (diperbaiki)
 CREATE TABLE orders (
-    id INTEGER PRIMARY KEY,
-    order_number TEXT UNIQUE,             -- Di-generate otomatis oleh trigger jika tidak diisi
-    invoice_id INTEGER,
-    customer_id INTEGER,
-    customer_name TEXT NOT NULL,      -- Denormalisasi untuk performa
-    customer_phone TEXT,              -- TAMBAHAN: Nomor telp customer
-    price_level_id INTEGER DEFAULT 1, -- TAMBAHAN: Level harga yang digunakan
+    id                  INTEGER PRIMARY KEY,
+    order_number        TEXT UNIQUE,                    -- Di-generate otomatis
+    invoice_id          INTEGER,                        -- Referensi ke invoice (bisa NULL jika belum dibuat)
+    invoice_number      TEXT,                           -- Denormalisasi untuk tampilan cepat
     
-    -- Informasi finansial
-    subtotal INTEGER NOT NULL DEFAULT 0,          -- TAMBAHAN: Subtotal sebelum diskon
-    discount_amount INTEGER NOT NULL DEFAULT 0,   -- TAMBAHAN: Jumlah diskon
-    discount_percentage INTEGER NOT NULL DEFAULT 0, -- TAMBAHAN: Persentase diskon (hanya estimasi tanpa perhitungan exact)
-    tax_amount INTEGER NOT NULL DEFAULT 0,        -- TAMBAHAN: Jumlah pajak (PPN)
-    -- Total akhir
-    total_amount INTEGER GENERATED ALWAYS AS (
-        COALESCE(subtotal,0) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0) ) VIRTUAL,
+    customer_id         INTEGER,
+    customer_name       TEXT NOT NULL,
+    customer_phone      TEXT,
+    price_level_id      INTEGER DEFAULT 1,
     
-    -- Status dan tracking
-    status TEXT DEFAULT 'pending',    -- pending, processing, ready, completed, cancelled
-    priority TEXT DEFAULT 'normal',   -- TAMBAHAN: urgent, high, normal, low
+    -- Informasi finansial (tetap di orders untuk performa produksi)
+    subtotal            INTEGER NOT NULL DEFAULT 0,
+    discount_amount     INTEGER NOT NULL DEFAULT 0,
+    discount_percentage INTEGER NOT NULL DEFAULT 0,
+    tax_amount          INTEGER NOT NULL DEFAULT 0,
+    total_amount        INTEGER GENERATED ALWAYS AS (
+                            COALESCE(subtotal,0) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0)
+                        ) VIRTUAL,
+    
+    -- Status operasional
+    status              TEXT DEFAULT 'pending' CHECK(status IN ('pending','processing','ready','completed','cancelled')),
+    priority            TEXT DEFAULT 'normal',
     
     -- Jadwal
-    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,  -- TAMBAHAN: Tanggal order
-    deadline_date DATETIME,           -- TAMBAHAN: Deadline pengerjaan
-    completion_date DATETIME,         -- TAMBAHAN: Tanggal selesai
+    order_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deadline_date       DATETIME,
+    completion_date     DATETIME,
     
-    -- Pembayaran
-    payment_status TEXT DEFAULT 'unpaid',  -- TAMBAHAN: unpaid, partial, paid
-    paid_amount INTEGER DEFAULT 0,       -- TAMBAHAN: Jumlah yang sudah dibayar
+    -- Informasi pembayaran (denormalisasi ringan untuk kemudahan query)
+    payment_status      TEXT DEFAULT 'unpaid',
+    paid_amount         INTEGER DEFAULT 0,
     
     -- Catatan
-    notes TEXT,                       -- TAMBAHAN: Catatan order
-    internal_notes TEXT,              -- TAMBAHAN: Catatan internal (tidak terlihat customer)
+    notes               TEXT,
+    internal_notes      TEXT,
     
     -- Tracking
-    admin_id INTEGER NOT NULL,        -- Admin yang membuat order
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    admin_id            INTEGER NOT NULL,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE RESTRICT,
-    FOREIGN KEY (customer_id) REFERENCES konsumen(id) ON DELETE RESTRICT,
-    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (invoice_id)     REFERENCES invoices(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_id)    REFERENCES konsumen(id) ON DELETE RESTRICT,
+    FOREIGN KEY (admin_id)       REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id)
 );
-
--- Index untuk orders
-CREATE INDEX idx_orders_number ON orders(order_number);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_date ON orders(order_date);
-CREATE INDEX idx_orders_deadline ON orders(deadline_date);
-CREATE INDEX idx_orders_payment_status ON orders(payment_status);
 
 -- Tabel Order Items: Detail item dalam order (diperbaiki)
 CREATE TABLE order_items (
@@ -307,46 +301,46 @@ CREATE TABLE payment_methods (
 
 -- Tabel Payments: Pembayaran dari customer (diperbaiki)
 CREATE TABLE payments (
-    id INTEGER PRIMARY KEY,
-    payment_number TEXT UNIQUE,       -- TAMBAHAN: Nomor pembayaran unik (PAY-001)
-    order_id INTEGER NOT NULL,
-    customer_id INTEGER,              -- TAMBAHAN: Referensi ke customer
-    invoice_id INTEGER,              -- TAMBAHAN: Referensi ke invoices
+    id                       INTEGER PRIMARY KEY,
+    payment_number           TEXT UNIQUE,               -- PAY-20260320-00001
+    invoice_id               INTEGER NOT NULL,          -- Referensi UTAMA (wajib)
+    order_id                 INTEGER,                   -- Opsional (untuk traceability jika 1 order = 1 invoice)
+    customer_id              INTEGER,
     
     -- Detail pembayaran
-    amount INTEGER NOT NULL CHECK(amount > 0),
-    payment_method TEXT NOT NULL DEFAULT 'cash',  -- cash, transfer, qris, dll
+    amount                   INTEGER NOT NULL CHECK(amount > 0),
+    payment_method           TEXT NOT NULL DEFAULT 'cash',
     
-    -- Informasi transfer (jika method = transfer)
-    transfer_bank TEXT,               -- TAMBAHAN: Nama bank
-    transfer_account_name TEXT,       -- TAMBAHAN: Nama pemilik rekening
-    transfer_account_number TEXT,     -- RENAME dari transfer_acc
-    transfer_verified INTEGER DEFAULT 0,  -- RENAME dari transfer_ver
-    transfer_proof_image TEXT,        -- TAMBAHAN: Path foto bukti transfer
+    -- Informasi transfer
+    transfer_bank            TEXT,
+    transfer_account_name    TEXT,
+    transfer_account_number  TEXT,
+    transfer_verified        INTEGER DEFAULT 0,
+    transfer_proof_image     TEXT,
     
-    -- Informasi tunai (jika method = cash)
-    cash_received INTEGER,               -- TAMBAHAN: Jumlah uang diterima
-    cash_change INTEGER,                 -- TAMBAHAN: Kembalian
+    -- Informasi tunai
+    cash_received            INTEGER,
+    cash_change              INTEGER,
     
-    -- Status dan tracking
-    payment_status TEXT DEFAULT 'pending',  -- TAMBAHAN: pending, verified, cancelled
-    notes TEXT,                       -- TAMBAHAN: Catatan pembayaran
+    -- Status & catatan
+    payment_status           TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','verified','cancelled')),
+    notes                    TEXT,
     
     -- Tracking
-    admin_id INTEGER NOT NULL,        -- Admin yang menerima pembayaran
-    payment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- RENAME dari paytime
-    verified_by INTEGER,              -- TAMBAHAN: Admin yang verifikasi
-    verified_at DATETIME,             -- TAMBAHAN: Waktu verifikasi
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    admin_id                 INTEGER NOT NULL,
+    payment_date             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    verified_by              INTEGER,
+    verified_at              DATETIME,
     
-    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE RESTRICT,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
-    FOREIGN KEY (customer_id) REFERENCES konsumen(id),
-    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
-    FOREIGN KEY (verified_by) REFERENCES admins(id)
+    created_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (invoice_id)    REFERENCES invoices(id) ON DELETE RESTRICT,
+    FOREIGN KEY (order_id)      REFERENCES orders(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_id)   REFERENCES konsumen(id) ON DELETE RESTRICT,
+    FOREIGN KEY (admin_id)      REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (verified_by)   REFERENCES admins(id)
 );
-
 -- Index untuk payments
 CREATE INDEX idx_invoices_order ON payments(invoice_id);
 CREATE INDEX idx_payments_order ON payments(order_id);
@@ -521,46 +515,44 @@ CREATE TABLE app_settings (
 );
 
 CREATE TABLE invoices (
-    id INTEGER PRIMARY KEY,
-    invoice_number TEXT UNIQUE,           -- Contoh: INV-20260302-00001
-    customer_id INTEGER NOT NULL,
-    customer_name TEXT NOT NULL,          -- Denormalisasi untuk performa
-    customer_phone TEXT,
-    price_level_id INTEGER DEFAULT 1,
+    id                  INTEGER PRIMARY KEY,
+    invoice_number      TEXT UNIQUE NOT NULL,           -- INV-20260319-00001
+    customer_id         INTEGER NOT NULL,
+    customer_name       TEXT NOT NULL,
+    customer_phone      TEXT,
+    price_level_id      INTEGER DEFAULT 1,
 
-    -- Informasi finansial
-    subtotal INTEGER NOT NULL DEFAULT 0,
-    discount_amount INTEGER NOT NULL DEFAULT 0,
-    tax_amount INTEGER NOT NULL DEFAULT 0,
-    total_amount INTEGER NOT NULL DEFAULT 0,
-    paid_amount INTEGER NOT NULL DEFAULT 0,
+    -- Finansial (tidak perlu virtual karena akan dihitung via trigger)
+    subtotal            INTEGER NOT NULL DEFAULT 0,
+    discount_amount     INTEGER NOT NULL DEFAULT 0,
+    tax_amount          INTEGER NOT NULL DEFAULT 0,
+    total_amount        INTEGER NOT NULL DEFAULT 0,
+    paid_amount         INTEGER NOT NULL DEFAULT 0,
+    remaining_amount    INTEGER GENERATED ALWAYS AS (total_amount - paid_amount) VIRTUAL,
 
-    -- Status & tanggal
-    status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'issued', 'sent', 'partial', 'paid', 'cancelled', 'overdue')),
-    issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    due_date DATETIME,                    -- Jatuh tempo pembayaran
-    payment_status TEXT DEFAULT 'unpaid' CHECK(payment_status IN ('unpaid', 'partial', 'paid')),
-
-    -- Catatan
-    notes TEXT,
-    internal_notes TEXT,
+    -- Khusus Tempo
+    due_date            DATETIME,                       -- jatuh tempo
+    status              TEXT DEFAULT 'draft' 
+                        CHECK(status IN ('draft','issued','sent','partial','paid','overdue','cancelled')),
 
     -- Tracking
-    admin_id INTEGER NOT NULL,            -- Admin yang membuat invoice
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    issue_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes               TEXT,
+    internal_notes      TEXT,
+    admin_id            INTEGER NOT NULL,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (customer_id) REFERENCES konsumen(id) ON DELETE RESTRICT,
+    FOREIGN KEY (customer_id)    REFERENCES konsumen(id),
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id),
-    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT
+    FOREIGN KEY (admin_id)       REFERENCES admins(id)
 );
 
--- Index untuk invoices
+-- Index penting
 CREATE INDEX idx_invoices_number ON invoices(invoice_number);
 CREATE INDEX idx_invoices_customer ON invoices(customer_id);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_invoices_issue_date ON invoices(issue_date);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
+CREATE INDEX idx_invoices_status ON invoices(status);
 
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)
@@ -636,23 +628,25 @@ ORDER BY total_revenue DESC;
 
 -- View: Customer Loyalty (Top Customers)
 CREATE VIEW v_top_customers AS
-SELECT 
-    k.id,
-    k.customer_code,
-    k.nama_lengkap,
-    k.nomor_telp,
-    k.total_orders,
-    k.total_spent,
-    k.last_seen,
-    CASE 
-        WHEN k.total_spent >= 10000000 THEN 'VIP'
-        WHEN k.total_spent >= 5000000 THEN 'Gold'
-        WHEN k.total_spent >= 1000000 THEN 'Silver'
-        ELSE 'Regular'
-    END AS customer_tier
-FROM konsumen k
-WHERE k.is_active = 1
-ORDER BY k.total_spent DESC;
+    SELECT k.id,
+           k.customer_code,
+           k.nama_lengkap,
+           k.nomor_telp,
+           COUNT(o.id) AS total_orders,
+           COALESCE(SUM(o.total_amount), 0) AS total_spent,
+           k.last_seen,
+           CASE WHEN COALESCE(SUM(o.total_amount), 0) >= 10000000 THEN 'VIP' WHEN COALESCE(SUM(o.total_amount), 0) >= 5000000 THEN 'Gold' WHEN COALESCE(SUM(o.total_amount), 0) >= 1000000 THEN 'Silver' ELSE 'Regular' END AS customer_tier
+      FROM konsumen k
+           LEFT JOIN
+           orders o ON o.customer_id = k.id AND
+                       o.status != 'cancelled'-- jangan hitung order batal
+     WHERE k.is_active = 1
+     GROUP BY k.id,
+              k.customer_code,
+              k.nama_lengkap,
+              k.nomor_telp,
+              k.last_seen
+     ORDER BY total_spent DESC;
 
 -- ============================================================================
 -- 12. TRIGGERS - AUTOMASI (TAMBAHAN BARU)

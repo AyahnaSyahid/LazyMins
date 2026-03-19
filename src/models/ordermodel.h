@@ -9,6 +9,8 @@
 #include <QSqlRecord>
 #include <QString>
 
+#include "src/managers/basemanager.h"
+
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderHeader – mirrors the orders table (fields managed by the application)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +101,7 @@ struct OrderItem
     OrderItem &loadFromId(int id);
 
     // Called only by OrderModel::commit(). Not called during normal editing.
-    bool save(QSqlDatabase &db) const;
+    bool save(QSqlDatabase &db);
     
     QList<FinishingItem> finishings;
 };
@@ -157,7 +159,7 @@ public:
     //   • All deletes, inserts, and updates for items and finishings follow.
     // On success, dirty state is cleared and all temporary ids become real ids.
     // On any failure the whole transaction is rolled back.
-    bool commit(QSqlDatabase &db);
+    bool commit(QSqlDatabase &db = BaseManager::connection);
 
     // Discard all pending changes:
     //   • If the order was never saved (m_orderId == -1): resets to blank state.

@@ -359,14 +359,14 @@ bool OrderModel::commit(QSqlDatabase &db)
                  subtotal, discount_amount, discount_percentage, tax_amount,
                  status, priority, payment_status,
                  order_date, deadline_date,
-                 notes, internal_notes)
+                 notes, internal_notes, order_number)
             VALUES
                 (:admin_id, :customer_id, :customer_name, :customer_phone,
                  :price_level_id,
                  :subtotal, :discount_amount, :discount_percentage, :tax_amount,
                  :status, :priority, :payment_status,
                  :order_date, :deadline_date,
-                 :notes, :internal_notes)
+                 :notes, :internal_notes, :order_number)
         )");
         oq.bindValue(":admin_id",           m_header.admin_id);
         oq.bindValue(":customer_id",        m_header.customer_id == -1
@@ -390,6 +390,7 @@ bool OrderModel::commit(QSqlDatabase &db)
                                                 ? QVariant() : QVariant(m_header.notes));
         oq.bindValue(":internal_notes",     m_header.internal_notes.isEmpty()
                                                 ? QVariant() : QVariant(m_header.internal_notes));
+        oq.bindValue(":order_number",       m_header.order_number);
 
         if (!oq.exec()) {
             qWarning() << "OrderModel::commit – INSERT orders failed:"

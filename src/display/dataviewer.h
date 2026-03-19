@@ -19,7 +19,7 @@ public:
     void setColumnVisible(const QString& name, bool vis);
     void setColumnVisible(int col, bool vis);
     void setFilterColumnNames(const QStringList& sl);
-
+    void setEditable(bool editable);
 public slots:
     void refresh();
     void setFilter(const QString &filter);

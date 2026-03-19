@@ -7,6 +7,7 @@
 #include "src/utils/sessionmanager.h"
 #include "src/display/dataviewer.h"
 #include "src/display/finishingservicesviewer.h"
+#include "src/display/orderdataviewer.h"
 #include <QDockWidget>
 
 namespace {
@@ -42,16 +43,6 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->setupUi(this);
   ui->menuToolbar->addAction(ui->addDataToolbar->toggleViewAction());
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
-  connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
-  connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this](){ return new ProductDialog(this); }, this);
-  // connectCreateActionToFormDialog(ui->actionOrderCreate, "Buat order baru", [this](){ return new OrderDialog(this); }, this);
-  auto createOrderDialog = [this]() {
-    auto d = new OrderDialog(this);
-    d->setAttribute(Qt::WA_DeleteOnClose);
-    d->open();
-  };
-  connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
-  connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", [this](){ return new UserDialog(this); }, this);
   auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
   
   auto dv1 = new DataViewer;
@@ -67,6 +58,27 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   addDockWidget(Qt::LeftDockWidgetArea, ds);
   fs1->setPageSize(100);
   fs1->refresh();
+  
+  auto ord1 = new OrderDataViewer;
+  ds = dockSetup(new QDockWidget(this), "Data Orders", ord1);
+  addDockWidget(Qt::TopDockWidgetArea, ds);
+  ord1->setPageSize(50);
+  ord1->refresh();
+  
+  connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
+  connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this](){ return new ProductDialog(this); }, this);
+  
+  auto createOrderDialog = [this, ord1, dv1]() {
+    auto d = new OrderDialog(this);
+    d->setAttribute(Qt::WA_DeleteOnClose);
+    connect(d, &OrderDialog::accepted, ord1, &OrderDataViewer::refresh);
+    connect(d, &OrderDialog::accepted, dv1, &DataViewer::refresh);
+    d->open();
+  };
+  
+  connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
+  connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", [this](){ return new UserDialog(this); }, this);
+
 }
 
 MainWindow::~MainWindow() {delete ui;}

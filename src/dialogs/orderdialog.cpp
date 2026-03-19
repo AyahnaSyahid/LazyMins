@@ -355,6 +355,7 @@ void OrderDialog::on_simpanButton_clicked()
   // Build the order header from the form fields
   OrderHeader header;
   header.admin_id           = 1; // oman.currentAdminId();
+  header.order_number       = ui->orderNumberLineEdit->text();
   header.customer_id        = customerSet.id > 0 ? customerSet.id : -1;
   header.customer_name      = ui->konsumenLineEdit->text().trimmed();
   header.customer_phone     = ui->kontakLineEdit->text().trimmed();
@@ -381,7 +382,6 @@ void OrderDialog::on_simpanButton_clicked()
     QMessageBox::critical(this, "Gagal", "Gagal menyimpan pesanan ke database.");
     return;
   }
-
   accept();
 }
 

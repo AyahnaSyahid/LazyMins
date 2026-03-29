@@ -72,17 +72,21 @@ bool AdminManager::changeLoginInfo(const QString &oldname, const QString &newNam
 
 bool AdminManager::userHasRole(int userId, const QString &roleName) const
 {
-  RolesManager rm;
-  auto roleIdOpt = rm.roleId(roleName);
-  if (!roleIdOpt)  {
-    return false;
-  }
-  auto userOpt = BaseManager::getById(userId);
-  if (!userOpt) {
-    return false;
-  }
-  auto userRecord = *userOpt;
-  return userRecord.value("role_id").toInt() == *roleIdOpt;
+  auto q = baseQuery();
+  q.prepare( R"--(
+    SELECT u.id,
+         r.id
+    FROM admins u
+         JOIN
+         roles r ON u.role_id = r.id
+   WHERE r.role_name = :rn AND
+         u.id        = :uid 
+   LIMIT 1; )--" );
+  q.bindValue(":rn", roleName);
+  q.bindValue(":uid", userId);
+  auto ok = q.exec() && q.next();
+  qDebug() << "User Has Role" << roleName << ok;
+  return ok;
 }
 
 bool AdminManager::changePassword(const QString &uname, const QString &newpass)

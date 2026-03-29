@@ -33,7 +33,6 @@ void LoginDialog::on_masukButton_clicked() {
 }
 
 void LoginDialog::decrementChances() {
-  --m_failCount;
   if (m_failCount <= 0) {
     ui->masukButton->setEnabled(false);
     QMessageBox::warning(this, "Silahkan Menunggu", "Anda telah gagal masuk beberapa kali, \nmohon menunggu sampai tombol masuk kembali aktif");

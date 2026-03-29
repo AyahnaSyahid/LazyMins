@@ -27,8 +27,8 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/managers/rolesmanager.cpp
                        src/managers/konsumenmanager.cpp
                        src/managers/appsettingsmanager.cpp
-                       # src/models/orderitemeditormodel.h
-                       # src/models/orderitemeditormodel.cpp
+                       src/managers/helpers.h
+                       src/managers/helpers.cpp
                        src/models/ordermodel.h
                        src/models/ordermodel.cpp
                        src/models/advancedquerymodel.h
@@ -77,7 +77,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/finishingdialog.h
                            src/dialogs/finishingdialog.ui
                            src/dialogs/finishingdialog.cpp
-                           
+                           src/dialogs/instantorderdialog.h
+                           src/dialogs/instantorderdialog.ui
+                           src/dialogs/instantorderdialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
@@ -100,6 +102,8 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/customs/booleandelegate.h
                            src/customs/finishingitemdelegate.h
                            src/customs/finishingitemdelegate.cpp
+                           src/customs/orderitemdelegate.h
+                           src/customs/orderitemdelegate.cpp
                            
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui
@@ -112,8 +116,10 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
 target_link_libraries(Mgr_LAdmins PUBLIC Qt6::Sql Qt6::Network)
 target_link_libraries(Ui_LAdmins PUBLIC Mgr_LAdmins Qt6::Widgets)
 
-add_subdirectory(tests)
-
 qt_add_executable(test_logform src/main.cpp)
 
 target_link_libraries(test_logform PRIVATE Mgr_LAdmins Ui_LAdmins)
+
+# add_subdirectory(tests)
+
+qt_add_executable(Setup src/setup/main.cpp)

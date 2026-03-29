@@ -11,7 +11,6 @@ SessionManager &SessionManager::instance() {
 void SessionManager::login(const QString& name, const QString& pass) {
   emit userLogin();
   auto &auth = AuthManager::instance();
-  // qDebug() << __FILE__ << name << pass;
   if(auth.passwordMatch(name, pass)) {
     AdminManager am;
     auto orc = am.getRecord(name);

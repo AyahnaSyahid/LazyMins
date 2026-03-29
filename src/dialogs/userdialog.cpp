@@ -81,19 +81,32 @@ bool UserDialog::validateFields(const QVariantMap &changes)
     };
     // pengecekan harus sesuai dengan urutan field di form agar penandaan errornya benar
     for (const auto &[fieldKey, errorMsg] : requiredFields)
-    {
+    { 
+        auto err = false;
         if (changes.value(fieldKey).toString().isEmpty())
         {
-            if (fieldKey == "nama_lengkap")
-                markFieldError({ui->fullnameEdit});
-            else if (fieldKey == "nomor_telp")
-                markFieldError({ui->phoneEdit});
-            else if (fieldKey == "email")
-                markFieldError({ui->emailEdit});
-            else if (fieldKey == "username")
-                markFieldError({ui->usernameEdit});
+          if (fieldKey == "nama_lengkap") {
+            QMessageBox::warning(this, "Error", errorMsg);
+            markFieldError({ui->fullnameEdit});
+            err = true;
+          }
+          else if (fieldKey == "nomor_telp"){
+            QMessageBox::warning(this, "Error", errorMsg);
+            markFieldError({ui->phoneEdit});
+            err = true;
+          }
+          else if (fieldKey == "email") {
+            QMessageBox::warning(this, "Error", errorMsg);
+            markFieldError({ui->emailEdit});
+            err = true;
+          }
+          else if (fieldKey == "username"){
+            QMessageBox::warning(this, "Error", errorMsg);
+            markFieldError({ui->usernameEdit});
+            err = true;
+          }
         }
-        return false;
+        if(err) return false;
     }
     if (pass1 != pass2)
     {
@@ -128,6 +141,11 @@ bool UserDialog::onSave(const QVariantMap &changes)
     if (isCreateMode())
     {
         auto opt = m_adminManager.create(changes);
+        if (opt) {
+          qDebug() << "Create admin berhasil";
+        } else {
+          qDebug() << "Create admin gagal";
+        }
         return opt.has_value();
     }
     else if (isModifyMode())
@@ -139,10 +157,25 @@ bool UserDialog::onSave(const QVariantMap &changes)
 
 void UserDialog::on_simpanButton_clicked()
 {
-    if (validateFields(collect()))
-    {
-        accept();
-        return;
+  auto cl = collect();
+  for(auto const& [field, val] : cl.asKeyValueRange()) {
+    qDebug().noquote() << field << ':' << val.toString();
+  }
+  
+  auto valid = validateFields(cl);
+  if (valid)
+  {
+    AdminManager am;
+    auto opt_adm = am.create(cl);
+    if(opt_adm.has_value()) {
+      QMessageBox::information(this, "Berhasil", "Admin baru berhasil ditambahkan");
+      QDialog::accept();
+      return;
+    } else {
+      QMessageBox::information(this, "Gagal", "Admin baru gagal ditambahkan, Error:\n" + am.errorString());
     }
-    return;
+  } else {
+    qDebug() << "Invalid fields";
+  }
+  return;
 }

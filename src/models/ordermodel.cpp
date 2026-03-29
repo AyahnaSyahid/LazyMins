@@ -338,7 +338,7 @@ bool OrderModel::commit(QSqlDatabase &db)
                       " (admin_id or customer_name missing)";
         return false;
     }
-    
+
     if (!db.transaction()) {
         qWarning() << "OrderModel::commit – could not begin transaction:"
                    << db.lastError().text();
@@ -677,5 +677,8 @@ const QString OrderItem::descriptionText() const {
   for(auto const& fin : finishings) {
     fins << QString("%1:%2").arg(fin.finishing_name).arg(fin.quantity);
   }
-  return desc + QString(" | %1").arg(fins.join(" | "));
+  if (fins.count()) {
+    return desc + QString(" | %1").arg(fins.join(" | "));
+  }
+  return desc;
 }

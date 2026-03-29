@@ -63,7 +63,6 @@ bool CreateUserDialog::checkInputs() {
 void CreateUserDialog::on_simpanButton_clicked() {
   if (!checkInputs()) return;
   AdminManager am;
-  
   if(am.exists(ui->usernameEdit->text())) {
     QMessageBox::information(this, "Maaf", "Username ini telah digunakan admin lain\nCoba gunakan Username yang lain");
     return ;

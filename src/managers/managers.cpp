@@ -318,6 +318,7 @@ QVariantMap OrderManager::validateParams(const QVariantMap& params)
         "subtotal", "discount_amount", "discount_percentage", "tax_amount", "total_amount",
         "status", "priority", "order_date", "deadline_date", "completion_date",
         "payment_status", "paid_amount", "notes", "internal_notes", "admin_id",
+        "invoice_id", "invoice_number",          // ← NEW fields from schema
         "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
@@ -356,6 +357,7 @@ QVariantMap OrderItemManager::validateParams(const QVariantMap& params)
     static const QStringList allowed {
         "order_id", "product_id", "product_name", "sku", "quantity", "unit",
         "base_price", "sale_price", "discount_percentage", "discount_amount", "subtotal",
+        "size_width", "size_height", "use_area", "finishing_total",  // ← NEW fields
         "notes", "created_at", "updated_at", "total"
     };
     for (const QString& key : p.keys())
@@ -472,6 +474,13 @@ bool PaymentManager::cancelPayment(int id)
 
 QString PaymentManager::generatePaymentNumber(const QString& prefix)
 {
+    auto q = baseQuery();
+    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
+                      "FROM payments WHERE date(payment_date) = date('now')")
+                  .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
+    if (q.exec() && q.next()) {
+        return q.value("next_val").toString();
+    }
     return generateCode("payments", "id", prefix);
 }
 
@@ -485,6 +494,7 @@ QVariantMap PaymentManager::validateParams(const QVariantMap& params)
         "cash_received", "cash_change",
         "payment_status", "notes",
         "admin_id", "payment_date", "verified_by", "verified_at",
+        "invoice_id",                    // ← NEW (now required by schema)
         "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
@@ -595,7 +605,14 @@ qint64 TransaksiManager::sumByTipe(const QString& tipe, const QDate& from, const
 
 QString TransaksiManager::generateTransactionNumber(const QString& prefix)
 {
-    return generateCode("transaksi", "id", prefix);
+  auto q = baseQuery();
+  q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
+                    "FROM transaksi WHERE date(tanggal) = date('now')")
+                .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
+  if (q.exec() && q.next()) {
+    return q.value("next_val").toString();
+  }
+  return generateCode("transaksi", "id", prefix);
 }
 
 QVariantMap TransaksiManager::validateParams(const QVariantMap& params)
@@ -812,4 +829,88 @@ QVariantMap ActivityLogManager::validateParams(const QVariantMap& params)
     for (const QString& key : p.keys())
         if (!allowed.contains(key)) p.remove(key);
     return p;
+}
+
+// ============================================================================
+// InvoiceManager
+// ============================================================================
+
+QList<QSqlRecord> InvoiceManager::getByStatus(const QString& status, const QString& orderBy)
+{
+    return getWhere("status = :status", {{"status", status}}, orderBy);
+}
+
+QList<QSqlRecord> InvoiceManager::getByCustomer(int customerId)
+{
+    return getWhere("customer_id = :customer_id",
+                    {{"customer_id", customerId}}, "issue_date DESC");
+}
+
+QList<QSqlRecord> InvoiceManager::getByDateRange(const QDate& from, const QDate& to)
+{
+    return getWhere(
+        "DATE(issue_date) BETWEEN :from AND :to",
+        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
+        "issue_date DESC");
+}
+
+QList<QSqlRecord> InvoiceManager::getOverdue()
+{
+    return getWhere(
+        "due_date < :now AND status NOT IN ('paid','cancelled')",
+        {{"now", QDateTime::currentDateTimeUtc()}},
+        "due_date ASC");
+}
+
+std::optional<QSqlRecord> InvoiceManager::findByInvoiceNumber(const QString& invoiceNumber)
+{
+    auto rows = getWhere("invoice_number = :invoice_number", {{"invoice_number", invoiceNumber}});
+    if (!rows.isEmpty()) return rows.first();
+    return std::nullopt;
+}
+
+bool InvoiceManager::updateStatus(int id, const QString& newStatus)
+{
+    QVariantMap p{{"status", newStatus}};
+    return update(id, p);
+}
+
+bool InvoiceManager::cancel(int id)  { return updateStatus(id, "cancelled"); }
+bool InvoiceManager::markPaid(int id) { return updateStatus(id, "paid"); }
+
+QString InvoiceManager::generateInvoiceNumber(const QString& prefix)
+{
+    auto q = baseQuery();
+    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
+                      "FROM invoices WHERE date(issue_date) = date('now')")
+                  .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
+    if (q.exec() && q.next()) {
+        return q.value("next_val").toString();
+    }
+    return generateCode("invoices", "id", prefix);
+}
+
+QVariantMap InvoiceManager::validateParams(const QVariantMap& params)
+{
+    QVariantMap p = params;
+    static const QStringList allowed {
+        "invoice_number", "customer_id", "customer_name", "customer_phone", "price_level_id",
+        "subtotal", "discount_amount", "tax_amount", "total_amount", "paid_amount",
+        "due_date", "status", "issue_date",
+        "notes", "internal_notes", "admin_id",
+        "created_at", "updated_at"
+    };
+    for (const QString& key : p.keys())
+        if (!allowed.contains(key)) p.remove(key);
+    return p;
+}
+
+void InvoiceManager::beforeCreate(QVariantMap& params)
+{
+    if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty())
+        params["invoice_number"] = generateInvoiceNumber();
+    if (!params.contains("issue_date"))
+        params["issue_date"] = QDateTime::currentDateTimeUtc();
+    if (!params.contains("status"))
+        params["status"] = "draft";
 }

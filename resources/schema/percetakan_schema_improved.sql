@@ -42,34 +42,6 @@ CREATE TABLE admins (
 CREATE INDEX idx_admins_username ON admins(username);
 CREATE INDEX idx_admins_role ON admins(role_id);
 
---
--- File generated with SQLiteStudio v3.4.17 on Wed Feb 25 00:04:13 2026
---
--- Text encoding used: System
---
-
--- Table: admins
-CREATE TABLE IF NOT EXISTS admins (
-    id            INTEGER  PRIMARY KEY,
-    role_id       INTEGER  NOT NULL
-                           DEFAULT 3,-- Mulai sebagai Operator
-    username      TEXT     NOT NULL
-                           UNIQUE,
-    password_hash TEXT     NOT NULL,-- Password ter-hash (bcrypt/argon2)
-    salt          TEXT     NOT NULL,-- Password ter-hash (bcrypt/argon2)
-    nama_lengkap  TEXT     NOT NULL,
-    email         TEXT,-- TAMBAHAN: Email admin
-    nomor_telp    TEXT,-- TAMBAHAN: Nomor telepon admin
-    is_active     INTEGER  DEFAULT 1,-- 1: Aktif, 0: Non-aktif
-    last_login    DATETIME,
-    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (
-        role_id
-    )
-    REFERENCES roles (id) ON DELETE RESTRICT
-);
-
 -- ============================================================================
 -- 2. TABEL MASTER - MANAJEMEN PELANGGAN
 -- ============================================================================
@@ -233,6 +205,12 @@ CREATE TABLE orders (
     FOREIGN KEY (price_level_id) REFERENCES price_levels(id)
 );
 
+-- Index untuk orders
+CREATE INDEX idx_orders_invoice ON orders(invoice_id);
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_deadline ON orders(deadline_date);
+
 -- Tabel Order Items: Detail item dalam order (diperbaiki)
 CREATE TABLE order_items (
     id INTEGER PRIMARY KEY,
@@ -304,9 +282,7 @@ CREATE TABLE payments (
     id                       INTEGER PRIMARY KEY,
     payment_number           TEXT UNIQUE,               -- PAY-20260320-00001
     invoice_id               INTEGER NOT NULL,          -- Referensi UTAMA (wajib)
-    order_id                 INTEGER,                   -- Opsional (untuk traceability jika 1 order = 1 invoice)
-    customer_id              INTEGER,
-    
+
     -- Detail pembayaran
     amount                   INTEGER NOT NULL CHECK(amount > 0),
     payment_method           TEXT NOT NULL DEFAULT 'cash',
@@ -331,13 +307,11 @@ CREATE TABLE payments (
     payment_date             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     verified_by              INTEGER,
     verified_at              DATETIME,
-    
+
     created_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (invoice_id)    REFERENCES invoices(id) ON DELETE RESTRICT,
-    FOREIGN KEY (order_id)      REFERENCES orders(id) ON DELETE SET NULL,
-    FOREIGN KEY (customer_id)   REFERENCES konsumen(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id)      REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (verified_by)   REFERENCES admins(id)
 );
@@ -348,6 +322,7 @@ CREATE INDEX idx_payments_customer ON payments(customer_id);
 CREATE INDEX idx_payments_date ON payments(payment_date);
 CREATE INDEX idx_payments_status ON payments(payment_status);
 CREATE INDEX idx_payments_method ON payments(payment_method);
+
 
 -- ============================================================================
 -- 7. TABEL KEUANGAN - KATEGORI & TRANSAKSI
@@ -377,7 +352,11 @@ CREATE TABLE transaksi (
     -- Detail transaksi
     tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
     deskripsi TEXT,
-    jumlah INTEGER NOT NULL CHECK(jumlah > 0),
+    
+    -- Ledger Mode (Buku Besar)
+    amount_before INT NOT NULL,
+    amount INT NOT NULL,
+    amount_after INT NOT NULL,
     
     -- Informasi tambahan
     payment_method TEXT,              -- TAMBAHAN: Metode pembayaran
@@ -399,7 +378,6 @@ CREATE INDEX idx_transaksi_admin_tanggal ON transaksi(tanggal, admin_id);
 CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
-
 
 -- ============================================================================
 -- 8.1 TABEL INVENTORI - STOCK CONSUMES (TAMBAHAN BARU)
@@ -716,7 +694,7 @@ BEGIN
     UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = OLD.order_id) WHERE id = OLD.order_id;
 END;
 
-================================================
+-- ================================================
 -- Trigger : finishing_services save update time
 CREATE TRIGGER trg_saveUpdate_time
          AFTER UPDATE OF id,
@@ -856,6 +834,10 @@ INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_t
 ('CUST-005', 'PT. Global Abadi', 'Company', 'info@globalabadi.com', '021-45678901', 'Jl. Diponegoro No. 567', 'Semarang', '78901', '12.345.678.9-000.000', 'Pelanggan utama', 1),
 ('CUST-006', 'Ahmad Fauzi', 'Individual', 'ahmad.fauzi@email.com', '021-56789012', 'Jl. Gatot Subroto No. 678', 'Yogyakarta', '89012', NULL, 'Pelanggan loyal', 1);
 
+-- buat inisiasi kas
+
+INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 
+('INIT', 1, 3, 'pemasukan', 'Inisialisasi Data Awal', 0, 0, 0);
 -- ============================================================================
 -- SELESAI
 -- ============================================================================

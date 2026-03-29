@@ -13,6 +13,12 @@ class MainWindow : public QMainWindow
     explicit MainWindow(QWidget *p=nullptr);
     ~MainWindow();
   
+  public slots:
+    void openLoginForm();
+  
+  private slots:
+    void currentUserChanged();
+
   private:
 
     void setupToolbarActions();

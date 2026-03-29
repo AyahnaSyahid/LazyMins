@@ -173,6 +173,7 @@ public:
     const OrderItem &itemAt(int row) const { return m_items.at(row); }
     int  orderId() const { return m_orderId; }
     OrderItem &itemRef(int ix) { return m_items[ix]; }
+    const QList<OrderItem>& items() const { return m_items; }
 
 signals:
     // Emitted after every in-memory mutation so a UI total label can update

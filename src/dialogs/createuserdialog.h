@@ -17,7 +17,6 @@ class CreateUserDialog : public QDialog
   private slots:
     void on_simpanButton_clicked();
     
-
   private:
     bool checkInputs();
 

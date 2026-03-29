@@ -20,7 +20,7 @@ public slots:
 private slots:
   void on_masukButton_clicked();
   void decrementChances();
-  void reenableLogin();
+  void reenableLogin(); 
 
 private:
   int m_failCount;

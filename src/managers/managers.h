@@ -218,7 +218,7 @@ public:
     bool verify(int id, int verifiedByAdminId);
     bool cancelPayment(int id);
 
-    static QString generatePaymentNumber(const QString& prefix = "PAY");
+    static QString generatePaymentNumber(const QString& prefix = "PYM");
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
@@ -239,6 +239,8 @@ public:
     QList<QSqlRecord> getRootCategories();
     QList<QSqlRecord> getChildren(int parentId);
     std::optional<QSqlRecord> findByNama(const QString& nama);
+    
+    static QString generateTransactionNumber(const QString& prefix = "TRX");
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
@@ -261,9 +263,9 @@ public:
 
     // Aggregates
     qint64 sumByTipe(const QString& tipe, const QDate& from = QDate(), const QDate& to = QDate());
-
-    static QString generateTransactionNumber(const QString& prefix = "TRX");
-
+    
+    QString generateTransactionNumber(const QString& prefix = "TRX");
+    
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
     void beforeCreate(QVariantMap& params) override;
@@ -350,4 +352,31 @@ public:
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
+};
+
+class InvoiceManager : public BaseManager
+{
+public:
+    explicit InvoiceManager()
+        : BaseManager("invoices") {}
+
+    // Query helpers
+    QList<QSqlRecord> getByStatus(const QString& status, const QString& orderBy = "issue_date DESC");
+    QList<QSqlRecord> getByCustomer(int customerId);
+    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
+    QList<QSqlRecord> getOverdue();
+
+    std::optional<QSqlRecord> findByInvoiceNumber(const QString& invoiceNumber);
+
+    // Status transitions
+    bool updateStatus(int id, const QString& newStatus);
+    bool cancel(int id);
+    bool markPaid(int id);
+
+    // Number generation (daily format like orders)
+    static QString generateInvoiceNumber(const QString& prefix = "INV");
+
+protected:
+    QVariantMap validateParams(const QVariantMap& params) override;
+    void beforeCreate(QVariantMap& params) override;
 };

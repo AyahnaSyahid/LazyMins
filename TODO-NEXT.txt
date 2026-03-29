@@ -1,3 +1,7 @@
 TODO-NEXT
 ===========================================================
--- Implementasi OrderCash & Bayar langsung
+OK Implementasi OrderCash & Bayarlangsung
+   flow -> button instantOrder
+        -> isi Data
+        -> bayar
+-- 

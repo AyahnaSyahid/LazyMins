@@ -87,7 +87,7 @@
    <addaction name="actionOrderCreate"/>
    <addaction name="actionInvoiceCreate"/>
    <addaction name="separator"/>
-   <addaction name="actionKeuanganKas"/>
+   <addaction name="actionInstantOrderCreate"/>
   </widget>
   <action name="actionAdminAdd">
    <property name="icon">
@@ -173,7 +173,7 @@
     <string>Keluar</string>
    </property>
   </action>
-  <action name="actionKeuanganKas">
+  <action name="actionInstantOrderCreate">
    <property name="icon">
     <iconset resource="../../resources/database_resources.qrc">
      <normaloff>:/svg/svg/cash-flow.svg</normaloff>:/svg/svg/cash-flow.svg</iconset>

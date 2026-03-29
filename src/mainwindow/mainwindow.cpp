@@ -4,11 +4,15 @@
 #include "src/dialogs/userdialog.h"
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
+#include "src/dialogs/instantorderdialog.h"
 #include "src/utils/sessionmanager.h"
 #include "src/display/dataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
+#include "src/dialogs/logindialog.h"
+#include "src/managers/adminmanager.h"
 #include <QDockWidget>
+#include <QMessageBox>
 
 namespace {
   void connectCreateActionToFormDialog(QAction *action, 
@@ -52,13 +56,13 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   addDockWidget(Qt::RightDockWidgetArea, ds);
   dv1->setPageSize(100);
   dv1->refresh();
-  
+
   auto fs1 = new FinishingServicesViewer;
   ds = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
   addDockWidget(Qt::LeftDockWidgetArea, ds);
   fs1->setPageSize(100);
   fs1->refresh();
-  
+
   auto ord1 = new OrderDataViewer;
   ds = dockSetup(new QDockWidget(this), "Data Orders", ord1);
   addDockWidget(Qt::TopDockWidgetArea, ds);
@@ -77,12 +81,59 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   };
   
   connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
-  connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", [this](){ return new UserDialog(this); }, this);
-
+  connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", 
+    [this](){ 
+      auto ud = new UserDialog(this);
+      return ud; }, this);
+  connect(ui->actionInstantOrderCreate, &QAction::triggered, [this](){
+    auto dialog = new InstantOrderDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    // connect signal
+    // connect(dialog, &QDialog::accepted, ) 
+    dialog->open();
+  });
+  
+  // UserSession
+  auto &sm = SessionManager::instance();
+  connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
+  connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
+  connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
 }
 
 MainWindow::~MainWindow() {delete ui;}
 
 void MainWindow::setupToolbarActions() {
   // currently no dynamic action setup is needed, but this function can be used in the future if we want to enable/disable actions based on user role or other conditions
+}
+
+void MainWindow::openLoginForm() {
+  auto cu = SessionManager::instance().currentUser();
+  if (cu.has_value()) {
+    return ;
+  }
+  hide();
+  auto ld = new LoginDialog();
+  connect(ld, &LoginDialog::accepted, this, &QWidget::show);
+  ld->setAttribute(Qt::WA_DeleteOnClose);
+  ld->open();
+}
+
+void MainWindow::currentUserChanged() {
+  auto &sm = SessionManager::instance();
+  auto opt_user = sm.currentUser();
+  if (!opt_user) {
+    QMessageBox::critical(this, "Fatal Error", "Tidak dapat mendeteksi user valid !!\nApplikasi akan di terminasi");
+    qApp->quit();
+    return ;
+  }
+  auto rec_user = *opt_user;
+  AdminManager a_man;
+  // lakukan preparasi ui untuk current user dan pembatasan akses GUI
+  auto has_super_user = a_man.userHasRole(rec_user.value("id").toInt(), "super_admin");
+  // qDebug() << QString("%1 : %2").arg(rec_user.value("username").toString()).arg(has_super_user);
+  if (!has_super_user) {
+    ui->actionAdminAdd->setEnabled(false);
+  } else {
+    ui->actionAdminAdd->setEnabled(true);
+  }
 }

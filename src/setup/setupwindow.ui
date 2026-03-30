@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>377</width>
-    <height>569</height>
+    <height>599</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,7 +32,7 @@
         <widget class="QLineEdit" name="lineEdit"/>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="browseButton">
          <property name="text">
           <string>Pilih</string>
          </property>
@@ -61,7 +61,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_2"/>
+        <widget class="QLineEdit" name="nameEdit"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_3">
@@ -71,7 +71,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_3"/>
+        <widget class="QLineEdit" name="telpEdit"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_5">
@@ -81,7 +81,7 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_4"/>
+        <widget class="QLineEdit" name="emailEdit"/>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_4">
@@ -91,7 +91,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QTextEdit" name="textEdit">
+        <widget class="QTextEdit" name="addressEdit">
          <property name="maximumSize">
           <size>
            <width>16777215</width>
@@ -117,7 +117,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_5"/>
+        <widget class="QLineEdit" name="usernameEdit"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_7">
@@ -127,7 +127,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_6"/>
+        <widget class="QLineEdit" name="passwordEdit"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_8">
@@ -137,7 +137,7 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_7"/>
+        <widget class="QLineEdit" name="rePasswordEdit"/>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_9">
@@ -147,7 +147,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_8"/>
+        <widget class="QLineEdit" name="fullnameEdit"/>
        </item>
        <item row="4" column="0">
         <widget class="QLabel" name="label_11">
@@ -157,7 +157,7 @@
         </widget>
        </item>
        <item row="4" column="1">
-        <widget class="QLineEdit" name="lineEdit_9"/>
+        <widget class="QLineEdit" name="telpUserEdit"/>
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_10">
@@ -167,7 +167,7 @@
         </widget>
        </item>
        <item row="5" column="1">
-        <widget class="QTextEdit" name="textEdit_2">
+        <widget class="QTextEdit" name="addressUserEdit">
          <property name="maximumSize">
           <size>
            <width>16777215</width>
@@ -177,6 +177,13 @@
         </widget>
        </item>
       </layout>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignmentFlag::AlignRight">
+     <widget class="QPushButton" name="installButton">
+      <property name="text">
+       <string>Install</string>
+      </property>
      </widget>
     </item>
    </layout>

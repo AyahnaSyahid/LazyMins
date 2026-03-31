@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
         // Baru buat MainWindow setelah database siap
         MainWindow *mainWindow = new MainWindow();
-        mainWindow->show();
+        QTimer::singleShot(0, mainWindow, &MainWindow::openLoginForm);
     }
 
     return app.exec();

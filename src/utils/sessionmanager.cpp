@@ -33,9 +33,8 @@ void SessionManager::login(const QString& name, const QString& pass) {
 }
 
 void SessionManager::logout() {
-  emit userLogout();
   m_optUserRecord = std::nullopt;
-  emit userChanged();
+  emit userLogout();
 }
 
 std::optional<QSqlRecord> SessionManager::currentUser() const {

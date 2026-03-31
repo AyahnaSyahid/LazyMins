@@ -85,7 +85,6 @@ bool AdminManager::userHasRole(int userId, const QString &roleName) const
   q.bindValue(":rn", roleName);
   q.bindValue(":uid", userId);
   auto ok = q.exec() && q.next();
-  qDebug() << "User Has Role" << roleName << ok;
   return ok;
 }
 

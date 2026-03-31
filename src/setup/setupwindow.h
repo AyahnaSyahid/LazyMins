@@ -1,10 +1,10 @@
-#include <QMainWindow>
+#include <QDialog>
 
 namespace Ui {
   class SetupWindow;
 }
 
-class SetupWindow : public QMainWindow
+class SetupWindow : public QDialog
 {
   Q_OBJECT
 
@@ -16,6 +16,11 @@ class SetupWindow : public QMainWindow
     void on_installButton_clicked();
     void on_browseButton_clicked();
   
+  signals:
+    void setupFinished();
+    void setupFailed();
+
   private:
     Ui::SetupWindow *ui;
+    bool m_abort;
 };

@@ -77,7 +77,7 @@ void CreateUserDialog::on_simpanButton_clicked() {
     { "nomor_telp",       QVariant(ui->phoneEdit->text()) },
     { "is_active",        QVariant(true)} 
   };
-  
+
   auto oprec = am.create(param);
   if (oprec) {
     emit userAdded();

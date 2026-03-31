@@ -111,6 +111,10 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            
                            src/utils/sessionmanager.h
                            src/utils/sessionmanager.cpp
+                           
+                           src/setup/setupwindow.h
+                           src/setup/setupwindow.ui
+                           src/setup/setupwindow.cpp
                            )
 
 target_link_libraries(Mgr_LAdmins PUBLIC Qt6::Sql Qt6::Network)
@@ -120,8 +124,3 @@ qt_add_executable(test_logform src/main.cpp)
 
 target_link_libraries(test_logform PRIVATE Mgr_LAdmins Ui_LAdmins)
 
-# add_subdirectory(tests)
-
-qt_add_executable(Setup src/setup/main.cpp)
-
-target_link_libraries(Setup PRIVATE Qt6::Sql Qt6::Core Qt6::Widgets)

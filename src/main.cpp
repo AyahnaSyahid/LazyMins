@@ -2,6 +2,7 @@
 #include "src/database/databasemanager.h"
 #include "src/managers/basemanager.h"
 #include "src/mainwindow/mainwindow.h"
+#include "src/setup/setupwindow.h"
 
 #include <QtDebug>
 #include <QSqlRecord>
@@ -11,51 +12,58 @@
 #include <QMessageBox>
 #include <QTimer>
 
-namespace GLB {
-  void setup(QVariantMap &);
+void startApp() {
+  MainWindow *mw = new MainWindow();
+  mw->show();
 }
 
-int main(int argc, char **args)
+int main(int argc, char **argv)
 {
-  QApplication app(argc, args);
-  Q_INIT_RESOURCE(database_resources);
-  
-  app.setOrganizationName("AksaraJaya");
-  app.setApplicationName("LazyAdmins");
-  
-  QSettings::setDefaultFormat(QSettings::IniFormat);
-  
-  QVariantMap setup_result;
-  GLB::setup(setup_result);
-  
-  if(!setup_result["success"].toBool()) {
-    QMessageBox::critical(nullptr, "Setup dibatalkan", setup_result["setup_message"].toString());
-    app.quit();
-    return 1;
-  }
-  
-  QSqlDatabase sb = QSqlDatabase::addDatabase("QSQLITE");
-  if (setup_result.value("run_init").toBool()) {
-    QSettings s;
-    sb.setDatabaseName(s.value("Database/database_file").toString());
-    if (!sb.open()) {
-      qDebug() << "Database not open" << sb.databaseName();
-      app.quit();
-      return 0;
+    QApplication app(argc, argv);
+    Q_INIT_RESOURCE(database_resources);
+
+    app.setOrganizationName("AksaraJaya");
+    app.setApplicationName("LazyAdmins");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    QSettings settings;
+    QString dbPath = settings.value("Database/databasePath", ":memory:").toString();
+
+    if (dbPath == ":memory:") {
+        // === Mode Setup Pertama Kali ===
+        SetupWindow *setupWindow = new SetupWindow();
+
+        // Hubungkan signal setupFinished untuk membuat MainWindow
+        QObject::connect(setupWindow, &SetupWindow::setupFinished, &startApp);
+        QObject::connect(setupWindow, &SetupWindow::setupFinished, setupWindow, &QDialog::accept);
+        QObject::connect(setupWindow, &SetupWindow::setupFinished, setupWindow, &QDialog::deleteLater);
+
+        // Hubungkan signal gagal
+        QObject::connect(setupWindow, &SetupWindow::setupFailed,
+                         qApp, &QApplication::quit);
+
+        setupWindow->open();                    // Tampilkan sebagai jendela utama sementara
+    } 
+    else {
+        // === Mode Normal (Database sudah ada) ===
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName(dbPath);
+
+        if (!db.open()) {
+            QMessageBox::critical(nullptr, "Fatal Error", 
+                                  "Tidak dapat membuka database:\n" 
+                                  + db.lastError().text());
+            return 1;
+        }
+
+        // Inisialisasi DatabaseManager sebelum membuat MainWindow
+        DatabaseManager::instance().setDatabase(db);
+        BaseManager::connection = db;   // sesuaikan dengan implementasi Anda
+
+        // Baru buat MainWindow setelah database siap
+        MainWindow *mainWindow = new MainWindow();
+        mainWindow->show();
     }
-    DatabaseManager::initSchema(sb);
-    // add super_admin
-    
-  }
-  
-  auto &db = DatabaseManager::instance();
-  db.setDatabase(sb);
 
-  BaseManager::connection = db.database();
-
-  MainWindow mw;
-  QTimer::singleShot(0, &mw, &MainWindow::openLoginForm);
-
-  app.exec();
-  return 0;
-};
+    return app.exec();
+}

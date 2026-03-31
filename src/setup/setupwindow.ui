@@ -97,6 +97,9 @@
           <height>70</height>
          </size>
         </property>
+        <property name="tabChangesFocus">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>
@@ -173,6 +176,9 @@
           <height>70</height>
          </size>
         </property>
+        <property name="tabChangesFocus">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>
@@ -187,6 +193,21 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>lineEdit</tabstop>
+  <tabstop>browseButton</tabstop>
+  <tabstop>nameEdit</tabstop>
+  <tabstop>telpEdit</tabstop>
+  <tabstop>emailEdit</tabstop>
+  <tabstop>addressEdit</tabstop>
+  <tabstop>usernameEdit</tabstop>
+  <tabstop>passwordEdit</tabstop>
+  <tabstop>rePasswordEdit</tabstop>
+  <tabstop>fullnameEdit</tabstop>
+  <tabstop>telpUserEdit</tabstop>
+  <tabstop>addressUserEdit</tabstop>
+  <tabstop>installButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

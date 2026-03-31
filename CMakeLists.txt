@@ -123,3 +123,5 @@ target_link_libraries(test_logform PRIVATE Mgr_LAdmins Ui_LAdmins)
 # add_subdirectory(tests)
 
 qt_add_executable(Setup src/setup/main.cpp)
+
+target_link_libraries(Setup PRIVATE Qt6::Sql Qt6::Core Qt6::Widgets)

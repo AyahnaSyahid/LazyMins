@@ -14,6 +14,7 @@ class AdminManager : public BaseManager
     bool setActive(int id, bool state);
     bool isActive(int id);
 
+    void setLastLog(std::optional<QSqlRecord>);
     bool changePassword(const QString& uname, const QString& newpass);
     bool changeUsername(const QString& oldname, const QString& newName);
     bool changeLoginInfo(const QString& oldname, const QString& newName, const QString& newPass);

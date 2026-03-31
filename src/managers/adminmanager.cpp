@@ -157,3 +157,14 @@ std::optional<QSqlRecord> AdminManager::getRecord(const QString &name) const
   }
   return std::nullopt;
 }
+
+void AdminManager::setLastLog(std::optional<QSqlRecord> &opt)
+{
+  if (!opt.has_value()) return ;
+  auto r = *opt;
+  auto q = baseQuery();
+  q.prepare("UPDATE admins SET last_login = :dn WHERE id = :id");
+  q.bindValue(":dn", QDateTime::currentDateTimeUtc());
+  q.bindValue(":id", r.value("id"));
+  q.exec();
+}

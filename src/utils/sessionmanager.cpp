@@ -33,7 +33,11 @@ void SessionManager::login(const QString& name, const QString& pass) {
 }
 
 void SessionManager::logout() {
-  m_optUserRecord = std::nullopt;
+  if (m_optUserRecord.has_value()) {
+    AdminManager am;
+    am.setLastLog(m_optUserRecord);
+    m_optUserRecord = std::nullopt;
+  }
   emit userLogout();
 }
 

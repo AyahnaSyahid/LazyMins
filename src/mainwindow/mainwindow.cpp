@@ -7,6 +7,7 @@
 #include "src/dialogs/instantorderdialog.h"
 #include "src/utils/sessionmanager.h"
 #include "src/display/dataviewer.h"
+#include "src/display/produkdataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
 #include "src/dialogs/logindialog.h"
@@ -50,11 +51,9 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
   auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
   
-  auto dv1 = new DataViewer;
-  dv1->setQueryArgs("SELECT * FROM products");
-  dv1->setFilterColumnNames({"sku", "name", "description"});
+  auto dv1 = new ProdukDataViewer;
   auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
-  addDockWidget(Qt::RightDockWidgetArea, ds);
+  addDockWidget(Qt::TopDockWidgetArea, ds);
   dv1->setPageSize(100);
   dv1->refresh();
 

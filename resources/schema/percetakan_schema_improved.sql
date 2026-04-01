@@ -923,10 +923,10 @@ INSERT INTO products (sku, name, category_id, description, unit, stock, min_stoc
     ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5,   20000, 0),
     ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3,   15000, 0),
     ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2,    35000, 0),
-    ('OFF-TOKO',   'CO-TOKO',         4, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 0),
-    ('OFF-SORM-F', 'CO-SORM-F',       4, 'Cetak Offset SORM Full Color',        'set',     80, 20,  20000, 0),
-    ('OFF-P46-F',  'CO-P46-F',        4, 'Cetak Offset P46 Full Color',         'set',     60, 15,  15000, 0),
-    ('OFF-P52-F',  'CO-P52-F',        4, 'Cetak Offset P52 Full Color',         'set',     40, 10,  35000, 0);
+    ('OFF-TOKO',   'CO-TOKO',         5, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 0),
+    ('OFF-SORM-F', 'CO-SORM-F',       5, 'Cetak Offset SORM Full Color',        'set',     80, 20,  20000, 0),
+    ('OFF-P46-F',  'CO-P46-F',        5, 'Cetak Offset P46 Full Color',         'set',     60, 15,  15000, 0),
+    ('OFF-P52-F',  'CO-P52-F',        5, 'Cetak Offset P52 Full Color',         'set',     40, 10,  35000, 0);
 
 -- buat beberapa test data konsumen setelah price levels dibuat, karena ada foreign key reference ke price_levels
 INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_telp, alamat, kota, kode_pos, npwp, catatan, price_level_id) VALUES

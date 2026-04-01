@@ -155,7 +155,7 @@ void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
 {
     if (ui->subtotalSpinBox->value() <= 0) {
         disableSignalAndSet(ui->diskonRpSpinBox, 0);
-        updateCalculation();
+        QTimer::singleShot(0, this, [this](){ updateCalculation(); });
         return;
     }
 
@@ -167,7 +167,7 @@ void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent)
     // Block re-entry: setting diskonRpSpinBox would fire on_diskonRpSpinBox_valueChanged
     disableSignalAndSet(ui->diskonRpSpinBox, disc_amount);
 
-    updateCalculation();
+    QTimer::singleShot(0, this, [this](){ updateCalculation(); });
 }
 
 void OrderDialog::on_diskonRpSpinBox_valueChanged(int disc_rupiah)
@@ -175,7 +175,7 @@ void OrderDialog::on_diskonRpSpinBox_valueChanged(int disc_rupiah)
     double subtotal = ui->subtotalSpinBox->value();
     if (subtotal <= 0) {
         disableSignalAndSet(ui->diskonDoubleSpinBox, 0.0);
-        updateCalculation();
+        QTimer::singleShot(0, this, [this](){ updateCalculation(); });
         return;
     }
 
@@ -186,8 +186,7 @@ void OrderDialog::on_diskonRpSpinBox_valueChanged(int disc_rupiah)
     percent = qRound(percent * 100.0) / 100.0;
 
     disableSignalAndSet(ui->diskonDoubleSpinBox, percent);
-
-    updateCalculation();
+    QTimer::singleShot(0, this, [this](){ updateCalculation(); });
 }
 
 void OrderDialog::on_cariButton_clicked()
@@ -221,7 +220,7 @@ void OrderDialog::updateCalculation()
     subtotal += m_model->itemAt(i).total();
   }
   ui->subtotalSpinBox->setValue(subtotal);
-  ui->totalSpinBox->setValue(subtotal - ui->pajakRpSpinBox->value() - ui->diskonRpSpinBox->value());
+  ui->totalSpinBox->setValue(subtotal + ui->pajakRpSpinBox->value() - ui->diskonRpSpinBox->value());
 }
 
 void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
@@ -253,7 +252,7 @@ void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
         QMessageBox::Yes | QMessageBox::No);
       if (res == QMessageBox::Yes) {
         m_model->removeItem(row);
-        updateCalculation();
+        QTimer::singleShot(0, this, [this]() { updateCalculation(); });
       }
     });
   }
@@ -321,5 +320,5 @@ void OrderDialog::on_simpanButton_clicked()
 
 void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {
   Q_UNUSED(ch);
-  updateCalculation();
+  QTimer::singleShot(0, this, [this]() { updateCalculation(); });
 }

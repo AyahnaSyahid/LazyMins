@@ -10,6 +10,7 @@
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
 #include "src/dialogs/logindialog.h"
+#include "src/dialogs/kategoriprodukdialog.h"
 #include "src/managers/adminmanager.h"
 #include <QDockWidget>
 #include <QMessageBox>
@@ -70,7 +71,11 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ord1->refresh();
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
-  connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this](){ return new ProductDialog(this); }, this);
+  connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()
+    { auto pd =  new ProductDialog(this);
+      pd->connect(pd, &QDialog::accepted, dv1, &DataViewer::refresh);
+      return pd;
+    }, this);
   
   auto createOrderDialog = [this, ord1, dv1]() {
     auto d = new OrderDialog(this);
@@ -91,6 +96,13 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     // connect signal
     // connect(dialog, &QDialog::accepted, ) 
     dialog->open();
+  });
+  
+  connect(ui->actionAddKatProduk, &QAction::triggered, [this]() {
+    auto dia = new KategoriProdukDialog(this);
+    dia->setAttribute(Qt::WA_DeleteOnClose);
+    dia->prepareCreate();
+    dia->open();
   });
   
   // UserSession

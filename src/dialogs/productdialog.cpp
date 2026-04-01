@@ -28,7 +28,9 @@ void ProductDialog::setupBoundFields() {
   addBoundField("unit",
     [this](){ return ui->comboUnit->currentText(); },
     [this](const QVariant& val){ ui->productCategoriesComboBox->setCurrentText(val.toString()); } );
-
+  addBoundField("use_area",
+    [this]() { return bool(ui->useAreaBox->currentIndex()); },
+    [this](const QVariant& val) { ui->useAreaBox->setCurrentIndex(val.toInt()); } );
 }
 
 bool ProductDialog::onSave(const QVariantMap& map) {

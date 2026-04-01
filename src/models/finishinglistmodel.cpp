@@ -121,7 +121,6 @@ bool FinishingListModel::addItem(const FinishingItem &fi)
   beginInsertRows(QModelIndex(), newRow, newRow);
   m_items->push_back(fi);
   endInsertRows();
-  qDebug() << "Finishing Model AddItem" << m_items->count();
   return true;
 }
 

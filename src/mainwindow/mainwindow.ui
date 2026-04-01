@@ -45,9 +45,23 @@
      <string>View</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuData">
+    <property name="title">
+     <string>Data</string>
+    </property>
+    <widget class="QMenu" name="menuTambah">
+     <property name="title">
+      <string>Tambah</string>
+     </property>
+     <addaction name="actionProdukAdd"/>
+     <addaction name="actionAddKatProduk"/>
+    </widget>
+    <addaction name="menuTambah"/>
+   </widget>
    <addaction name="menuPengaturan"/>
    <addaction name="menuToolbar"/>
    <addaction name="menuView"/>
+   <addaction name="menuData"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="addDataToolbar">
@@ -186,6 +200,11 @@
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionAddKatProduk">
+   <property name="text">
+    <string>Kategori Produk</string>
    </property>
   </action>
  </widget>

@@ -173,7 +173,7 @@ void OrderItemDialog::on_simpanButton_clicked()
       oi.size_width = oi.use_area ? ui->widthBox->value() : 1.0;
       oi.size_height = oi.use_area ? ui->heightBox->value() : 1.0;
       oi.sale_price = ui->hargaSpinBox->value();
-      oi.base_price = pr.value("base_price").toInt();
+      oi.base_price = pr.value("cost_price").toInt();
       oi.discount_percentage = ui->diskonDoubleSpinBox->value();
       oi.discount_amount = ui->diskonRpSpinBox->value();
       oi.finishing_total = m_finModel.total();
@@ -201,7 +201,7 @@ void OrderItemDialog::on_simpanButton_clicked()
         m_orderItem->size_width          = m_orderItem->use_area ? ui->widthBox->value() : 1.0;
         m_orderItem->size_height         = m_orderItem->use_area ? ui->heightBox->value() : 1.0;
         m_orderItem->sale_price          = ui->hargaSpinBox->value();
-        m_orderItem->base_price          = pr.value("base_price").toInt();
+        m_orderItem->base_price          = pr.value("cost_price").toInt();
         m_orderItem->discount_percentage = ui->diskonDoubleSpinBox->value();
         m_orderItem->discount_amount     = ui->diskonRpSpinBox->value();
         m_orderItem->finishing_total     = m_finModel.total();
@@ -260,13 +260,13 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
 void OrderItemDialog::on_hargaSpinBox_valueChanged(int arg1)
 {
     Q_UNUSED(arg1);
-    recalculateSubtotal();
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 void OrderItemDialog::on_qtySpinBox_valueChanged(int arg1)
 {
     Q_UNUSED(arg1);
-    recalculateSubtotal();
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
@@ -278,7 +278,7 @@ void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
     // FIX: block signals to avoid triggering on_diskonRpSpinBox_valueChanged
     // which would re-enter and overwrite the percentage we just received.
     disableSignalAndSet(ui->diskonRpSpinBox, static_cast<int>(diskonRp));
-    recalculateSubtotal();
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
@@ -292,7 +292,7 @@ void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
     }
     double diskonPersen = (static_cast<double>(arg1) / static_cast<double>(calcullatedSubtotal)) * 100.0;
     disableSignalAndSet(ui->diskonDoubleSpinBox, diskonPersen);
-    recalculateSubtotal();
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 void OrderItemDialog::recalculateSubtotal()
@@ -330,11 +330,12 @@ void OrderItemDialog::on_tambahButton_clicked() {
 
 void OrderItemDialog::onCreateFinishing(const FinishingItem& item) {
   m_finModel.addItem(item);
-  // Recalculate: calculatedPrice() includes m_finModel.total()
-  recalculateSubtotal();
+  // Recalculate: calculatedPrice() includes m_finModel.total() 
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+
 }
 
 // handle editFinishing
 void OrderItemDialog::onFinishingAccepted() {
-  QTimer::singleShot(0, [this](){ recalculateSubtotal(); });
+    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }

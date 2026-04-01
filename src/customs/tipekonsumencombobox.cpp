@@ -9,5 +9,5 @@ TipeKonsumenComboBox::TipeKonsumenComboBox(QWidget *p) : QueryComboBox(p)
   setModelColumn(0);
   boxView->horizontalHeader()->setStretchLastSection(true);
   setEditable(true);
-  qDebug() << "is Column 0 hidden" << boxView->isColumnHidden(0);
+  // qDebug() << "is Column 0 hidden" << boxView->isColumnHidden(0);
 }

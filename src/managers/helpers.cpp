@@ -1,10 +1,13 @@
 #include "helpers.h"
+#include "src/utils/sessionmanager.h"
 #include <QSqlQuery>
 #include <QSqlError>
 
 namespace {
   int getAdminId () {
-    return 1;
+    auto &sm = SessionManager::instance();
+    auto cu = sm.currentUser();
+    return cu.has_value() ? (*cu).value("id").toInt() : 1;
   }
 }
 
@@ -223,6 +226,5 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
     con.rollback();
     return { false, error };
   }
-  
   return { true, "" };
 }

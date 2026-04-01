@@ -80,6 +80,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/instantorderdialog.h
                            src/dialogs/instantorderdialog.ui
                            src/dialogs/instantorderdialog.cpp
+                           src/dialogs/kategoriprodukdialog.h
+                           src/dialogs/kategoriprodukdialog.ui
+                           src/dialogs/kategoriprodukdialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui

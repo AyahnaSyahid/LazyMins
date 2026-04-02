@@ -315,10 +315,9 @@ CREATE TABLE payments (
     FOREIGN KEY (admin_id)      REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (verified_by)   REFERENCES admins(id)
 );
+
 -- Index untuk payments
-CREATE INDEX idx_invoices_order ON payments(invoice_id);
-CREATE INDEX idx_payments_order ON payments(order_id);
-CREATE INDEX idx_payments_customer ON payments(customer_id);
+CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_date ON payments(payment_date);
 CREATE INDEX idx_payments_status ON payments(payment_status);
 CREATE INDEX idx_payments_method ON payments(payment_method);
@@ -378,41 +377,6 @@ CREATE INDEX idx_transaksi_admin_tanggal ON transaksi(tanggal, admin_id);
 CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
-
--- ============================================================================
--- 8.1 TABEL INVENTORI - STOCK CONSUMES (TAMBAHAN BARU)
--- ============================================================================
--- saat ini kita belum bisa menyediakan data barang / stock
-
-CREATE TABLE stock_consumes (
-    id             INTEGER  PRIMARY KEY,
-    product_id     INTEGER  NOT NULL,
-    consumes_type  TEXT     NOT NULL CHECK (consumes_type IN ('in', 'out', 'adjustment') ),
-    quantity       INTEGER  NOT NULL,
-    stock_before   INTEGER  NOT NULL,
-    stock_after    INTEGER  NOT NULL,
-    reference_type TEXT,
-    reference_id   INTEGER,
-    notes          TEXT,
-    admin_id       INTEGER  NOT NULL,
-    consumes_date  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (
-        product_id
-    )
-    REFERENCES products (id) ON DELETE RESTRICT,
-    FOREIGN KEY (
-        admin_id
-    )
-    REFERENCES admins (id)
-);
-
--- Index untuk stock consumes
-CREATE INDEX idx_stock_consumes_product ON stock_consumes(product_id);
-CREATE INDEX idx_stock_consumes_product_id ON stock_consumes(product_id, id);
-CREATE INDEX idx_stock_consumes_date ON stock_consumes(movement_date);
-CREATE INDEX idx_stock_consumes_type ON stock_consumes(movement_type);
 
 -- ============================================================================
 -- 8.2 TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)
@@ -634,26 +598,54 @@ CREATE VIEW v_top_customers AS
 -- Trigger updated_at dihapus untuk menghindari recursive trigger dan overhead query tambahan.
 
 -- Kurangi stok saat item masuk
-CREATE TRIGGER trg_stock_decrease_on_item_insert
-AFTER INSERT ON order_items
-BEGIN
-    UPDATE products SET stock = stock - (NEW.quantity * NEW.size_width * New.size_height) WHERE id = NEW.product_id;
+-- CREATE TRIGGER trg_stock_decrease_on_item_insert
+-- AFTER INSERT ON order_items
+-- BEGIN
+    -- UPDATE products SET stock = stock - (NEW.quantity * NEW.size_width * New.size_height) WHERE id = NEW.product_id;
     
-    INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    SELECT NEW.product_id, 'out', NEW.quantity * NEW.size_width * New.size_height, p.stock + ( NEW.quantity * NEW.size_width * New.size_height ), p.stock, 'order', NEW.order_id, (SELECT admin_id FROM orders WHERE id = NEW.order_id), 'Item: ' || NEW.product_name
-    FROM products p WHERE p.id = NEW.product_id;
-END;
+    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
+    -- SELECT NEW.product_id, 'out', NEW.quantity * NEW.size_width * New.size_height, p.stock + ( NEW.quantity * NEW.size_width * New.size_height ), p.stock, 'order', NEW.order_id, (SELECT admin_id FROM orders WHERE id = NEW.order_id), 'Item: ' || NEW.product_name
+    -- FROM products p WHERE p.id = NEW.product_id;
+-- END;
 
 -- Kembalikan stok saat item dihapus
-CREATE TRIGGER trg_stock_increase_on_item_delete
-AFTER DELETE ON order_items
-BEGIN
-    UPDATE products SET stock = stock + (OLD.quantity * OLD.size_width * OLD.size_height) WHERE id = OLD.product_id;
+-- CREATE TRIGGER trg_stock_increase_on_item_delete
+-- AFTER DELETE ON order_items
+-- BEGIN
+    -- UPDATE products SET stock = stock + (OLD.quantity * OLD.size_width * OLD.size_height) WHERE id = OLD.product_id;
     
-    INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    SELECT OLD.product_id, 'in', (OLD.quantity * OLD.size_width * OLD.size_height) , p.stock - ( OLD.quantity * OLD.size_width * OLD.size_height) , p.stock, 'adjustment', OLD.order_id, (SELECT admin_id FROM orders WHERE id = OLD.order_id), 'Item Removed'
-    FROM products p WHERE p.id = OLD.product_id;
-END;
+    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
+    -- SELECT OLD.product_id, 'in', (OLD.quantity * OLD.size_width * OLD.size_height) , p.stock - ( OLD.quantity * OLD.size_width * OLD.size_height) , p.stock, 'adjustment', OLD.order_id, (SELECT admin_id FROM orders WHERE id = OLD.order_id), 'Item Removed'
+    -- FROM products p WHERE p.id = OLD.product_id;
+-- END;
+
+-- Update jika edit order, lebih baik jangan update order yang telah di nota
+-- CREATE TRIGGER trg_stock_sync_on_item_update
+-- AFTER UPDATE OF quantity, size_width, size_height ON order_items
+-- WHEN (OLD.quantity * OLD.size_width * OLD.size_height) != (NEW.quantity * NEW.size_width * NEW.size_height)
+-- BEGIN
+    -- Menyesuaikan stok produk berdasarkan selisih (baru - lama)
+    -- UPDATE products 
+    -- SET stock = stock - ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height))
+    -- WHERE id = NEW.product_id;
+
+    -- Mencatat pergerakan stok (adjustment)
+    -- INSERT INTO stock_movements (
+        -- product_id, movement_type, quantity, stock_before, stock_after, 
+        -- reference_type, reference_id, admin_id, notes
+    -- )
+    -- SELECT 
+        -- NEW.product_id, 
+        -- 'adjustment', 
+        -- ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
+        -- p.stock + ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
+        -- p.stock, 
+        -- 'order', 
+        -- NEW.order_id, 
+        -- (SELECT admin_id FROM orders WHERE id = NEW.order_id), 
+        -- 'Item Updated: ' || NEW.product_name
+    -- FROM products p WHERE p.id = NEW.product_id;
+-- END;
 
 -- Update finishing_total di item saat finishing ditambah/diubah
 CREATE TRIGGER trg_update_item_finishing_total
@@ -671,6 +663,34 @@ BEGIN
     UPDATE order_items 
     SET finishing_total = (SELECT COALESCE(SUM(subtotal), 0) FROM order_item_finishings WHERE order_item_id = OLD.order_item_id)
     WHERE id = OLD.order_item_id;
+END;
+
+-- Update finishing_total di item saat finishing diupdate
+CREATE TRIGGER trg_update_item_finishing_total_on_update
+AFTER UPDATE OF quantity, finishing_price ON order_item_finishings
+BEGIN
+    UPDATE order_items 
+    SET finishing_total = (
+        SELECT COALESCE(SUM(subtotal), 0) 
+        FROM order_item_finishings 
+        WHERE order_item_id = NEW.order_item_id
+    )
+    WHERE id = NEW.order_item_id;
+END;
+
+-- Update status pembayaran auto
+CREATE TRIGGER t_sync_order_payment_status_after_invoice_paid
+AFTER UPDATE OF paid_amount ON invoices
+BEGIN
+    -- Jika invoice lunas
+    UPDATE orders
+    SET payment_status = 'paid'
+    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount <= 0;
+
+    -- Jika invoice belum lunas (mungkin pembayaran dibatalkan)
+    UPDATE orders
+    SET payment_status = 'unpaid'
+    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount > 0;
 END;
 
 -- Update Subtotal Order saat detail item berubah (Harga, Qty, Finishing, atau Diskon Item)
@@ -756,7 +776,6 @@ BEGIN
     )
     WHERE id = NEW.invoice_id;
 END;
-
 
 -- 2. After UPDATE Payment
 CREATE TRIGGER t_invoice_paid_after_update
@@ -938,8 +957,8 @@ INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_t
 ('CUST-006', 'Ahmad Fauzi', 'Individual', 'ahmad.fauzi@email.com', '021-56789012', 'Jl. Gatot Subroto No. 678', 'Yogyakarta', '89012', NULL, 'Pelanggan loyal', 1);
 
 -- buat inisiasi kas
-INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 
-('INIT', 1, 3, 'pemasukan', 'Inisialisasi Data Awal', 0, 0, 0);
+-- INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 
+-- ('INIT', 1, 3, 'pemasukan', 'Inisialisasi Data Awal', 0, 0, 0);
 -- ============================================================================
 -- SELESAI
 -- ============================================================================

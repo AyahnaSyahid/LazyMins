@@ -37,8 +37,6 @@ namespace
       {15, "notes"},
       {16, "created_at"},
       {17, "updated_at"},
-  
-  
   };
 
   class ProductDelegate : public QStyledItemDelegate

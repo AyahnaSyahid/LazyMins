@@ -351,7 +351,7 @@ bool OrderModel::commit(QSqlDatabase &db)
     int subtotal = 0;
     for (const OrderItem &it : m_items)
         subtotal += it.total();
-
+      
     OrderManager oman;
     if (m_orderId == -1) {
         QVariantMap createParams {
@@ -382,7 +382,6 @@ bool OrderModel::commit(QSqlDatabase &db)
             return false;
         }
         
-
         m_orderId    = (*opt_order).value("id").toInt();
         m_header.id  = m_orderId;
 
@@ -416,12 +415,59 @@ bool OrderModel::commit(QSqlDatabase &db)
             return false;
         }
     }
-    
-    
+
     // ── Step 2: DELETE removed order_items ───────────────────────────────────
     // CASCADE removes their finishings automatically.
     OrderItemManager oim;
+    StockMovementManager smm;
+    ProductManager prm;
+    
     for (int itemId : m_deletedItemIds) {
+      auto opt_item = oim.getById(itemId);
+      
+      if (!opt_item.has_value()) {
+        qWarning() << "OrderModel::commit – DELETE order_item:"
+                   << "unable to get item";
+        db.rollback();
+        return false;
+      }
+      
+      auto r_item = *opt_item;
+      auto opt_pro = prm.getById(r_item.value("product_id").toInt());
+      
+      if (!opt_pro.has_value()) {
+        qWarning() << "OrderModel::commit – DELETE order_item:"
+                   << "unable to get product";
+        db.rollback();
+        return false;
+      }
+      
+      auto r_pro = *opt_pro;
+      auto calcqty = r_pro.value("use_area").toBool() ? r_item.value("quantity").toDouble() *
+                                                                         r_item.value("size_width").toDouble() *
+                                                                         r_item.value("size_height").toDouble()
+                                                                       : r_item.value("quantity").toDouble();
+      bool stock_update = prm.adjustStock(r_pro.value("id").toInt(), 
+                                          calcqty, "");
+      if(!stock_update) {
+        qWarning() << "OrderModel::commit – DELETE order_item:"
+                   << "update stock failed";
+        db.rollback();
+        return false;
+      }
+      
+      auto opt_mvt = smm.recordMovement(r_pro.value("id").toInt(), "adjustment",
+                                         calcqty, r_pro.value("stock").toDouble(),
+                                         calcqty + r_pro.value("stock").toDouble(),
+                                         m_header.admin_id, "Item Removal", -1, "");
+      
+      if(!opt_mvt) {
+        qWarning() << "OrderModel::commit – DELETE order_item:"
+                   << "tidak dapat mencatat stock_movement";
+        db.rollback();
+        return false;
+      }
+      
       if (!oim.remove(itemId)) {
         qWarning() << "OrderModel::commit – DELETE order_item:"
                    << oim.errorString();
@@ -444,6 +490,8 @@ bool OrderModel::commit(QSqlDatabase &db)
     }
 
     // ── Step 4: INSERT / UPDATE dirty items and their finishings ─────────────
+    StockMovementManager stockManager;
+    ProductManager productManager;
     for (int row : m_dirtyRows) {
       OrderItem &item = m_items[row];
       item.order_id = m_orderId;
@@ -451,6 +499,38 @@ bool OrderModel::commit(QSqlDatabase &db)
       if (!item.save(db)) {
           db.rollback();
           return false;
+      }
+      
+      auto opt_pro = productManager.getById(item.product_id);
+      if(!opt_pro.has_value()) {
+        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
+                   << "unable to get product data";
+        db.rollback();
+        return false;
+      }
+      auto r_pro = * opt_pro;
+      auto qty = r_pro.value("use_area").toBool() ?
+                      item.size_width * item.size_height * item.quantity :
+                      item.quantity;
+                      
+      auto adjust_ok = productManager.adjustStock(r_pro.value("id").toInt(), -qty, "");
+      if (!adjust_ok) {
+        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
+                   << "unable adjust product stock";
+        db.rollback();
+        return false;  
+      }
+      
+      auto opt_mvt = stockManager.recordMovement(item.product_id, "out",
+                                    qty, r_pro.value("stock").toDouble(),
+                                    r_pro.value("stock").toDouble() - qty,
+                                    m_header.admin_id, "orders", m_orderId,
+                                    "Penjualan Produk" );
+      if (!opt_mvt.has_value()) {
+        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
+                   << "unable to log stock movement";
+        db.rollback();
+        return false;  
       }
     }
 

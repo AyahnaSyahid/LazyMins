@@ -106,6 +106,8 @@ void OrderItemDialog::setOrder(OrderItem *order) {
   };
 
   // get the combobox index
+  for (auto *w : inputs) w->blockSignals(true);
+  
   int currentProductId = order->product_id;
   qDebug() << "Current Product ID:" << currentProductId;
   auto prmodel = ui->produkComboBox->model();
@@ -113,7 +115,6 @@ void OrderItemDialog::setOrder(OrderItem *order) {
   auto currentIndex = indexes.at(0).row();
   ui->produkComboBox->setCurrentIndex(currentIndex);
   
-  for (auto *w : inputs) w->blockSignals(true);
   
   ui->namaLineEdit->setText(order->product_name);
   if (!order->use_area) {

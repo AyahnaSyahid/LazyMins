@@ -1,5 +1,6 @@
 #include "helpers.h"
 #include "src/utils/sessionmanager.h"
+#include "src/managers/managers.h"
 #include <QSqlQuery>
 #include <QSqlError>
 
@@ -22,151 +23,136 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
     return { false, "Tidak dapat melakukan transaksi database"};
   }
   
+  InvoiceManager invoiceManager;
   // create invoice
-  QSqlQuery q(con);
-  q.prepare(R"--(
-    INSERT INTO invoices ( invoice_number, 
-      customer_id, customer_name, customer_phone, 
-      price_level_id, discount_amount, tax_amount, due_date,
-      status, issue_date, internal_notes, admin_id ) 
-    VALUES ( :invoice_number, 
-      :customer_id, :customer_name, :customer_phone, 
-      :price_level_id, :discount_amount, 0, date('now'),
-      'paid', date('now'), :internal_notes, :admin_id);
-  )--");
-  q.bindValue(":invoice_number", invoiceCode);
-  q.bindValue(":customer_id", header.customer_id);
-  q.bindValue(":customer_name", header.customer_name);
-  q.bindValue(":customer_phone", header.customer_phone);
-  q.bindValue(":price_level_id", header.price_level_id);
-  q.bindValue(":discount_amount", header.discount_amount);
-  q.bindValue(":internal_notes", "Order Instant");
-  q.bindValue(":admin_id", getAdminId());
+  QVariantMap invoiceParam {
+    {"invoice_number", invoiceCode},
+    {"customer_id", header.customer_id},
+    {"customer_name", header.customer_name},
+    {"customer_phone", header.customer_phone},
+    {"price_level_id", header.price_level_id},
+    {"discount_amount", header.discount_amount},
+    {"internal_notes", "Order Instant"},
+    {"admin_id", getAdminId()}
+  };
   
-  if(!q.exec()) {
+  auto opt_invoice = invoiceManager.create(invoiceParam);
+  
+  if(!opt_invoice.has_value()) {
     con.rollback();
-    qDebug() << "Error on Create Invoices";
-    return {false, q.lastError().text()};
+    auto err = invoiceManager.errorString();
+    qWarning() << "createInstantOrderFailed"
+               << err;
+    return {false, err};
   }
   
-  int invoice_id = q.lastInsertId().toInt();
+  int createdInvoiceId = (*opt_invoice).value("id").toInt();
   
-  q.prepare(R"--(
-    INSERT INTO orders ( order_number, invoice_id, invoice_number,
-      customer_id, customer_name, customer_phone,
-      price_level_id, discount_amount, tax_amount,
-      status, priority, order_date, deadline_date, completion_date,
-      payment_status, paid_amount, internal_notes, admin_id )
-    VALUES (:order_number, :invoice_id, :invoice_number,
-      :customer_id, :customer_name, :customer_phone,
-      :price_level_id, :discount_amount, 0,
-      'completed', 'instant', date('now'), date('now'), date('now'),
-      'paid', 0, 'Order Instant', :admin_id )
-  )--");
+  OrderManager orderManager;
+  // Create Order
   
-  q.bindValue(":order_number", header.order_number);
-  q.bindValue(":invoice_id", invoice_id);
-  q.bindValue(":invoice_number", invoiceCode);
-  q.bindValue(":customer_id", header.customer_id);
-  q.bindValue(":customer_name", header.customer_name);
-  q.bindValue(":customer_phone", header.customer_phone);
-  q.bindValue(":price_level_id", header.price_level_id);
-  q.bindValue(":discount_amount", header.discount_amount);
-  q.bindValue(":admin_id", getAdminId());
+  QVariantMap orderParam {
+    {"order_number", header.order_number},
+    {"invoice_id", invoice_id},
+    {"invoice_number", invoiceCode},
+    {"customer_id", header.customer_id},
+    {"customer_name", header.customer_name},
+    {"customer_phone", header.customer_phone},
+    {"price_level_id", header.price_level_id},
+    {"discount_amount", header.discount_amount},
+    {"admin_id", getAdminId()}
+  };
   
-  if(!q.exec()) {
+  auto opt_order = orderManager.create(orderParam);
+  
+  if(!opt_order.has_value()) {
     con.rollback();
-    qDebug() << "Error on Create orders";
-    return {false, q.lastError().text()};
+    auto err = invoiceManager.errorString();
+    qWarning() << "createInstantOrderFailed"
+               << err;
+    return {false, err};
   }
   
-  int order_id = q.lastInsertId().toInt();
-  QString prepareQueryItem(R"-(
-    INSERT INTO order_items ( order_id, 
-      product_id, product_name,    sku, 
-      quantity,   unit,            use_area,            size_width,          size_height,
-      sale_price, base_price,      discount_percentage, discount_amount,     notes )
-    VALUES ( :order_id, 
-      :product_id, :product_name, :sku, 
-      :quantity,   :unit,         :use_area,            :size_width,         :size_height,
-      :sale_price, :base_price,   :discount_percentage, :discount_amount, :notes )
-  )-");
+  int createdOrderId = (*opt_order).value("id").toInt();
   
-  QString prepareQueryItemFinishing(R"-(
-    INSERT INTO order_item_finishings ( order_item_id,
-      finishing_id, finishing_name, 
-      quantity, finishing_price )
-    VALUES ( :order_item_id,
-      :finishing_id, :finishing_name, 
-      :quantity, :finishing_price )
-  )-");
+  OrderItemManager orderItemManager;
+  OrderItemFinishingManager orderFinishingManager;
+  ProductManager productManager;
+  StockMovementManager stockManager;
   
-  QSqlQuery qf(con), qi(con);
-  
+  QVariantMap itemParams, finishingParams;
   for(auto const& item : items) {
-    qf.prepare(prepareQueryItem);
-    qf.bindValue(":order_id", order_id);
-    qf.bindValue(":product_id", item.product_id);
-    qf.bindValue(":product_name", item.product_name);
-    qf.bindValue(":sku", item.sku);
-    qf.bindValue(":quantity", item.quantity);
-    qf.bindValue(":unit", item.unit);
-    qf.bindValue(":use_area", item.use_area);
-    qf.bindValue(":size_width", item.use_area ? item.size_width : 1);
-    qf.bindValue(":size_height", item.use_area ? item.size_height : 1);
-    qf.bindValue(":sale_price", item.sale_price);
-    qf.bindValue(":base_price", item.base_price);
-    qf.bindValue(":discount_percentage", item.discount_percentage);
-    qf.bindValue(":discount_amount", item.discount_amount);
-    qf.bindValue(":notes", item.notes);
+    itemParams = {
+      {"order_id", order_id},
+      {"product_id", item.product_id},
+      {"product_name", item.product_name},
+      {"sku", item.sku},
+      {"quantity", item.quantity},
+      {"unit", item.unit},
+      {"use_area", item.use_area},
+      {"size_width", item.use_area ? item.size_width : 1},
+      {"size_height", item.use_area ? item.size_height : 1},
+      {"sale_price", item.sale_price},
+      {"base_price", item.base_price},
+      {"discount_percentage", item.discount_percentage},
+      {"discount_amount", item.discount_amount},
+      {"notes", item.notes}
+    };
     
-    if(!qf.exec()) {
+    auto opt_orderItem = orderItemManager.create(itemParams);
+    
+    if(!opt_orderItem.has_value()) {
       con.rollback();
-      qDebug() << "Error on Create order_items";
-      return {false, qf.lastError().text()};
+      auto err = orderItemManager.errorString();
+      qWarning() << "createInstantOrderFailed on create orderItem"
+                 << err;
+      return {false, err};
     }
     
-    auto item_id = qf.lastInsertId().toInt();
+    auto createdItemId = (*opt_orderItem).value("id").toInt();
+    auto opt_product = productManager.getById(item.product_id);
+    
+    if(!opt_product.has_value()) {
+      con.rollback();
+      qWarning() << "createInstantOrderFailed on getting product data";
+      return {false, "product data not found"};
+    }
+    
+    auto opt_stockMovement = 
+          stockManager.recordMovement( item.product_id, 
+                                       "out", );
     
     int fi_total = 0;
     for(auto const& fi : item.finishings) {
-      qi.prepare(prepareQueryItemFinishing);
-      qi.bindValue(":order_item_id", item_id);
-      qi.bindValue(":finishing_id", fi.finishing_id);
-      qi.bindValue(":finishing_name", fi.finishing_name);
-      qi.bindValue(":quantity", fi.quantity);
-      qi.bindValue(":finishing_price", fi.finishing_price);
-      if(!qi.exec()) {
+      finishingParams = {
+        {"order_item_id", createdItemId},
+        {"finishing_id", fi.finishing_id},
+        {"finishing_name", fi.finishing_name},
+        {"quantity", fi.quantity},
+        {"finishing_price", fi.finishing_price}
+      };
+      
+      auto opt_finishingItem = orderFinishingManager.create(finishingParams);
+      
+      if(!opt_finishingItem.has_value()) {
         con.rollback();
-        qDebug() << "Error on Create order_item_finishings";
-        return { false, qi.lastError().text() };
+        auto err = orderFinishingManager.errorString();
+        qWarning() << "createInstantOrderFailed on create finishingItem"
+                   << err;
+        return {false, err};
       }
       fi_total += fi.subtotal();
     }
     
-    qf.prepare("UPDATE order_items SET finishing_total = :finishing_total WHERE id = :id");
-    qf.bindValue(":finishing_total", fi_total);
-    qf.bindValue(":id", item_id);
-
-    if(!qf.exec()) {
+    bool order_item_updated = orderItemManager.update(createdItemId, {{"finishing_total", fi_total}});
+    if(!order_item_updated) {
       con.rollback();
-      qDebug() << "Error on updating finishing_total";
-      return { false, qf.lastError().text() };
+      auto err = orderItemManager.errorString();
+      qWarning() << "createInstantOrderFailed on create update finishing_total"
+                 << err;
+      return { false, err };
     }
   }
-  
-  QSqlQuery qp(con);
-  qp.prepare(R"-(
-    INSERT INTO payments (
-      payment_number, invoice_id,
-      amount, 
-      cash_received, cash_change,
-      payment_status, admin_id, verified_by, verified_at, payment_date )
-    VALUES ( :payment_number, :invoice_id,
-             :payment_amount,
-             :cash_received, :cash_change,
-             'verified', :admin_id, :admin_id, datetime('now'), datetime('now'))
-  )-");
   
   auto pay_n = PaymentManager::generatePaymentNumber();
   qp.bindValue(":payment_number", pay_n);

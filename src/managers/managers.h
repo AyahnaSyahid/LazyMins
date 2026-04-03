@@ -19,6 +19,7 @@ class KategoriTransaksiManager;
 class TransaksiManager;
 class StockMovementManager;
 class ActivityLogManager;
+class InvoiceManager;
 
 // ============================================================================
 // ProductCategoryManager — tabel: product_categories

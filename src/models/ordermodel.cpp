@@ -384,7 +384,6 @@ bool OrderModel::commit(QSqlDatabase &db)
         
         m_orderId    = (*opt_order).value("id").toInt();
         m_header.id  = m_orderId;
-
     } else {
         // Existing order – UPDATE header fields and subtotal together.
         QVariantMap updateParams {
@@ -509,7 +508,7 @@ bool OrderModel::commit(QSqlDatabase &db)
         return false;
       }
       auto r_pro = * opt_pro;
-      auto qty = r_pro.value("use_area").toBool() ?
+      qreal qty = r_pro.value("use_area").toBool() ?
                       item.size_width * item.size_height * item.quantity :
                       item.quantity;
                       

@@ -52,7 +52,7 @@ public:
     QList<QSqlRecord> getByCategory(int categoryId);
     QList<QSqlRecord> getLowStock();
     std::optional<QSqlRecord> findBySku(const QString& sku);
-    bool adjustStock(int id, int delta, const QString& notes = "");
+    bool adjustStock(int id, qreal delta, const QString& notes = "");
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
@@ -261,7 +261,7 @@ public:
     QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
     QList<QSqlRecord> getByKategori(int kategoriId);
     QList<QSqlRecord> getByReference(const QString& referenceType, int referenceId);
-
+    std::optional<QSqlRecord> lastTransaction() const ;
     // Aggregates
     qint64 sumByTipe(const QString& tipe, const QDate& from = QDate(), const QDate& to = QDate());
     
@@ -289,9 +289,9 @@ public:
     // Convenience recorder
     std::optional<QSqlRecord> recordMovement(int productId,
                                              const QString& type,
-                                             int quantity,
-                                             int stockBefore,
-                                             int stockAfter,
+                                             qreal quantity,
+                                             qreal stockBefore,
+                                             qreal stockAfter,
                                              int adminId,
                                              const QString& referenceType = "",
                                              int referenceId = -1,

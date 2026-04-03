@@ -88,7 +88,7 @@ std::optional<QSqlRecord> ProductManager::findBySku(const QString& sku)
     return std::nullopt;
 }
 
-bool ProductManager::adjustStock(int id, int delta, const QString& notes)
+bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
 {
     Q_UNUSED(notes) // caller should record a StockMovement separately
     QSqlQuery q(BaseManager::connection);
@@ -586,6 +586,14 @@ QList<QSqlRecord> TransaksiManager::getByReference(const QString& referenceType,
         {{"rt", referenceType}, {"rid", referenceId}});
 }
 
+std::optional<QSqlRecord> TransaksiManager::lastTransaction() const {
+  QSqlQuery q("SELECT * FROM transaksi ORDER BY id DESC LIMIT 1", BaseManager::connection);
+  if(!q.next()) {
+    return std::nullopt;
+  }
+  return q.record();
+}
+
 qint64 TransaksiManager::sumByTipe(const QString& tipe, const QDate& from, const QDate& to)
 {
     QSqlQuery q(BaseManager::connection);
@@ -620,7 +628,7 @@ QVariantMap TransaksiManager::validateParams(const QVariantMap& params)
     QVariantMap p = params;
     static const QStringList allowed {
         "transaction_number", "admin_id", "kategori_id",
-        "tipe", "deskripsi", "jumlah",
+        "tipe", "deskripsi", "amount_before", "amount", "amount_after",
         "payment_method", "reference_type", "reference_id", "attachment",
         "tanggal", "created_at", "updated_at"
     };
@@ -738,8 +746,8 @@ QList<QSqlRecord> StockMovementManager::getByReference(const QString& referenceT
 }
 
 std::optional<QSqlRecord> StockMovementManager::recordMovement(
-    int productId, const QString& type, int quantity,
-    int stockBefore, int stockAfter, int adminId,
+    int productId, const QString& type, qreal quantity,
+    qreal stockBefore, qreal stockAfter, int adminId,
     const QString& referenceType, int referenceId, const QString& notes)
 {
     QVariantMap p;

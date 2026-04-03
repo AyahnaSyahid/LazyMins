@@ -146,10 +146,11 @@ void InstantOrderDialog::on_bayarButton_clicked() {
   auto inv_code = ui->labelInvoiceCode->text();
   OrderHeader oh;
   oh.order_number = oman.generateOrderNumber();
-  oh.admin_id = 1;// current admin id
+  // oh.admin_id = 1;// current admin id set by helper
   oh.customer_name = ui->nameLineEdit->text();
   oh.customer_phone = ui->phoneLineEdit->text();
   oh.price_level_id = customerSet.price_level;
+  
   if(customerSet.name != ui->nameLineEdit->text()) {
     oh.customer_id = -1;    
   } else {

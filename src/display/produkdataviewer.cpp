@@ -2,6 +2,10 @@
 #include "ui_dataviewer.h"
 #include <QStyledItemDelegate>
 
+#include <QMenu>
+#include <QAction>
+#include <QMessageBox>
+
 namespace {
     class PDelegate : public QStyledItemDelegate {
         public:
@@ -66,11 +70,31 @@ SELECT p.id, sku, name, category_name,
     m->setHeaderData(8,  Qt::Horizontal, "Cost");
     m->setHeaderData(9,  Qt::Horizontal, "Area");
     m->setHeaderData(10, Qt::Horizontal, "Aktif");
-
+    
     ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
     ui->dataView->resizeColumnsToContents();
+    
+    ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->dataView, &QTableView::customContextMenuRequested, this, &ProdukDataViewer::on_dataView_customContextMenuRequested);
 }
 
 ProdukDataViewer::~ProdukDataViewer() {}
+
+void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
+{
+  QMenu menu;
+  auto clickedIndex = indexAt(pt);
+  auto opnameAction = menu.addAction("Stok Opname");
+  connect(opnameAction, &QAction::triggered, [this](&clickedIndex) {
+    if (clickedIndex.isValid())
+      openStockOpname(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
+  menu.exec(ui->dataView->mapToGlobal(pt));
+}
+
+void ProdukDataViewer::openStockOpname(int product_id)
+{
+  
+}
 
 

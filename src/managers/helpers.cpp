@@ -12,7 +12,7 @@ namespace {
   }
 }
 
-DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrder(
+DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   const OrderHeader &header,
   const QList<OrderItem> &items, 
   const QString& invoiceCode,
@@ -24,6 +24,7 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
   }
   
   InvoiceManager invoiceManager;
+  int currentAdminId = getAdminId();
   // create invoice
   QVariantMap invoiceParam {
     {"invoice_number", invoiceCode},
@@ -33,7 +34,7 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
     {"price_level_id", header.price_level_id},
     {"discount_amount", header.discount_amount},
     {"internal_notes", "Order Instant"},
-    {"admin_id", getAdminId()}
+    {"admin_id", currentAdminId}
   };
   
   auto opt_invoice = invoiceManager.create(invoiceParam);
@@ -53,14 +54,14 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
   
   QVariantMap orderParam {
     {"order_number", header.order_number},
-    {"invoice_id", invoice_id},
+    {"invoice_id", createdInvoiceId},
     {"invoice_number", invoiceCode},
     {"customer_id", header.customer_id},
     {"customer_name", header.customer_name},
     {"customer_phone", header.customer_phone},
     {"price_level_id", header.price_level_id},
     {"discount_amount", header.discount_amount},
-    {"admin_id", getAdminId()}
+    {"admin_id", currentAdminId}
   };
   
   auto opt_order = orderManager.create(orderParam);
@@ -83,7 +84,7 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
   QVariantMap itemParams, finishingParams;
   for(auto const& item : items) {
     itemParams = {
-      {"order_id", order_id},
+      {"order_id", createdOrderId},
       {"product_id", item.product_id},
       {"product_name", item.product_name},
       {"sku", item.sku},
@@ -110,17 +111,15 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
     }
     
     auto createdItemId = (*opt_orderItem).value("id").toInt();
-    auto opt_product = productManager.getById(item.product_id);
+    OrderItem temp(item);
+    temp.id = createdItemId;
+    temp.order_id = createdOrderId;
     
-    if(!opt_product.has_value()) {
+    auto stockUpdateResult = stockUpdate (temp, "out", "Penjualan Produk", currentAdminId);
+    if (!stockUpdateResult.ok) {
       con.rollback();
-      qWarning() << "createInstantOrderFailed on getting product data";
-      return {false, "product data not found"};
+      return stockUpdateResult;
     }
-    
-    auto opt_stockMovement = 
-          stockManager.recordMovement( item.product_id, 
-                                       "out", );
     
     int fi_total = 0;
     for(auto const& fi : item.finishings) {
@@ -153,57 +152,67 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
       return { false, err };
     }
   }
-  
+
+  PaymentManager paymentManager;
   auto pay_n = PaymentManager::generatePaymentNumber();
-  qp.bindValue(":payment_number", pay_n);
-  qp.bindValue(":invoice_id", invoice_id);
-  qp.bindValue(":payment_amount", paymentInfo.value("payment_amount", 0));
-  qp.bindValue(":admin_id", getAdminId());
-  qp.bindValue(":cash_received", paymentInfo.value("cash_received", 0));
-  qp.bindValue(":cash_change", paymentInfo.value("cash_change", 0));
+  QVariantMap paymentParams {
+    {"payment_number", pay_n},
+    {"invoice_id", createdInvoiceId},
+    {"amount", paymentInfo.value("payment_amount", 0)},
+    {"admin_id", currentAdminId},
+    {"cash_received", paymentInfo.value("cash_received", 0)},
+    {"cash_change", paymentInfo.value("cash_change", 0)}
+  };
   
-  if (!qp.exec()) {
+  auto opt_payment = paymentManager.create(paymentParams);
+  
+  if (!opt_payment.has_value()) {
     con.rollback();
-    qDebug() << "Error on creating payment";
-    return { false, qp.lastError().text() };
+    auto err = paymentManager.errorString();
+    qWarning() << "createInstantOrderFailed on create create payment"
+               << err;
+    return { false, err };
   }
   
-  auto createdPaymentId = qp.lastInsertId().toInt();
+  auto createdPaymentId = (*opt_payment).value("id").toInt();
   
-  qp.exec("SELECT COALESCE(amount_after, 0) as AFT FROM transaksi ORDER BY id DESC LIMIT 1");
-  qp.next();
+  TransaksiManager transaksiManager;
   
-  auto amount_before = qp.value("AFT").toInt(), 
-       amount        = paymentInfo.value("payment_amount").toInt();
+  auto opt_last_tr = transaksiManager.lastTransaction();
   
-  auto amount_after = amount_before + amount;
+  int amount_before = 0,
+      amount = paymentInfo.value("payment_amount").toInt(),
+      amount_after = 0;
   
-  qp.prepare(R"-(
-    INSERT INTO transaksi (
-      transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after, payment_method, reference_type, reference_id)
-    VALUES (
-      :tr_num, :admin_id, :kategori_id, :tipe, :deskripsi, :amount_before, :amount, :amount_after, :payment_method, :reference_type, :reference_id)
-  )-");
+  if(opt_last_tr.has_value()) {
+    amount_before = (*opt_last_tr).value("amount_after").toInt();
+  }
   
-  TransaksiManager trm;
-  auto tr_num = trm.generateTransactionNumber();
-  qp.bindValue(":tr_num", tr_num);
-  qp.bindValue(":admin_id", getAdminId());
-  qp.bindValue(":kategori_id", 1);
-  qp.bindValue(":tipe", "pemasukan");
-  qp.bindValue(":deskripsi", "Pembayaran Cash");
-  qp.bindValue(":amount_before", amount_before);
-  qp.bindValue(":amount", amount);
-  qp.bindValue(":amount_after", amount_after);
-  qp.bindValue(":payment_method", "cash");
-  qp.bindValue(":reference_type", "payments");
-  qp.bindValue(":reference_id", createdPaymentId);
+  amount_after = amount_before + amount;
   
-  if(!qp.exec()) {
-    qDebug() << "Error : Gagal mencatat transaksi";
-    qDebug() << qp.lastError().text();
-    con.rollback();
-    return { false, qp.lastError().text() };
+  auto tr_num = transaksiManager.generateTransactionNumber();
+  
+  QVariantMap transaksiParams {
+    {"tr_num", tr_num},
+    {"admin_id", currentAdminId},
+    {"kategori_id", 1},
+    {"tipe", "pemasukan"},
+    {"deskripsi", "Pembayaran Cash"},
+    {"amount_before", amount_before},
+    {"amount", amount},
+    {"amount_after", amount_after},
+    {"payment_method", "cash"},
+    {"reference_type", "payments"},
+    {"reference_id", createdPaymentId}
+  };
+  
+  auto opt_transaksi = transaksiManager.create(transaksiParams);
+  
+  if(!opt_transaksi.has_value()) {
+    auto err = transaksiManager.errorString();
+    qWarning() << "createInstantOrderFailed on logging Transaksi"
+               << err;
+    return { false, err };
   }
   
   if (!con.commit()) {
@@ -211,6 +220,46 @@ DBOperationHelper::CreateInstantOrderResult DBOperationHelper::createInstantOrde
     auto error = con.lastError().text();
     con.rollback();
     return { false, error };
+  }
+  return { true, "" };
+}
+
+DBOperationHelper::OperationResult 
+  DBOperationHelper::stockUpdate( const OrderItem& item, 
+                                  const QString& tipe,
+                                  const QString& notes,
+                                  int adminId )
+{
+  ProductManager productManager;
+  StockMovementManager stockManager;
+  
+  if (item.id < 1) {
+    qWarning() << "stockUpdate Failed"
+               << "order_items.id < 1";
+    return  { false, "registering unsaved order_items" };
+  }
+  auto opt_product = productManager.getById(item.product_id);
+    
+  if(!opt_product.has_value()) {
+    qWarning() << "createInstantOrderFailed on getting product data";
+    return {false, QString(" product data not found: %1").arg(item.product_id)};
+  }
+  
+  auto rec_product = (*opt_product);
+  auto sbefore = rec_product.value("stock").toDouble(),
+       c_qty   = item.use_area ? static_cast<double>(item.quantity) * item.size_width * item.size_height : static_cast<double>(item.quantity);
+  
+  auto opt_stockMovement = 
+        stockManager.recordMovement( item.product_id, tipe, 
+                        c_qty, sbefore, tipe == "out" ? sbefore - c_qty : sbefore + c_qty,
+                        adminId, "orders", item.order_id, notes);
+  
+  auto product_stock_updated = 
+        productManager.adjustStock(item.product_id, static_cast<double>(-c_qty));
+  
+  if (! (opt_stockMovement.has_value() && product_stock_updated) ) {
+      qWarning() << "stockUpdate Failed";
+      return { false, "Unable to update product stock"};
   }
   return { true, "" };
 }

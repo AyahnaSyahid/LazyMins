@@ -241,7 +241,7 @@ DBOperationHelper::OperationResult
   auto opt_product = productManager.getById(item.product_id);
     
   if(!opt_product.has_value()) {
-    qWarning() << "createInstantOrderFailed on getting product data";
+    qWarning() << "stockUpdate Failed on getting product data";
     return {false, QString(" product data not found: %1").arg(item.product_id)};
   }
   
@@ -261,5 +261,37 @@ DBOperationHelper::OperationResult
       qWarning() << "stockUpdate Failed";
       return { false, "Unable to update product stock"};
   }
+  return { true, "" };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int product_id, qreal _final, const QString& notes) {
+  ProductManager productManager;
+  StockMovementManager stockManager;
+  
+  BaseManager::connection.transaction();
+  
+  auto prd = *productManager.getById(product_id);
+  auto currentData  = prd.value("stock").toDouble();
+  auto delta = _final - currentData;
+  
+  bool pStockUpdated = productManager.update(product_id, {{"stock", _final}});
+  if (!pStockUpdated) {
+    qWarning() << "adjustProductStock Failed";
+    BaseManager::connection.rollback();
+    return { false, " Unable to update stock product"};
+  }
+  
+  auto opt_movement =
+      stockManager.recordMovement( product_id, "adjustment", 
+                          qAbs(delta), currentData, currentData + delta,
+                          getAdminId(), delta < 0 ? "Negative Adjustment" : "Positive Adjustment", -1, notes);
+  if(!opt_movement.has_value()) {
+    qWarning() << "adjustProductStock Failed" 
+               << " Unable to log movement";
+    auto err = stockManager.errorString();
+    BaseManager::connection.rollback();
+    return { false, err };
+  }
+  BaseManager::connection.commit();
   return { true, "" };
 }

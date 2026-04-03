@@ -1,6 +1,7 @@
 #include "produkdataviewer.h"
 #include "ui_dataviewer.h"
 #include <QStyledItemDelegate>
+#include "src/dialogs/stockopnamedialog.h"
 
 #include <QMenu>
 #include <QAction>
@@ -83,9 +84,9 @@ ProdukDataViewer::~ProdukDataViewer() {}
 void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 {
   QMenu menu;
-  auto clickedIndex = indexAt(pt);
+  auto clickedIndex = ui->dataView->indexAt(pt);
   auto opnameAction = menu.addAction("Stok Opname");
-  connect(opnameAction, &QAction::triggered, [this](&clickedIndex) {
+  connect(opnameAction, &QAction::triggered, [this, clickedIndex]() {
     if (clickedIndex.isValid())
       openStockOpname(clickedIndex.siblingAtColumn(0).data().toInt());
     });
@@ -94,7 +95,10 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 
 void ProdukDataViewer::openStockOpname(int product_id)
 {
-  
+  StockOpnameDialog dl(this);
+  dl.setProductId(product_id);
+  connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);
+  dl.exec();
 }
 
 

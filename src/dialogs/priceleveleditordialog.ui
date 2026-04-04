@@ -139,7 +139,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QSpinBox" name="qtySpinBox">
+          <widget class="QSpinBox" name="costSpinBox">
            <property name="minimumSize">
             <size>
              <width>120</width>

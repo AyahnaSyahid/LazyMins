@@ -6,6 +6,7 @@ namespace Ui {
 
 #include <QDialog>
 
+class PriceLevelEditorModel;
 class PriceLevelEditorDialog : public QDialog
 {
   Q_OBJECT
@@ -15,6 +16,7 @@ class PriceLevelEditorDialog : public QDialog
     ~PriceLevelEditorDialog();
     bool setProductId(int);
   
-  
-  
+  private:
+    Ui::PriceLevelEditorDialog *ui;
+    PriceLevelEditorModel *model;
 };

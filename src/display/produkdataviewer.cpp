@@ -5,6 +5,7 @@
 #include "src/dialogs/stockrefilldialog.h"
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/kategoriprodukdialog.h"
+#include "src/dialogs/priceleveleditordialog.h"
 
 #include <QMenu>
 #include <QAction>
@@ -105,6 +106,7 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 
   auto clickedIndex = ui->dataView->indexAt(pt);
   
+  auto setPriceAction = menu.addAction("Setelan Harga");
   auto refillAction = menu.addAction("Tambah Stok");
   auto opnameAction = menu.addAction("Stok Opname");
   
@@ -116,10 +118,12 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
     if (clickedIndex.isValid())
       openRefillDialog(clickedIndex.siblingAtColumn(0).data().toInt());
     });
+  connect(setPriceAction, &QAction::triggered, [this, clickedIndex]() {
+    if (clickedIndex.isValid())
+      openPriceEditorDialog(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
   
   menu.addSeparator();
-  
-  
   
   menu.addSeparator();
   auto submenu = menu.addMenu("Data baru");
@@ -147,6 +151,13 @@ void ProdukDataViewer::openRefillDialog(int produkId)
   dl.exec();
 }
 
+void ProdukDataViewer::openPriceEditorDialog(int productId)
+{
+  PriceLevelEditorDialog pd(this);
+  if (!pd.setProductId(productId)) return ;
+  connect(&pd, &QDialog::accepted, this, &DataViewer::refresh);
+  pd.exec();
+}
 
 QAction* ProdukDataViewer::addProductAction()
 {

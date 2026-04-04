@@ -35,6 +35,8 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/models/advancedquerymodel.cpp
                        src/models/finishinglistmodel.h
                        src/models/finishinglistmodel.cpp
+                       src/models/priceleveleditormodel.h
+                       src/models/priceleveleditormodel.cpp
                        )
 
 qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
@@ -89,6 +91,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/stockrefilldialog.h
                            src/dialogs/stockrefilldialog.ui
                            src/dialogs/stockrefilldialog.cpp
+                           src/dialogs/priceleveleditordialog.h
+                           src/dialogs/priceleveleditordialog.ui
+                           src/dialogs/priceleveleditordialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui

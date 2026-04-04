@@ -54,20 +54,24 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   auto dv1 = new ProdukDataViewer;
   auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
   addDockWidget(Qt::TopDockWidgetArea, ds);
+  // dv1->prependContextAction(ui->actionProdukAdd);
   dv1->setPageSize(100);
   dv1->refresh();
+  ui->menuView->addAction(ds->toggleViewAction());
 
   auto fs1 = new FinishingServicesViewer;
   ds = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
   addDockWidget(Qt::LeftDockWidgetArea, ds);
   fs1->setPageSize(100);
   fs1->refresh();
+  ui->menuView->addAction(ds->toggleViewAction());
 
   auto ord1 = new OrderDataViewer;
   ds = dockSetup(new QDockWidget(this), "Data Orders", ord1);
   addDockWidget(Qt::TopDockWidgetArea, ds);
   ord1->setPageSize(50);
   ord1->refresh();
+  ui->menuView->addAction(ds->toggleViewAction());
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
   connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()

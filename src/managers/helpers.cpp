@@ -10,6 +10,10 @@ namespace {
     auto cu = sm.currentUser();
     return cu.has_value() ? (*cu).value("id").toInt() : 1;
   }
+  
+  qreal roundedValue(double v) {
+    return std::round(v * 10000.0) / 10000.0;
+  }
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
@@ -251,7 +255,7 @@ DBOperationHelper::OperationResult
   
   auto opt_stockMovement = 
         stockManager.recordMovement( item.product_id, tipe, 
-                        c_qty, sbefore, tipe == "out" ? sbefore - c_qty : sbefore + c_qty,
+                        c_qty, sbefore, tipe == "out" ? roundedValue(sbefore - c_qty) : roundedValue(sbefore + c_qty),
                         adminId, "orders", item.order_id, notes);
   
   auto product_stock_updated = 
@@ -283,8 +287,8 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int pr
   
   auto opt_movement =
       stockManager.recordMovement( product_id, "adjustment", 
-                          qAbs(delta), currentData, currentData + delta,
-                          getAdminId(), delta < 0 ? "Negative Adjustment" : "Positive Adjustment", -1, notes);
+                          qAbs(delta), currentData, roundedValue(currentData + delta),
+                          getAdminId(), delta < 0 ? "Negative" : "Positive", -1, notes);
   if(!opt_movement.has_value()) {
     qWarning() << "adjustProductStock Failed" 
                << " Unable to log movement";
@@ -294,4 +298,30 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int pr
   }
   BaseManager::connection.commit();
   return { true, "" };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes) {
+  ProductManager productManager;
+  StockMovementManager stockManager;
+  
+  BaseManager::connection.transaction();
+  
+  auto prd = *productManager.getById(productId);
+  auto sku = prd.value("sku").toString();
+  auto unit = prd.value("unit").toString();
+  auto c_stock = prd.value("stock").toDouble();
+  bool productUpdateOk = productManager.update(productId, {{"stock", c_stock + stockIn }});
+  auto opt_movement =
+    stockManager.recordMovement( productId, "in", stockIn, c_stock, roundedValue(c_stock + stockIn), getAdminId(), "Pembelian Bahan", -1,
+        QString("Pembelian %1 sebanyak %2 %3 dari %4 - %5").arg(sku, QLocale().toString(stockIn), unit, supplier, notes));
+  if (productUpdateOk && opt_movement.has_value()) {
+    BaseManager::connection.commit();
+    return { true, "" };
+  }
+  OperationResult opr { false, "" };
+  
+  if (!productUpdateOk) opr.error = productManager.errorString();
+  if (!opt_movement.has_value()) opr.error = stockManager.errorString();
+  BaseManager::connection.rollback();
+  return opr;
 }

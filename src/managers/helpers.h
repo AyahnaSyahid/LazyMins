@@ -24,4 +24,9 @@ namespace DBOperationHelper {
   // digunakan di StockOpnameDialog
   // menggunakan transaction
   OperationResult adjustProductStock( int product_id, qreal _final, const QString& notes);
+  
+  // digunakan di StockRefillDialog
+  // menggunakan transaction
+  
+  OperationResult refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes);
 }

@@ -2,6 +2,9 @@
 #include "ui_dataviewer.h"
 #include <QStyledItemDelegate>
 #include "src/dialogs/stockopnamedialog.h"
+#include "src/dialogs/stockrefilldialog.h"
+#include "src/dialogs/productdialog.h"
+#include "src/dialogs/kategoriprodukdialog.h"
 
 #include <QMenu>
 #include <QAction>
@@ -69,27 +72,59 @@ SELECT p.id, sku, name, category_name,
     m->setHeaderData(6,  Qt::Horizontal, "Stok");    
     m->setHeaderData(7,  Qt::Horizontal, "Min");
     m->setHeaderData(8,  Qt::Horizontal, "Cost");
-    m->setHeaderData(9,  Qt::Horizontal, "Area");
-    m->setHeaderData(10, Qt::Horizontal, "Aktif");
+    m->setHeaderData(9,  Qt::Horizontal, "Aktif");
+    m->setHeaderData(10, Qt::Horizontal, "Area");
     
     ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
     ui->dataView->resizeColumnsToContents();
     
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->dataView, &QTableView::customContextMenuRequested, this, &ProdukDataViewer::on_dataView_customContextMenuRequested);
+    addAction(addProductAction());
+    addAction(addCategoryProductAction());
+    setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
 ProdukDataViewer::~ProdukDataViewer() {}
 
+void ProdukDataViewer::prependContextAction(QAction* act)
+{
+  m_prependedActions.append(act);
+}
+
+
 void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 {
   QMenu menu;
+  for(auto pact : m_prependedActions) {
+    menu.addAction(pact);
+  }
+  if (m_prependedActions.size() > 0) {
+    menu.addSeparator();
+  }
+
   auto clickedIndex = ui->dataView->indexAt(pt);
+  
+  auto refillAction = menu.addAction("Tambah Stok");
   auto opnameAction = menu.addAction("Stok Opname");
+  
   connect(opnameAction, &QAction::triggered, [this, clickedIndex]() {
     if (clickedIndex.isValid())
       openStockOpname(clickedIndex.siblingAtColumn(0).data().toInt());
     });
+  connect(refillAction, &QAction::triggered, [this, clickedIndex]() {
+    if (clickedIndex.isValid())
+      openRefillDialog(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
+  
+  menu.addSeparator();
+  
+  
+  
+  menu.addSeparator();
+  auto submenu = menu.addMenu("Data baru");
+  submenu->addAction(addProductAction());
+  submenu->addAction(addCategoryProductAction());
   menu.exec(ui->dataView->mapToGlobal(pt));
 }
 
@@ -101,4 +136,49 @@ void ProdukDataViewer::openStockOpname(int product_id)
   dl.exec();
 }
 
+void ProdukDataViewer::openRefillDialog(int produkId)
+{
+  StockRefillDialog dl(this);
+  if(!dl.setProductId(produkId)) {
+    dl.reject();
+    return ;
+  }
+  connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);
+  dl.exec();
+}
 
+
+QAction* ProdukDataViewer::addProductAction()
+{
+  if(m_addProductAction == nullptr) {
+    m_addProductAction = new QAction("Produk", this);
+    m_addProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
+    m_addProductAction->setObjectName("addProductAction");
+    connect(m_addProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddProductActionTriggered);
+  }
+  return m_addProductAction;
+}
+
+void ProdukDataViewer::onAddProductActionTriggered() {
+  ProductDialog pd(this);
+  connect(&pd, &QDialog::accepted, this, &DataViewer::refresh);
+  pd.setWindowTitle("Form Produk Baru");
+  pd.exec();
+}
+
+QAction* ProdukDataViewer::addCategoryProductAction() {
+  if(m_addCategoryProductAction == nullptr) {
+    m_addCategoryProductAction = new QAction("Kategori Produk", this);
+    // m_addCategoryProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
+    m_addCategoryProductAction->setObjectName("addCategoryProductAction");
+    connect(m_addCategoryProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddCategoryProductActionTriggered);
+  }
+  return m_addCategoryProductAction;
+}
+
+void ProdukDataViewer::onAddCategoryProductActionTriggered() {
+  KategoriProdukDialog dl(this);
+  connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);
+  dl.setWindowTitle("Form Kategori Produk Baru");
+  dl.exec();
+}

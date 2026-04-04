@@ -86,6 +86,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/stockopnamedialog.h
                            src/dialogs/stockopnamedialog.ui
                            src/dialogs/stockopnamedialog.cpp
+                           src/dialogs/stockrefilldialog.h
+                           src/dialogs/stockrefilldialog.ui
+                           src/dialogs/stockrefilldialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui

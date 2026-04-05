@@ -23,7 +23,7 @@ QVariant PriceLevelEditorModel::data(const QModelIndex& ix, int role) const {
     if (!ix.isValid() || ix.row() >= m_definedLevels.size()) return QVariant();
 
     const auto& level = m_definedLevels.at(ix.row());
-
+    if (role == DefaultPriceRole) return m_defaultPrice;
     if (role == IdRole) return level.id;
     if (role == IsNewRole) return level.isNew;
 
@@ -85,7 +85,7 @@ Qt::ItemFlags PriceLevelEditorModel::flags(const QModelIndex& ix) const {
 
 QVariant PriceLevelEditorModel::headerData(int section, Qt::Orientation orientation, int role) const {
     if (role != Qt::DisplayRole || orientation != Qt::Horizontal) return QVariant();
-    return (section == 0) ? "Level Name" : "Price";
+    return (section == 0) ? "Nama" : "Harga";
 }
 
 void PriceLevelEditorModel::loadLevels() {
@@ -121,6 +121,9 @@ void PriceLevelEditorModel::loadLevels() {
             m_loadedPrices.insert(row++, q.value("price"));
         }
     }
+    
+    ProductManager proman;
+    m_defaultPrice = (*proman.getById(m_productId)).value("cost_price").toInt();
     endResetModel();
 }
 
@@ -174,5 +177,21 @@ bool PriceLevelEditorModel::commit() {
         loadLevels(); // Refresh untuk sinkronisasi state
         return true;
     }
+    return false;
+}
+
+bool PriceLevelEditorModel::isDirty() const {
+    // 1. Cek apakah ada perubahan harga di QMap m_editPrices
+    if (!m_editPrices.isEmpty()) {
+        return true;
+    }
+
+    // 2. Cek apakah ada baris baru yang ditambahkan (isNew == true)
+    for (const auto& level : m_definedLevels) {
+        if (level.isNew) {
+            return true;
+        }
+    }
+
     return false;
 }

@@ -49,6 +49,54 @@
      <item row="2" column="1">
       <widget class="ProductCategoriesComboBox" name="productCategoriesComboBox"/>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="deskripsiLabel">
+       <property name="text">
+        <string>Deskripsi</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPlainTextEdit" name="descPlainTextEdit">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>65</height>
+        </size>
+       </property>
+       <property name="tabChangesFocus">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0" colspan="2">
+      <widget class="Line" name="line_2">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Hitung Luas</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QComboBox" name="useAreaBox">
+       <item>
+        <property name="text">
+         <string>Tidak</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Ya</string>
+        </property>
+       </item>
+      </widget>
+     </item>
      <item row="6" column="0">
       <widget class="QLabel" name="unitLabel">
        <property name="text">
@@ -135,20 +183,6 @@
        </property>
       </widget>
      </item>
-     <item row="10" column="1">
-      <widget class="QComboBox" name="aktifComboBox">
-       <item>
-        <property name="text">
-         <string>Ya</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Tidak</string>
-        </property>
-       </item>
-      </widget>
-     </item>
      <item row="11" column="0">
       <widget class="QLabel" name="stokLabel">
        <property name="text">
@@ -172,50 +206,16 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="deskripsiLabel">
-       <property name="text">
-        <string>Deskripsi</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QPlainTextEdit" name="descPlainTextEdit">
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>65</height>
-        </size>
-       </property>
-       <property name="tabChangesFocus">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0" colspan="2">
-      <widget class="Line" name="line_2">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Hitung Luas</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="useAreaBox">
+     <item row="10" column="1">
+      <widget class="QComboBox" name="aktifComboBox">
        <item>
         <property name="text">
-         <string>Tidak</string>
+         <string>Ya</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Ya</string>
+         <string>Tidak</string>
         </property>
        </item>
       </widget>

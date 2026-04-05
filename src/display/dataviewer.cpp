@@ -74,6 +74,7 @@ void DataViewer::refresh()
 {
     m_model.refresh();
     updateNavigation();
+    emit refreshed();
 }
 
 void DataViewer::setFilter(const QString &filter)

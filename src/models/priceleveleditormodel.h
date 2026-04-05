@@ -16,6 +16,7 @@ public:
         LevelNameRole,
         DescriptionRole,
         DiscountRole,
+        DefaultPriceRole,
         IsNewRole
     };
 
@@ -36,6 +37,7 @@ public:
     void loadLevels();
     void addNewLevel();
     bool commit(); // Fungsi untuk simpan ke database via Managers
+    bool isDirty() const;
 
 private:
     struct PriceLevel {
@@ -47,6 +49,7 @@ private:
     };
 
     int m_productId = -1;
+    int m_defaultPrice = 0;
     QList<PriceLevel> m_definedLevels;
     QMap<int, QVariant> m_loadedPrices; // Harga asli dari DB (row index -> price)
     QMap<int, QVariant> m_editPrices;   // Perubahan harga (row index -> price)

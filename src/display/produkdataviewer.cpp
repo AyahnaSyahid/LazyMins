@@ -4,6 +4,7 @@
 #include "src/dialogs/stockopnamedialog.h"
 #include "src/dialogs/stockrefilldialog.h"
 #include "src/dialogs/productdialog.h"
+#include "src/dialogs/producteditordialog.h"
 #include "src/dialogs/kategoriprodukdialog.h"
 #include "src/dialogs/priceleveleditordialog.h"
 
@@ -83,7 +84,9 @@ SELECT p.id, sku, name, category_name,
     connect(ui->dataView, &QTableView::customContextMenuRequested, this, &ProdukDataViewer::on_dataView_customContextMenuRequested);
     addAction(addProductAction());
     addAction(addCategoryProductAction());
-    setContextMenuPolicy(Qt::ActionsContextMenu);
+    
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &ProdukDataViewer::customContextMenuRequested, this, &ProdukDataViewer::onContextMenu);
 }
 
 ProdukDataViewer::~ProdukDataViewer() {}
@@ -97,6 +100,7 @@ void ProdukDataViewer::prependContextAction(QAction* act)
 void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 {
   QMenu menu;
+  menu.setToolTipsVisible(true);
   for(auto pact : m_prependedActions) {
     menu.addAction(pact);
   }
@@ -106,9 +110,16 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
 
   auto clickedIndex = ui->dataView->indexAt(pt);
   
-  auto setPriceAction = menu.addAction("Setelan Harga");
-  auto refillAction = menu.addAction("Tambah Stok");
-  auto opnameAction = menu.addAction("Stok Opname");
+  auto editDataAction = menu.addAction("Edit");
+  editDataAction->setToolTip("Edit data produk");
+  menu.addSeparator();
+  auto setPriceAction = menu.addAction("Harga");
+  setPriceAction->setToolTip("Tetapkan Harga Minimal");
+  menu.addSeparator();
+  auto refillAction = menu.addAction("Stok");
+  refillAction->setToolTip("Tambahkan data stok saat masuk");
+  auto opnameAction = menu.addAction("Opname");
+  opnameAction->setToolTip("Sesuaikan data stok dengan gudang");
   
   connect(opnameAction, &QAction::triggered, [this, clickedIndex]() {
     if (clickedIndex.isValid())
@@ -122,11 +133,17 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
     if (clickedIndex.isValid())
       openPriceEditorDialog(clickedIndex.siblingAtColumn(0).data().toInt());
     });
+  connect(editDataAction, &QAction::triggered, [this, clickedIndex]() {
+    if (clickedIndex.isValid())
+      openProductEditor(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
+  
   
   menu.addSeparator();
   
   menu.addSeparator();
   auto submenu = menu.addMenu("Data baru");
+  submenu->setToolTipsVisible(true);
   submenu->addAction(addProductAction());
   submenu->addAction(addCategoryProductAction());
   menu.exec(ui->dataView->mapToGlobal(pt));
@@ -155,7 +172,7 @@ void ProdukDataViewer::openPriceEditorDialog(int productId)
 {
   PriceLevelEditorDialog pd(this);
   if (!pd.setProductId(productId)) return ;
-  connect(&pd, &QDialog::accepted, this, &DataViewer::refresh);
+  connect(&pd, &PriceLevelEditorDialog::dataCommited, this, &DataViewer::refresh);
   pd.exec();
 }
 
@@ -165,6 +182,7 @@ QAction* ProdukDataViewer::addProductAction()
     m_addProductAction = new QAction("Produk", this);
     m_addProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
     m_addProductAction->setObjectName("addProductAction");
+    m_addProductAction->setToolTip("Tambah Produk baru");
     connect(m_addProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddProductActionTriggered);
   }
   return m_addProductAction;
@@ -182,6 +200,7 @@ QAction* ProdukDataViewer::addCategoryProductAction() {
     m_addCategoryProductAction = new QAction("Kategori Produk", this);
     // m_addCategoryProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
     m_addCategoryProductAction->setObjectName("addCategoryProductAction");
+    m_addCategoryProductAction->setToolTip("Tambah Kategori Produk baru");
     connect(m_addCategoryProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddCategoryProductActionTriggered);
   }
   return m_addCategoryProductAction;
@@ -192,4 +211,22 @@ void ProdukDataViewer::onAddCategoryProductActionTriggered() {
   connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);
   dl.setWindowTitle("Form Kategori Produk Baru");
   dl.exec();
+}
+
+void ProdukDataViewer::onContextMenu(const QPoint& p) {
+  QMenu ctx;
+  auto submenu = ctx.addMenu("Data baru");
+  submenu->setToolTipsVisible(true);
+  submenu->addActions(this->actions());
+  ctx.exec(mapToGlobal(p));
+}
+
+void ProdukDataViewer::openProductEditor(int pid) {
+  ProductEditorDialog ped;
+  if (!ped.setProductId(pid)) {
+    QMessageBox::critical(this, "Kesalahan", "Tidak dapat membuka editor:\nProduk " + QString::number(pid) + " tidak ditemukan");
+    return ;
+  }
+  connect(&ped, &QDialog::accepted, this, &DataViewer::refresh);
+  ped.exec();
 }

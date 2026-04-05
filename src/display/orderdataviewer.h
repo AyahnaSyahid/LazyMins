@@ -2,6 +2,7 @@
 
 #include "dataviewer.h"
 
+class QAction;
 class OrderDataViewer : public DataViewer
 {
   Q_OBJECT
@@ -12,4 +13,7 @@ public:
   
 private slots:
   void on_dataView_customContextMenuRequested(const QPoint& p);
+  
+private:
+  QAction *newOrderAction;
 };

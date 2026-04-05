@@ -52,6 +52,7 @@ public:
     QList<QSqlRecord> getByCategory(int categoryId);
     QList<QSqlRecord> getLowStock();
     std::optional<QSqlRecord> findBySku(const QString& sku);
+    std::optional<QSqlRecord> findByName(const QString& name);
     bool adjustStock(int id, qreal delta, const QString& notes = "");
 
 protected:

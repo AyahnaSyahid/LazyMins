@@ -87,6 +87,12 @@ std::optional<QSqlRecord> ProductManager::findBySku(const QString& sku)
     if (!rows.isEmpty()) return rows.first();
     return std::nullopt;
 }
+std::optional<QSqlRecord> ProductManager::findByName(const QString& name)
+{
+    auto rows = getWhere("name = :name COLLATE NOCASE", {{"name", name}});
+    if (!rows.isEmpty()) return rows.first();
+    return std::nullopt;
+}
 
 bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
 {

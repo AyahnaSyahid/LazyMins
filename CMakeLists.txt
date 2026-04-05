@@ -94,6 +94,12 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/priceleveleditordialog.h
                            src/dialogs/priceleveleditordialog.ui
                            src/dialogs/priceleveleditordialog.cpp
+                           src/dialogs/priceleveldialog.h
+                           src/dialogs/priceleveldialog.ui
+                           src/dialogs/priceleveldialog.cpp
+                           src/dialogs/producteditordialog.h
+                           src/dialogs/producteditordialog.ui
+                           src/dialogs/producteditordialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui

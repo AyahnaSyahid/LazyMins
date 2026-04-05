@@ -20,11 +20,13 @@ public slots:
 
 private slots:
     void on_dataView_customContextMenuRequested(const QPoint& pt);
+    void onContextMenu(const QPoint& pt);
     void onAddProductActionTriggered();
     void onAddCategoryProductActionTriggered();
     void openStockOpname(int product_id);
     void openRefillDialog(int produkId);
     void openPriceEditorDialog(int productId);
+    void openProductEditor(int productId);
 
 private:
     Ui::DataViewer *ui;

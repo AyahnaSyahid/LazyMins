@@ -16,7 +16,22 @@ class PriceLevelEditorDialog : public QDialog
     ~PriceLevelEditorDialog();
     bool setProductId(int);
   
+  private slots:
+    void on_simpanButton_clicked();
+    void on_tableView_customContextMenuRequested(const QPoint& p);
+    void onCreateNewLevel();
+  
+  protected:
+    void reject() override;
+    bool saveAll();
+    bool isAnythingDirty() const;
+
+  signals:
+    void dataCommited();
+    
   private:
     Ui::PriceLevelEditorDialog *ui;
-    PriceLevelEditorModel *model;
+    PriceLevelEditorModel *m_model;
+    int m_defaultCost;
+    int m_productId;
 };

@@ -54,10 +54,10 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   auto dv1 = new ProdukDataViewer;
   auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
   addDockWidget(Qt::TopDockWidgetArea, ds);
-  // dv1->prependContextAction(ui->actionProdukAdd);
   dv1->setPageSize(100);
   dv1->refresh();
   ui->menuView->addAction(ds->toggleViewAction());
+  connect(ui->actionProdukAdd, &QAction::triggered, dv1->addProductAction(), &QAction::trigger);
 
   auto fs1 = new FinishingServicesViewer;
   ds = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
@@ -74,11 +74,11 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuView->addAction(ds->toggleViewAction());
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
-  connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()
-    { auto pd =  new ProductDialog(this);
-      pd->connect(pd, &QDialog::accepted, dv1, &DataViewer::refresh);
-      return pd;
-    }, this);
+  // connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()
+    // { auto pd =  new ProductDialog(this);
+      // pd->connect(pd, &QDialog::accepted, dv1, &DataViewer::refresh);
+      // return pd;
+    // }, this);
   
   auto createOrderDialog = [this, ord1, dv1]() {
     auto d = new OrderDialog(this);

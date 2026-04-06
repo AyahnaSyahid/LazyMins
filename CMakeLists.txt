@@ -37,6 +37,8 @@ qt_add_library(Mgr_LAdmins STATIC
                        src/models/finishinglistmodel.cpp
                        src/models/priceleveleditormodel.h
                        src/models/priceleveleditormodel.cpp
+                       src/models/invoicecomposermodel.h
+                       src/models/invoicecomposermodel.cpp
                        )
 
 qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
@@ -100,6 +102,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/producteditordialog.h
                            src/dialogs/producteditordialog.ui
                            src/dialogs/producteditordialog.cpp
+                           src/dialogs/invoicecomposerdialog.h
+                           src/dialogs/invoicecomposerdialog.ui
+                           src/dialogs/invoicecomposerdialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
@@ -126,6 +131,7 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/customs/finishingitemdelegate.cpp
                            src/customs/orderitemdelegate.h
                            src/customs/orderitemdelegate.cpp
+                           src/customs/invoicecomposerdelegate.cpp
                            
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui

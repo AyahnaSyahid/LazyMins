@@ -134,6 +134,7 @@ public:
     QList<QSqlRecord> getByPaymentStatus(const QString& paymentStatus);
     QList<QSqlRecord> getByCustomer(int customerId);
     QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
+    QList<QSqlRecord> getByInvoice(int id);
     QList<QSqlRecord> getPending();
     QList<QSqlRecord> getOverdue();
 

@@ -94,7 +94,6 @@ OrderItemDialog::~OrderItemDialog()
 void OrderItemDialog::setOrder(OrderItem *order) {
   m_mode = Modify;
   m_orderItem = order;
-  
 
   // Block all input signals while we populate – avoids re-entrant
   // recalculation triggered by individual setValue/setText calls.

@@ -273,6 +273,13 @@ QList<QSqlRecord> OrderManager::getByDateRange(const QDate& from, const QDate& t
         "order_date DESC");
 }
 
+QList<QSqlRecord> OrderManager::getByInvoice(int invoice_id) {
+  return getWhere(
+    "invoice_id = :invoice_id", 
+    {{"invoice_id", invoice_id}});
+}
+
+
 QList<QSqlRecord> OrderManager::getPending()
 {
     return getByStatus("pending", "order_date ASC");

@@ -97,7 +97,7 @@ struct OrderItem
     int subtotal() const;   // mirrors DB GENERATED column
     int total()    const;   // mirrors DB GENERATED column
 
-    OrderItem() { finishings.reserve(20); };
+    OrderItem() { finishings.reserve(5); };
     OrderItem &loadFromId(int id);
 
     // Called only by OrderModel::commit(). Not called during normal editing.

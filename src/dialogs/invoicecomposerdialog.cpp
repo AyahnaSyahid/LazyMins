@@ -5,6 +5,8 @@
 #include "src/models/invoicecomposermodel.h"
 
 #include <QDate>
+#include <QMenu>
+#include <QAction>
 
 InvoiceComposerDialog::InvoiceComposerDialog(QWidget *p):
 ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialog(p)
@@ -41,9 +43,13 @@ void InvoiceComposerDialog::importOrders(const QList<int> &imported)
   }
 }
 
-void InvoiceComposerDialog::on_orderListView_customContextMenuRequested(const QPoint&)
+void InvoiceComposerDialog::on_orderListView_customContextMenuRequested(const QPoint& p)
 {
-  
+  QMenu ctx;
+  ctx.setToolTipsVisible(true);
+  auto act = ctx.addAction("Import");
+  connect(&act, &QAction::triggered, this, &InvoiceComposerDialog::onImportOrder);
+  ctx.exec(ui->orderListView->viewport()->mapToGlobal(p));
 }
 
 void InvoiceComposerDialog::uiSync()

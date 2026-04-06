@@ -30,15 +30,18 @@ class InvoiceComposerModel : public QAbstractListModel
     ~InvoiceComposerModel();
     
     bool     loadInvoice(int invoiceId);
-
     int      rowCount(const QModelIndex& = QModelIndex()) const override;
     QVariant data(const QModelIndex& ix, int role) const override;
     
-    void     insertOrder(int order_id);
-    void     removeOrder(int order_id);
-    
     QList<int> imported() const;
-
+  
+  public slots:
+  
+    void insertOrder(int order_id);
+    void removeOrder(int order_id);
+  
+    
+  
   private:
     int m_invoice_id = -1;
     

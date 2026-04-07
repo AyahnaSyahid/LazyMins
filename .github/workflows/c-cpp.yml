@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install CMake
-        uses: actions/setup-cmake@v4
+        uses: lukka/get-cmake@v4
         with:
           cmake-version: '3.27.10'
 

@@ -17,7 +17,7 @@ public:
     ~OrderPickerDialog();
 
     void setCustomerId(int cid);
-    void setFilterIds(const QList<int> ids);
+    void setFilterIds(const QList<int>& ids);
     
 private slots:
     void on_orderView_clicked(const QModelIndex &index);

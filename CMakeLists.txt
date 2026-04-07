@@ -75,9 +75,12 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/userdialog.cpp
                            src/dialogs/userdialog.h
                            src/dialogs/userdialog.ui
-                           src/dialogs/konsumenpickerdialog.h
-                           src/dialogs/konsumenpickerdialog.ui
-                           src/dialogs/konsumenpickerdialog.cpp
+                           src/dialogs/customerpickerdialog.h
+                           src/dialogs/customerpickerdialog.ui
+                           src/dialogs/customerpickerdialog.cpp
+                           src/dialogs/orderpickerdialog.h
+                           src/dialogs/orderpickerdialog.ui
+                           src/dialogs/orderpickerdialog.cpp
                            src/dialogs/finishingdialog.h
                            src/dialogs/finishingdialog.ui
                            src/dialogs/finishingdialog.cpp

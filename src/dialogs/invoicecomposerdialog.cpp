@@ -3,6 +3,8 @@
 
 #include "src/customs/invoicecomposerdelegate.h"
 #include "src/models/invoicecomposermodel.h"
+#include "src/dialogs/orderpickerdialog.h"
+#include "src/dialogs/customerpickerdialog.h"
 
 #include <QDate>
 #include <QMenu>
@@ -31,7 +33,16 @@ void InvoiceComposerDialog::on_bayarButton_clicked()
 {}
 
 void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
-{}
+{
+  OrderPickerDialog opd(this);
+  opd.exec();
+}
+
+void InvoiceComposerDialog::on_pilihButton_clicked()
+{
+  CustomerPickerDialog kpd;
+  kpd.exec();
+}
 
 void InvoiceComposerDialog::importOrders(const QList<int> &imported)
 {
@@ -48,13 +59,13 @@ void InvoiceComposerDialog::on_orderListView_customContextMenuRequested(const QP
   QMenu ctx;
   ctx.setToolTipsVisible(true);
   auto act = ctx.addAction("Import");
-  connect(&act, &QAction::triggered, this, &InvoiceComposerDialog::onImportOrder);
+  connect(act, &QAction::triggered, this, &InvoiceComposerDialog::onImportOrder);
   ctx.exec(ui->orderListView->viewport()->mapToGlobal(p));
 }
 
 void InvoiceComposerDialog::uiSync()
 {
-  if (!model->rowCount())
+  if (!model->rowCount()) return;
 }
 
 void InvoiceComposerDialog::refresh()              // reload data orders dari didatabase

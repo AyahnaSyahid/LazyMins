@@ -1,7 +1,7 @@
 #include "instantorderdialog.h"
 #include "ui_instantorderdialog.h"
 
-#include "konsumenpickerdialog.h"
+#include "customerpickerdialog.h"
 #include "src/customs/orderitemdelegate.h"
 #include "src/dialogs/orderitemdialog.h"
 #include "src/managers/helpers.h"
@@ -52,14 +52,14 @@ InstantOrderDialog::~InstantOrderDialog() { delete ui; }
 
 void InstantOrderDialog::on_pilihButton_clicked()
 {
-  auto dialog = new KonsumenPickerDialog(this);
+  auto dialog = new CustomerPickerDialog(this);
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowFlags(dialog->windowFlags() | Qt::FramelessWindowHint);
   auto buttonGeo = ui->pilihButton->geometry();
   auto globalPos = mapToGlobal(buttonGeo.topLeft());
   dialog->move(globalPos);
 
-  connect(dialog, &KonsumenPickerDialog::konsumenPicked,
+  connect(dialog, &CustomerPickerDialog::customerPicked,
     [this](const QSqlRecord &record)
       {
         ui->nameLineEdit->setText(record.value("nama_lengkap").toString());

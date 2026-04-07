@@ -1,5 +1,5 @@
-#include "konsumenpickerdialog.h"
-#include "ui_konsumenpickerdialog.h"
+#include "orderpickerdialog.h"
+#include "ui_orderpickerdialog.h"
 #include "src/managers/basemanager.h"
 #include <QStyledItemDelegate>
 #include <QSortFilterProxyModel>
@@ -23,32 +23,15 @@ OrderPickerDialog::OrderPickerDialog(QWidget *parent) :
     model(new QSqlQueryModel(this))
 {
     ui->setupUi(this);
-    model->setQuery("", BaseManager::connection);
-    
-    while(model->canFetchMore()) model->fetchMore();
-    
-    model->setHeaderData(0, Qt::Horizontal, "ID");
-    model->setHeaderData(1, Qt::Horizontal, "Nama");
-    model->setHeaderData(2, Qt::Horizontal, "Level ID");
-    model->setHeaderData(3, Qt::Horizontal, "Level Harga");
-    model->setHeaderData(4, Qt::Horizontal, "Nomor Telepon");
-    
     auto proxy = new QSortFilterProxyModel(this);
-    proxy->setSourceModel(model);
-    proxy->setFilterKeyColumn(1);
-    proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
-    proxy->sort(1);
-    ui->konsumenView->setModel(proxy);
-    ui->konsumenView->hideColumn(0);
-    ui->konsumenView->hideColumn(2);
-    // ui->konsumenView->hideColumn(4);
+    ui->orderView->setModel(proxy);
     
-    ui->konsumenView->horizontalHeader()->setStretchLastSection(true);
-    ui->konsumenView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->konsumenView->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->konsumenView->verticalHeader()->setMinimumSectionSize(20);
-    ui->konsumenView->verticalHeader()->setDefaultSectionSize(22);
-    ui->konsumenView->setAlternatingRowColors(true);
+    ui->orderView->horizontalHeader()->setStretchLastSection(true);
+    ui->orderView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->orderView->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->orderView->verticalHeader()->setMinimumSectionSize(20);
+    ui->orderView->verticalHeader()->setDefaultSectionSize(22);
+    ui->orderView->setAlternatingRowColors(true);
     
     auto delayer = new QTimer(this);
     delayer->setSingleShot(true);
@@ -59,6 +42,8 @@ OrderPickerDialog::OrderPickerDialog(QWidget *parent) :
     });
     connect(ui->lineEdit, &QLineEdit::textChanged, delayer, [delayer](){delayer->start(); });
 }
+
+OrderPickerDialog::~OrderPickerDialog() { delete ui; }
 
 void OrderPickerDialog::setCustomerId(int id)
 {
@@ -80,14 +65,20 @@ void OrderPickerDialog::onParameterChanged() {
      WHERE customer_id = :cust_id AND invoice_id IS NULL AND id NOT IN ( %1)
   ORDER BY order_date ASC ;)--");
   
-  baseQuery = baseQuery.arg()
-  auto q(BaseManager::connection);
+  QStringList ids;
+  for(auto const &fid : m_filter_ids) ids << QString::number(fid);
+  
+  baseQuery = baseQuery.arg(ids.join(", "));
+  QSqlQuery q(BaseManager::connection);
   
   q.prepare(baseQuery);
-  q.bindValue(m_customer_id);
+  q.bindValue("cust_id", m_customer_id);
   q.exec();
   
-  model->setQuery(q);
+  model->setQuery(std::move(q));
+  while(model->canFetchMore()) model->fetchMore();
+  auto proxy = qobject_cast<QSortFilterProxyModel*>(ui->orderView->model());
+  if (proxy) proxy->setSourceModel(model);
 }
 
 void OrderPickerDialog::setFilterIds(const QList<int> &ids) {
@@ -95,18 +86,14 @@ void OrderPickerDialog::setFilterIds(const QList<int> &ids) {
   emit parameterChanged();
 }
 
-OrderPickerDialog::~OrderPickerDialog(){
-    delete ui;
-}
-
-void OrderPickerDialog::on_konsumenView_clicked(const QModelIndex &index) {
+void OrderPickerDialog::on_orderView_clicked(const QModelIndex &index) {
     if (!index.isValid()) {
         return;
     }
     auto proxy = findChild<QSortFilterProxyModel*>();
     if(!proxy) return;
-    // Handle the selection of a customer
+    // Handle the selection of a order
     auto record = model->record(proxy->mapToSource(index).row());
-    emit konsumenPicked(record);
+    emit ordersPicked(QList<int> {record.value(0).toInt()});
     accept(); // Close the dialog after selection    
 }   

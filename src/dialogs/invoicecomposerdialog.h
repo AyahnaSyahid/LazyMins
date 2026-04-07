@@ -6,7 +6,7 @@ namespace Ui {
 
 #include <QDialog>
 
-class InvoiceComposerModel;s
+class InvoiceComposerModel;
 class InvoiceComposerDialog : public QDialog
 {
   Q_OBJECT

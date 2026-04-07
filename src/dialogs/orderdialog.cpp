@@ -4,7 +4,7 @@
 #include "src/utils/helper.h"
 #include "src/customs/flexibledelegate.h"
 #include "src/customs/orderitemdelegate.h"
-#include "src/dialogs/konsumenpickerdialog.h"
+#include "src/dialogs/customerpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
 #include "src/managers/basemanager.h"
 #include <QHeaderView>
@@ -191,14 +191,14 @@ void OrderDialog::on_cariButton_clicked()
 {
   // buat dialog pencarian konsumen (CustomerSearchDialog)
   // setelah konsumen dipilih, set nama dan kontak di form ini
-  auto dialog = new KonsumenPickerDialog(this);
+  auto dialog = new CustomerPickerDialog(this);
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowFlags(dialog->windowFlags() | Qt::FramelessWindowHint);
   auto buttonGeo = ui->cariButton->geometry();
   auto globalPos = mapToGlobal(buttonGeo.topLeft());
   dialog->move(globalPos);
 
-  connect(dialog, &KonsumenPickerDialog::konsumenPicked, [this](const QSqlRecord &record)
+  connect(dialog, &CustomerPickerDialog::customerPicked, [this](const QSqlRecord &record)
           {
     ui->konsumenLineEdit->setText(record.value("nama_lengkap").toString());
     ui->kontakLineEdit->setText(record.value("nomor_telp").toString());

@@ -140,8 +140,8 @@ bool OrderModel::loadOrder(int orderId, QSqlDatabase &db)
         SELECT id, order_number,
                admin_id, customer_id, customer_name, customer_phone,
                price_level_id,
-               discount_amount, discount_percentage, tax_amount,
-               status, priority, payment_status,
+               discount_amount, discount_percentage,
+               status, priority,
                order_date, deadline_date, completion_date,
                notes, internal_notes
         FROM   orders
@@ -173,10 +173,10 @@ bool OrderModel::loadOrder(int orderId, QSqlDatabase &db)
     m_header.price_level_id     = hq.value("price_level_id").toInt();
     m_header.discount_amount    = hq.value("discount_amount").toInt();
     m_header.discount_percentage= hq.value("discount_percentage").toInt();
-    m_header.tax_amount         = hq.value("tax_amount").toInt();
+    // m_header.tax_amount         = hq.value("tax_amount").toInt();
     m_header.status             = hq.value("status").toString();
     m_header.priority           = hq.value("priority").toString();
-    m_header.payment_status     = hq.value("payment_status").toString();
+    // m_header.payment_status     = hq.value("payment_status").toString();
     m_header.order_date         = hq.value("order_date").toDateTime();
     m_header.deadline_date      = hq.value("deadline_date").toDateTime();
     m_header.completion_date    = hq.value("completion_date").toDateTime();
@@ -363,10 +363,10 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"subtotal",           subtotal},
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
-          {"tax_amount",         m_header.tax_amount},
+          // {"tax_amount",         m_header.tax_amount},
           {"status",             m_header.status},
           {"priority",           m_header.priority},
-          {"payment_status",     m_header.payment_status},
+          // {"payment_status",     m_header.payment_status},
           {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
           {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
           {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
@@ -395,10 +395,10 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"subtotal",           subtotal},
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
-          {"tax_amount",         m_header.tax_amount},
+          // {"tax_amount",         m_header.tax_amount},
           {"status",             m_header.status},
           {"priority",           m_header.priority},
-          {"payment_status",     m_header.payment_status},
+          // {"payment_status",     m_header.payment_status},
           {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
           {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
           {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},

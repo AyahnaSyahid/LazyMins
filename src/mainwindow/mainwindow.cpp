@@ -52,33 +52,37 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
   
   auto dv1 = new ProdukDataViewer;
-  auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
-  addDockWidget(Qt::TopDockWidgetArea, ds);
+  auto dsP = dockSetup(new QDockWidget(this), "Data Produk", dv1);
+  addDockWidget(Qt::TopDockWidgetArea, dsP);
   dv1->setPageSize(100);
   dv1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsP->toggleViewAction());
   connect(ui->actionProdukAdd, &QAction::triggered, dv1->addProductAction(), &QAction::trigger);
 
   auto fs1 = new FinishingServicesViewer;
-  ds = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
-  addDockWidget(Qt::LeftDockWidgetArea, ds);
+  auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
+  addDockWidget(Qt::LeftDockWidgetArea, dsF);
   fs1->setPageSize(100);
   fs1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsF->toggleViewAction());
+
+  tabifyDockWidget(dsP, dsF);
 
   auto ord1 = new OrderDataViewer;
-  ds = dockSetup(new QDockWidget(this), "Data Orders", ord1);
-  addDockWidget(Qt::TopDockWidgetArea, ds);
+  auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
+  addDockWidget(Qt::TopDockWidgetArea, dsO);
   ord1->setPageSize(50);
   ord1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsO->toggleViewAction());
   
   auto idv = new InvoiceDataViewer;
-  ds = dockSetup(new QDockWidget(this), "Data Invoice", idv);
-  addDockWidget(Qt::TopDockWidgetArea, ds);
+  auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
+  addDockWidget(Qt::TopDockWidgetArea, dsI);
   idv->setPageSize(50);
   idv->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsI->toggleViewAction());
+  
+  tabifyDockWidget(dsO, dsI);
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
   // connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()

@@ -5,8 +5,8 @@
 -- pembayaran, inventori, dan laporan keuangan percetakan
 -- ============================================================================
 
-PRAGMA foreign_keys = ON;
-BEGIN TRANSACTION;
+-- PRAGMA foreign_keys = ON;
+-- BEGIN TRANSACTION;
 
 -- ============================================================================
 -- 1. TABEL MASTER - MANAJEMEN PENGGUNA & ROLES
@@ -172,9 +172,8 @@ CREATE TABLE orders (
     subtotal            INTEGER NOT NULL DEFAULT 0,
     discount_amount     INTEGER NOT NULL DEFAULT 0,
     discount_percentage INTEGER NOT NULL DEFAULT 0,
-    tax_amount          INTEGER NOT NULL DEFAULT 0,
     total_amount        INTEGER GENERATED ALWAYS AS (
-                            COALESCE(subtotal,0) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0)
+                            COALESCE(subtotal,0) - COALESCE(discount_amount, 0)
                         ) VIRTUAL,
     
     -- Status operasional
@@ -185,11 +184,7 @@ CREATE TABLE orders (
     order_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
     deadline_date       DATETIME,
     completion_date     DATETIME,
-    
-    -- Informasi pembayaran (denormalisasi ringan untuk kemudahan query)
-    payment_status      TEXT DEFAULT 'unpaid',
-    paid_amount         INTEGER DEFAULT 0,
-    
+
     -- Catatan
     notes               TEXT,
     internal_notes      TEXT,
@@ -210,6 +205,7 @@ CREATE INDEX idx_orders_invoice ON orders(invoice_id);
 CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_deadline ON orders(deadline_date);
+CREATE INDEX idx_orders_creation ON orders(created_at);
 
 -- Tabel Order Items: Detail item dalam order (diperbaiki)
 CREATE TABLE order_items (
@@ -244,6 +240,7 @@ CREATE TABLE order_items (
 -- Index untuk order items
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product ON order_items(product_id);
+CREATE INDEX idx_order_items_creation ON order_items(created_at);
 
 -- Tabel Order Item Finishings: Finishing untuk setiap item order
 CREATE TABLE order_item_finishings (
@@ -321,6 +318,7 @@ CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_date ON payments(payment_date);
 CREATE INDEX idx_payments_status ON payments(payment_status);
 CREATE INDEX idx_payments_method ON payments(payment_method);
+CREATE INDEX idx_payments_creation ON payments(created_at);
 
 
 -- ============================================================================
@@ -377,6 +375,7 @@ CREATE INDEX idx_transaksi_admin_tanggal ON transaksi(tanggal, admin_id);
 CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
+CREATE INDEX idx_transaksi_creation ON transaksi(created_at);
 
 -- ============================================================================
 -- 8.2 TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)
@@ -411,6 +410,7 @@ CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
 CREATE INDEX idx_stock_product_id ON stock_movements(product_id, id);
 CREATE INDEX idx_stock_movements_date ON stock_movements(movement_date);
 CREATE INDEX idx_stock_movements_type ON stock_movements(movement_type);
+CREATE INDEX idx_stock_movements_creation ON stock_movements(created_at);
 
 -- ============================================================================
 -- 9. TABEL AUDIT & LOG (TAMBAHAN BARU)
@@ -457,37 +457,52 @@ CREATE TABLE app_settings (
 );
 
 CREATE TABLE invoices (
-    id                  INTEGER PRIMARY KEY,
-    invoice_number      TEXT UNIQUE NOT NULL,           -- INV-20260319-00001
-    customer_id         INTEGER NOT NULL,
-    customer_name       TEXT NOT NULL,
-    customer_phone      TEXT,
-    price_level_id      INTEGER DEFAULT 1,
+    id               INTEGER    PRIMARY KEY AUTOINCREMENT,
+    invoice_number   TEXT       UNIQUE NOT NULL,
+    
+    -- Relasi
+    customer_id      INTEGER    NOT NULL,
+    customer_name    TEXT       NOT NULL,
+    customer_phone   TEXT,
+    price_level_id   INTEGER    DEFAULT 1,
+    admin_id         INTEGER    NOT NULL,
 
-    -- Finansial (tidak perlu virtual karena akan dihitung via trigger)
-    subtotal            INTEGER NOT NULL DEFAULT 0,
-    discount_amount     INTEGER NOT NULL DEFAULT 0, 
-    tax_amount          INTEGER NOT NULL DEFAULT 0,
-    total_amount        INTEGER GENERATED ALWAYS AS (subtotal - discount_amount + tax_amount) VIRTUAL,
-    paid_amount         INTEGER NOT NULL DEFAULT 0,
-    remaining_amount    INTEGER GENERATED ALWAYS AS (total_amount - paid_amount) VIRTUAL,
+    -- Keuangan
+    subtotal         INTEGER    NOT NULL DEFAULT 0,
+    discount_amount  INTEGER    NOT NULL DEFAULT 0,
+    tax_amount       INTEGER    NOT NULL DEFAULT 0,
+    total_amount     INTEGER    GENERATED ALWAYS AS (subtotal - discount_amount + tax_amount) VIRTUAL,
+    paid_amount      INTEGER    NOT NULL DEFAULT 0,
+    remaining_amount INTEGER    GENERATED ALWAYS AS (total_amount - paid_amount) VIRTUAL,
 
-    -- Khusus Tempo
-    due_date            DATETIME,                       -- jatuh tempo
-    status              TEXT DEFAULT 'draft' 
-                        CHECK(status IN ('draft','issued','sent','partial','paid','overdue','cancelled')),
+    -- Logika Status yang Terpisah
+    -- Status Dokumen: Fokus pada siklus hidup (Workflow)
+    status           TEXT       DEFAULT 'draft' 
+                                CHECK (status IN ('draft', 'issued', 'sent', 'cancelled')),
+    
+    -- Status Pembayaran: Fokus pada kas (Financial)
+    payment_status   TEXT       DEFAULT 'unpaid' 
+                                CHECK (payment_status IN ('unpaid', 'partial', 'paid', 'refunded')),
 
-    -- Tracking
-    issue_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    notes               TEXT,
-    internal_notes      TEXT,
-    admin_id            INTEGER NOT NULL,
-    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- Penanganan Revisi
+    revision_no      INTEGER    DEFAULT 0,
+    parent_id        INTEGER,   -- Referensi ke ID invoice sebelum direvisi
+    is_active        INTEGER    DEFAULT 1 CHECK (is_active IN (0, 1)),
 
-    FOREIGN KEY (customer_id)    REFERENCES konsumen(id),
-    FOREIGN KEY (price_level_id) REFERENCES price_levels(id),
-    FOREIGN KEY (admin_id)       REFERENCES admins(id)
+    -- Waktu (Semua Konsisten UTC)
+    issue_date       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+    due_date         DATETIME,
+    created_at       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+
+    -- Catatan
+    notes            TEXT,
+    internal_notes   TEXT,
+
+    FOREIGN KEY (customer_id)    REFERENCES konsumen (id),
+    FOREIGN KEY (price_level_id) REFERENCES price_levels (id),
+    FOREIGN KEY (admin_id)       REFERENCES admins (id),
+    FOREIGN KEY (parent_id)      REFERENCES invoices (id)
 );
 
 -- Index penting
@@ -495,6 +510,7 @@ CREATE INDEX idx_invoices_number ON invoices(invoice_number);
 CREATE INDEX idx_invoices_customer ON invoices(customer_id);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_creation ON invoices(created_at);
 
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)
@@ -594,59 +610,6 @@ CREATE VIEW v_top_customers AS
 -- 12. TRIGGERS - AUTOMASI (TAMBAHAN BARU)
 -- ============================================================================
 
--- updated_at untuk konsumen, products, dan orders dikelola di level aplikasi (BaseManager::update).
--- Trigger updated_at dihapus untuk menghindari recursive trigger dan overhead query tambahan.
-
--- Kurangi stok saat item masuk
--- CREATE TRIGGER trg_stock_decrease_on_item_insert
--- AFTER INSERT ON order_items
--- BEGIN
-    -- UPDATE products SET stock = stock - (NEW.quantity * NEW.size_width * New.size_height) WHERE id = NEW.product_id;
-    
-    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    -- SELECT NEW.product_id, 'out', NEW.quantity * NEW.size_width * New.size_height, p.stock + ( NEW.quantity * NEW.size_width * New.size_height ), p.stock, 'order', NEW.order_id, (SELECT admin_id FROM orders WHERE id = NEW.order_id), 'Item: ' || NEW.product_name
-    -- FROM products p WHERE p.id = NEW.product_id;
--- END;
-
--- Kembalikan stok saat item dihapus
--- CREATE TRIGGER trg_stock_increase_on_item_delete
--- AFTER DELETE ON order_items
--- BEGIN
-    -- UPDATE products SET stock = stock + (OLD.quantity * OLD.size_width * OLD.size_height) WHERE id = OLD.product_id;
-    
-    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    -- SELECT OLD.product_id, 'in', (OLD.quantity * OLD.size_width * OLD.size_height) , p.stock - ( OLD.quantity * OLD.size_width * OLD.size_height) , p.stock, 'adjustment', OLD.order_id, (SELECT admin_id FROM orders WHERE id = OLD.order_id), 'Item Removed'
-    -- FROM products p WHERE p.id = OLD.product_id;
--- END;
-
--- Update jika edit order, lebih baik jangan update order yang telah di nota
--- CREATE TRIGGER trg_stock_sync_on_item_update
--- AFTER UPDATE OF quantity, size_width, size_height ON order_items
--- WHEN (OLD.quantity * OLD.size_width * OLD.size_height) != (NEW.quantity * NEW.size_width * NEW.size_height)
--- BEGIN
-    -- Menyesuaikan stok produk berdasarkan selisih (baru - lama)
-    -- UPDATE products 
-    -- SET stock = stock - ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height))
-    -- WHERE id = NEW.product_id;
-
-    -- Mencatat pergerakan stok (adjustment)
-    -- INSERT INTO stock_movements (
-        -- product_id, movement_type, quantity, stock_before, stock_after, 
-        -- reference_type, reference_id, admin_id, notes
-    -- )
-    -- SELECT 
-        -- NEW.product_id, 
-        -- 'adjustment', 
-        -- ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
-        -- p.stock + ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
-        -- p.stock, 
-        -- 'order', 
-        -- NEW.order_id, 
-        -- (SELECT admin_id FROM orders WHERE id = NEW.order_id), 
-        -- 'Item Updated: ' || NEW.product_name
-    -- FROM products p WHERE p.id = NEW.product_id;
--- END;
-
 -- Update finishing_total di item saat finishing ditambah/diubah
 CREATE TRIGGER trg_update_item_finishing_total
 AFTER INSERT ON order_item_finishings
@@ -676,21 +639,6 @@ BEGIN
         WHERE order_item_id = NEW.order_item_id
     )
     WHERE id = NEW.order_item_id;
-END;
-
--- Update status pembayaran auto
-CREATE TRIGGER t_sync_order_payment_status_after_invoice_paid
-AFTER UPDATE OF paid_amount ON invoices
-BEGIN
-    -- Jika invoice lunas
-    UPDATE orders
-    SET payment_status = 'paid'
-    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount <= 0;
-
-    -- Jika invoice belum lunas (mungkin pembayaran dibatalkan)
-    UPDATE orders
-    SET payment_status = 'unpaid'
-    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount > 0;
 END;
 
 -- Update Subtotal Order saat detail item berubah (Harga, Qty, Finishing, atau Diskon Item)
@@ -730,7 +678,6 @@ BEGIN
     SET 
         subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
         discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.invoice_id;
 END;
@@ -745,7 +692,6 @@ BEGIN
     SET 
         subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
         discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
         updated_at = CURRENT_TIMESTAMP
     WHERE OLD.invoice_id IS NOT NULL AND id = OLD.invoice_id;
 
@@ -754,7 +700,6 @@ BEGIN
     SET 
         subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
         discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
         updated_at = CURRENT_TIMESTAMP
     WHERE NEW.invoice_id IS NOT NULL AND id = NEW.invoice_id;
 END;
@@ -833,6 +778,78 @@ BEGIN
     UPDATE finishing_services
        SET updated_at = datetime('now');
 END;
+
+
+-- ==============================================
+-- TRIGGER validasi Waktu Insert
+-- ==============================================
+
+CREATE TRIGGER validate_invoice_time
+BEFORE INSERT ON invoices
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM invoices) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
+CREATE TRIGGER validate_orders_time
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM orders) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
+CREATE TRIGGER validate_order_items_time
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM order_items) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
+CREATE TRIGGER validate_transaksi_time
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM transaksi) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
+CREATE TRIGGER validate_payments_time
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM payments) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
+CREATE TRIGGER validate_stock_movements_time
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    SELECT
+        CASE
+            WHEN NEW.created_at < (SELECT MAX(created_at) FROM stock_movements) THEN
+                RAISE(ABORT, 'Gagal: Jam sistem mundur! Waktu sekarang lebih lama dari data terakhir.')
+        END;
+END;
+
 
 -- ============================================================================
 -- CATATAN PENGGUNAAN:
@@ -963,7 +980,7 @@ INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_t
 -- SELESAI
 -- ============================================================================
 
-COMMIT;
+-- COMMIT;
 
 -- Aktifkan kembali foreign keys
-PRAGMA foreign_keys = ON;
+-- PRAGMA foreign_keys = ON;

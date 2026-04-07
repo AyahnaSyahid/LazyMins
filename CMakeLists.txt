@@ -118,6 +118,8 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/display/orderdataviewer.cpp
                            src/display/produkdataviewer.h
                            src/display/produkdataviewer.cpp
+                           src/display/invoicedataviewer.h
+                           src/display/invoicedataviewer.cpp
                            
                            src/customs/querycombobox.h
                            src/customs/querycombobox.cpp

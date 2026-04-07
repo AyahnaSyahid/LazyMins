@@ -218,7 +218,7 @@ void OrderDialog::updateCalculation()
     subtotal += m_model->itemAt(i).total();
   }
   ui->subtotalSpinBox->setValue(subtotal);
-  ui->totalSpinBox->setValue(subtotal + ui->pajakRpSpinBox->value() - ui->diskonRpSpinBox->value());
+  ui->totalSpinBox->setValue(subtotal - ui->diskonRpSpinBox->value());
 }
 
 void OrderDialog::on_orderItemList_customContextMenuRequested(const QPoint &pos)
@@ -293,12 +293,12 @@ void OrderDialog::on_simpanButton_clicked()
   header.price_level_id     = ui->priceLevelComboBox->currentId();
   header.discount_amount    = ui->diskonRpSpinBox->value();
   header.discount_percentage= static_cast<int>(ui->diskonDoubleSpinBox->value());
-  header.tax_amount         = ui->pajakRpSpinBox->value();
+  // header.tax_amount         = ui->pajakRpSpinBox->value();
   header.order_date         = ui->tOrderDateTimeEdit->dateTime();
   header.deadline_date      = ui->dLineDateTimeEdit->dateTime();
   header.status             = "pending";
   header.priority           = "normal";
-  header.payment_status     = "unpaid";
+  // header.payment_status     = "unpaid";
   header.notes              = ui->catatan1TextEdit->toPlainText();
   header.internal_notes     = ui->catatan2TextEdit->toPlainText();
 
@@ -316,7 +316,7 @@ void OrderDialog::on_simpanButton_clicked()
   accept();
 }
 
-void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {
-  Q_UNUSED(ch);
-  QTimer::singleShot(0, this, [this]() { updateCalculation(); });
-}
+// void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {
+  // Q_UNUSED(ch);
+  // QTimer::singleShot(0, this, [this]() { updateCalculation(); });
+// }

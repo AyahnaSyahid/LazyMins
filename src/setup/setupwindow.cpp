@@ -119,6 +119,8 @@ void SetupWindow::on_installButton_clicked()
     // Jalankan skema database lengkap
     if (!dbm.initSchema(db)) {
         db.close();
+        qDebug() << db.lastError().text();
+        emit setupFailed();
         QSqlDatabase::removeDatabase("SetupConnection");
         return;   // Pesan error sudah ditampilkan di dalam initializeDatabase()
     }

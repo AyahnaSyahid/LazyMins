@@ -44,15 +44,24 @@ namespace {
 
 OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
 {
-  auto ui = Ui();
-  auto mod = &model();
+  auto ui = DataViewer::Ui();
+  auto mod = &DataViewer::model();
   
   setQueryArgs(R"--(
-    SELECT id, customer_name, 
-           customer_phone, order_number, 
-           subtotal, discount_amount as discount, total_amount, order_date
-    FROM orders
-    WHERE payment_status <> 'paid')--");
+    SELECT o.id AS id,
+           o.customer_name AS customer_name,
+           o.customer_phone AS customer_phone,
+           order_number,
+           o.subtotal AS subtotal,
+           o.discount_amount AS discount,
+           o.total_amount AS total_amount,
+           order_date
+      FROM orders o
+           LEFT JOIN
+           invoices inv ON o.invoice_id = inv.id
+     WHERE inv.payment_status <> 'paid' OR 
+           inv.id IS NULL
+ )--");
   
   setFilterColumnNames( {"order_number", "customer_name"} );
   ui->dataView->setItemDelegate(new Delegate(this));

@@ -26,7 +26,7 @@ private slots:
   void on_orderItemList_customContextMenuRequested(const QPoint &pos);
   void on_diskonDoubleSpinBox_valueChanged(double arg1);
   void on_diskonRpSpinBox_valueChanged(int arg1);
-  void on_pajakRpSpinBox_valueChanged(int arg1);
+  // void on_pajakRpSpinBox_valueChanged(int arg1);
 
 private:
   Ui::OrderDialog *ui;

@@ -29,12 +29,12 @@ struct OrderHeader
     // Financial (order-level, not item-level)
     int     discount_amount     = 0;
     int     discount_percentage = 0;
-    int     tax_amount          = 0;
+    // int     tax_amount          = 0;
 
     // Status
     QString status          = "pending";   // pending|processing|ready|completed|cancelled
     QString priority        = "normal";    // urgent|high|normal|low
-    QString payment_status  = "unpaid";    // unpaid|partial|paid
+    // QString payment_status  = "unpaid";    // unpaid|partial|paid
 
     // Dates
     QDateTime order_date;                  // default: now (left empty → DB default)

@@ -328,9 +328,8 @@ QVariantMap OrderManager::validateParams(const QVariantMap& params)
     QVariantMap p = params;
     static const QStringList allowed {
         "order_number", "customer_id", "customer_name", "customer_phone", "price_level_id",
-        "subtotal", "discount_amount", "discount_percentage", "tax_amount", "total_amount",
-        "status", "priority", "order_date", "deadline_date", "completion_date",
-        "payment_status", "paid_amount", "notes", "internal_notes", "admin_id",
+        "subtotal", "discount_amount", "discount_percentage", "total_amount",
+        "status", "priority", "order_date", "deadline_date", "completion_date", "paid_amount", "notes", "internal_notes", "admin_id",
         "invoice_id", "invoice_number",          // ← NEW fields from schema
         "created_at", "updated_at"
     };

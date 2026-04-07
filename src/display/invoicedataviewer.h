@@ -1,7 +1,10 @@
 #pragma once
 
 #include "src/display/dataviewer.h"
-#include "src/display/ui_dataviewer.h"
+
+namespace Ui {
+  class DataViewer;
+}
 
 class InvoiceDataViewer : public DataViewer
 {
@@ -11,5 +14,5 @@ class InvoiceDataViewer : public DataViewer
     ~InvoiceDataViewer();
   
   private:
-    Ui::InvoiceDataViewer *ui;
+    Ui::DataViewer *ui;
 };

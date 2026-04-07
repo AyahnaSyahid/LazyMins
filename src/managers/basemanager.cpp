@@ -63,7 +63,8 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
       return record;
   }
   
-  qDebug() << "exec failed" << query.lastError().text();
+  qDebug() << "exec failed" << query.lastError().text() 
+           << "last query :" << sql;
   setErrorString(query.lastError().text());
   return std::nullopt;
 }

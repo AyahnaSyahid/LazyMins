@@ -9,10 +9,17 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    
+    # Global environment variables untuk memudahkan maintenance
     env:
       QT_VERSION: 6.8.3
-      QT_PATH: ${{ github.workspace }}\Qt # Gunakan workspace agar relatif
-    
+      QT_INSTALL_DIR: ${{ github.workspace }}\Qt
+      # Meniru path di lokal kamu namun disesuaikan dengan runner
+      MINGW_PATH: ${{ github.workspace }}\Qt\Tools\mingw1310_64\bin
+      NINJA_PATH: ${{ github.workspace }}\Qt\Tools\Ninja
+      QT_BIN_PATH: ${{ github.workspace }}\Qt\6.8.3\win64_mingw\bin
+      QT_CMAKE_DIR: ${{ github.workspace }}\Qt\6.8.3\win64_mingw\lib\cmake\Qt6
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,46 +28,61 @@ jobs:
         id: qt-cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.QT_PATH }}
-          key: qt-${{ env.QT_VERSION }}-mingw-${{ runner.os }}
+          path: ${{ env.QT_INSTALL_DIR }}
+          key: qt-${{ env.QT_VERSION }}-mingw1310-${{ runner.os }}
 
-      - name: Install Qt & Toolchain
+      - name: Install Qt & Toolchain (aqtinstall)
         if: steps.qt-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          python -m pip install aqtinstall
-          python -m aqt install-qt windows desktop ${{ env.QT_VERSION }} win64_mingw --outputdir ${{ env.QT_PATH }}
-          python -m aqt install-tool windows desktop tools_ninja qt.tools.ninja --outputdir ${{ env.QT_PATH }}
-          python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 --outputdir ${{ env.QT_PATH }}
+          python -m pip install --upgrade pip aqtinstall
+          # Install Qt Core
+          python -m aqt install-qt windows desktop ${{ env.QT_VERSION }} win64_mingw --outputdir ${{ env.QT_INSTALL_DIR }}
+          # Install Tools (Ninja & MinGW)
+          python -m aqt install-tool windows desktop tools_ninja qt.tools.ninja --outputdir ${{ env.QT_INSTALL_DIR }}
+          python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 --outputdir ${{ env.QT_INSTALL_DIR }}
 
-      - name: Setup Environment Paths
+      - name: Setup Environment (Simulasi devmode6)
         shell: pwsh
         run: |
-          $qt_root = "${{ env.QT_PATH }}\${{ env.QT_VERSION }}\win64_mingw"
-          echo "CMAKE_PREFIX_PATH=$qt_root" >> $env:GITHUB_ENV
-          # Menambahkan binary ke PATH agar CMake bisa menemukan compiler dan Qt tools
-          echo "${{ env.QT_PATH }}\Tools\CMake_64\bin" >> $env:GITHUB_PATH
-          echo "${{ env.QT_PATH }}\Tools\Ninja" >> $env:GITHUB_PATH
-          echo "${{ env.QT_PATH }}\Tools\mingw1310_64\bin" >> $env:GITHUB_PATH
-          echo "$qt_root\bin" >> $env:GITHUB_PATH
+          # 1. Daftarkan path ke GITHUB_PATH agar tersedia di step berikutnya secara global
+          echo "${{ env.MINGW_PATH }}" >> $env:GITHUB_PATH
+          echo "${{ env.NINJA_PATH }}" >> $env:GITHUB_PATH
+          echo "${{ env.QT_BIN_PATH }}" >> $env:GITHUB_PATH
+          
+          # 2. Daftarkan environment variables untuk CMake
+          # Gunakan forward slash untuk CMAKE_PREFIX_PATH agar aman di CMake
+          $prefix_path = "${{ env.QT_INSTALL_DIR }}\${{ env.QT_VERSION }}\win64_mingw".Replace('\', '/')
+          echo "CMAKE_PREFIX_PATH=$prefix_path" >> $env:GITHUB_ENV
+          echo "Qt6_DIR=${{ env.QT_CMAKE_DIR }}" >> $env:GITHUB_ENV
+
+      - name: Verify Environment & Files
+        shell: pwsh
+        run: |
+          Write-Host "Checking Compiler:"
+          g++ --version
+          Write-Host "Checking Ninja:"
+          ninja --version
+          Write-Host "Checking Qt Config Path:"
+          if (Test-Path "${{ env.QT_CMAKE_DIR }}\Qt6Config.cmake") {
+            Write-Host "✅ Qt6Config.cmake found!"
+          } else {
+            Write-Error "❌ Qt6Config.cmake NOT found at ${{ env.QT_CMAKE_DIR }}"
+            exit 1
+          }
 
       - name: Configure CMake
-        shell: pwsh
-        run: |
-          # Pastikan path ini benar-benar sesuai dengan lokasi instalasi aqt
-          $qt_path = "C:\Qt\6.8.3\win64_mingw"
-          
-          cmake -S . -B build `
-            -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_PREFIX_PATH="$qt_path" `
-            -DQt6_DIR="$qt_path/lib/cmake/Qt6" # Opsional, tapi membantu jika prefix gagal
+        # Kita tidak perlu lagi set prefix_path di sini karena sudah ada di GITHUB_ENV
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build Project
         run: cmake --build build --config Release
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
-          path: build/ # Sesuaikan dengan lokasi .exe hasil build
+          name: windows-release-build
+          path: |
+            build/*.exe
+            build/*.dll
+          retention-days: 7

@@ -1,0 +1,74 @@
+name: Qt6 C++ CI Build
+
+on:
+  push:
+    branches: [ qt6-main, develop ]
+  pull_request:
+    branches: [ qt6-main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        include:
+          - name: "Windows MinGW GCC"
+            qt_version: "6.8.3"
+            cmake_version: "3.28"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: cmake-actions/cmake-download-action@v1
+        with:
+          cmake-version: '3.28.x'
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+        with:
+          version: '1.11.1'
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          modules: 'qt5compat sql'
+          tools: 'tools_cmake tools_ninja'
+          cache: 'true'
+
+      - name: Setup MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+          version: '13.2'
+
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_CXX_COMPILER=g++ `
+            -DCMAKE_C_COMPILER=gcc `
+            ..
+
+      - name: Build with Ninja
+        run: |
+          cd build
+          ninja -j4
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LazyMins-Release-${{ matrix.qt_version }}
+          path: build/test_logform.exe
+          retention-days: 30

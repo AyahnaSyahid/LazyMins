@@ -45,7 +45,16 @@ jobs:
           echo "$qt_root\bin" >> $env:GITHUB_PATH
 
       - name: Configure CMake
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        shell: pwsh
+        run: |
+          # Pastikan path ini benar-benar sesuai dengan lokasi instalasi aqt
+          $qt_path = "C:\Qt\6.8.3\win64_mingw"
+          
+          cmake -S . -B build `
+            -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="$qt_path" `
+            -DQt6_DIR="$qt_path/lib/cmake/Qt6" # Opsional, tapi membantu jika prefix gagal
 
       - name: Build
         run: cmake --build build --config Release

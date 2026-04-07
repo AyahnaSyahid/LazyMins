@@ -40,12 +40,18 @@ jobs:
           path: C:\Qt\6.8.3\win64_mingw
           key: qt-6.8.3-win64-mingw-${{ runner.os }}
 
-      - name: Install Qt 6.8.3 for MinGW
+      - name: Install Qt 6.8.3 and tools for MinGW
         if: steps.qt-cache.outputs.cache-hit != 'true'
-        run: python -m aqt install-qt windows desktop 6.8.3 win64_mingw --outputdir C:\Qt
-
-      - name: Install Ninja
-        run: choco install ninja -y
+        run: |
+          python -m aqt install-qt windows desktop 6.8.3 win64_mingw --outputdir C:\Qt
+          python -m aqt install-tool windows desktop tools_ninja qt.tools.ninja --outputdir C:\Qt
+          python -m aqt install-tool windows desktop tools_cmake qt.tools.cmake --outputdir C:\Qt
+          python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 --outputdir C:\Qt
+      
+      - name: Override Paths to Use Downloaded Qt
+        run: |
+          echo "CMAKE_PREFIX_PATH=C:\Qt\6.8.3\win64_mingw" >> $GITHUB_ENV
+          echo "PATH=C:\Qt\6.8.3\win64_mingw\bin;C:\Qt\Tools\CMake_64\bin;C:\Qt\Tools\Ninja;C:\Qt\Tools\mingw1310_64\bin;${{ env.PATH }}" >> $GITHUB_ENV
 
       - name: Configure CMake
         env:

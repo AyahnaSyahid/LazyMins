@@ -1,74 +1,47 @@
-name: Qt6 C++ CI Build
+# C/C++ Workflow
+
+name: C/C++ CI
 
 on:
   push:
-    branches: [ qt6-main, develop ]
-  pull_request:
-    branches: [ qt6-main ]
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-latest
-    
-    strategy:
-      matrix:
-        include:
-          - name: "Windows MinGW GCC"
-            qt_version: "6.8.3"
-            cmake_version: "3.28"
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Install CMake
-        uses: cmake-actions/cmake-download-action@v1
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1
         with:
-          cmake-version: '3.28.x'
+          cmake-version: '3.19'
 
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@master
-        with:
-          version: '1.11.1'
+      - name: Build
+        run: cmake --build .
 
-      - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.8.3'
-          modules: 'qt5compat sql'
-          tools: 'tools_cmake tools_ninja'
-          cache: 'true'
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Setup MinGW
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
-          version: '13.2'
-
-      - name: Configure CMake
+      - name: Run tests
         run: |
-          mkdir build
-          cd build
-          cmake -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_CXX_COMPILER=g++ `
-            -DCMAKE_C_COMPILER=gcc `
-            ..
+          ./run_tests.sh
 
-      - name: Build with Ninja
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy artifacts
         run: |
-          cd build
-          ninja -j4
+          mkdir -p build/artifacts
+          cp -R build/* build/artifacts/
 
-      - name: Run Tests
-        run: |
-          cd build
-          ctest --output-on-failure
-
-      - name: Upload Build Artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: LazyMins-Release-${{ matrix.qt_version }}
-          path: build/test_logform.exe
-          retention-days: 30

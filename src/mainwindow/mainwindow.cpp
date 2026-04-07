@@ -6,10 +6,10 @@
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/instantorderdialog.h"
 #include "src/utils/sessionmanager.h"
-#include "src/display/dataviewer.h"
 #include "src/display/produkdataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
+#include "src/display/invoicedataviewer.h"
 #include "src/dialogs/logindialog.h"
 #include "src/dialogs/kategoriprodukdialog.h"
 #include "src/managers/adminmanager.h"
@@ -71,6 +71,13 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   addDockWidget(Qt::TopDockWidgetArea, ds);
   ord1->setPageSize(50);
   ord1->refresh();
+  ui->menuView->addAction(ds->toggleViewAction());
+  
+  auto idv = new InvoiceDataViewer;
+  ds = dockSetup(new QDockWidget(this), "Data Invoice", idv);
+  addDockWidget(Qt::TopDockWidgetArea, ds);
+  idv->setPageSize(50);
+  idv->refresh();
   ui->menuView->addAction(ds->toggleViewAction());
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);

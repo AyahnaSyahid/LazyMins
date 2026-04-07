@@ -77,3 +77,13 @@ jobs:
 
       - name: Build Project
         run: cmake --build build --config Release
+      
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LazyMins-Latest # Nama zip yang akan didownload
+          path: |
+            build/*.exe
+            build/*.dll
+          # Jika aplikasi kamu menghasilkan folder 'release', gunakan:
+          # path: build/release/

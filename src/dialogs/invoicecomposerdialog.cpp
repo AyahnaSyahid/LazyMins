@@ -9,6 +9,7 @@
 #include <QDate>
 #include <QMenu>
 #include <QAction>
+#include <QSqlRecord>
 
 InvoiceComposerDialog::InvoiceComposerDialog(QWidget *p):
 ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialog(p)
@@ -41,6 +42,10 @@ void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
 void InvoiceComposerDialog::on_pilihButton_clicked()
 {
   CustomerPickerDialog kpd;
+  kpd.setWindowFlag(Qt::FramelessWindowHint, true);
+  connect(&kpd, &CustomerPickerDialog::customerPicked, this, &InvoiceComposerDialog::setCustomer);
+  auto pos = ui->pilihButton->mapToGlobal(ui->pilihButton->rect().topRight());
+  kpd.move(pos);
   kpd.exec();
 }
 
@@ -73,7 +78,12 @@ void InvoiceComposerDialog::refresh()              // reload data orders dari di
   
 }
 
-void InvoiceComposerDialog::setCustomerId(int id) // setel konsumen
+void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc) // setel konsumen
 {
+  m_customer_id = rc.value("id").toInt();
+  m_customer_name = rc.value("nama_lengkap").toString();
+  m_customer_phone = rc.value("nomor_telp").toString();
   
+  ui->labelNama->setText(m_customer_name);
+  ui->phoneLineEdit->setText(m_customer_phone);
 }

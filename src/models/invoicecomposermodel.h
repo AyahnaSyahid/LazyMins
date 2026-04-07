@@ -44,6 +44,5 @@ class InvoiceComposerModel : public QAbstractListModel
   
   private:
     int m_invoice_id = -1;
-    
     QList<SavedOrder> m_orders;
 };

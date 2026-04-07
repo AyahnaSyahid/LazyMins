@@ -916,7 +916,8 @@ QVariantMap InvoiceManager::validateParams(const QVariantMap& params)
     static const QStringList allowed {
         "invoice_number", "customer_id", "customer_name", "customer_phone", "price_level_id",
         "subtotal", "discount_amount", "tax_amount", "total_amount", "paid_amount",
-        "due_date", "status", "issue_date",
+        "due_date", "status", "issue_date", "remaining_amount", "payment_status", "revision_number",
+        "parent_id", "is_active", 
         "notes", "internal_notes", "admin_id",
         "created_at", "updated_at"
     };

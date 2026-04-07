@@ -58,6 +58,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   dv1->refresh();
   ui->menuView->addAction(dsP->toggleViewAction());
   connect(ui->actionProdukAdd, &QAction::triggered, dv1->addProductAction(), &QAction::trigger);
+  connect(ui->actionAddKatProduk, &QAction::triggered, dv1->addCategoryProductAction(), &QAction::trigger);
 
   auto fs1 = new FinishingServicesViewer;
   auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
@@ -81,7 +82,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   idv->setPageSize(50);
   idv->refresh();
   ui->menuView->addAction(dsI->toggleViewAction());
-  
+  connect(ui->actionInvoiceCreate, &QAction::triggered, idv, &InvoiceDataViewer::onCreateInvoice);
   tabifyDockWidget(dsO, dsI);
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
@@ -104,20 +105,14 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     [this](){ 
       auto ud = new UserDialog(this);
       return ud; }, this);
-  connect(ui->actionInstantOrderCreate, &QAction::triggered, [this](){
+  connect(ui->actionInstantOrderCreate, &QAction::triggered, [this, dv1, idv](){
     auto dialog = new InstantOrderDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    // connect signal
-    // connect(dialog, &QDialog::accepted, ) 
+    connect(dialog, &QDialog::accepted, dv1, &DataViewer::refresh); 
+    connect(dialog, &QDialog::accepted, idv, &DataViewer::refresh); 
     dialog->open();
   });
   
-  connect(ui->actionAddKatProduk, &QAction::triggered, [this]() {
-    auto dia = new KategoriProdukDialog(this);
-    dia->setAttribute(Qt::WA_DeleteOnClose);
-    dia->prepareCreate();
-    dia->open();
-  });
   
   // UserSession
   auto &sm = SessionManager::instance();

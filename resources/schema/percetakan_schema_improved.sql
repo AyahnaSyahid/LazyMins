@@ -503,6 +503,7 @@ CREATE TABLE invoices (
     FOREIGN KEY (price_level_id) REFERENCES price_levels (id),
     FOREIGN KEY (admin_id)       REFERENCES admins (id),
     FOREIGN KEY (parent_id)      REFERENCES invoices (id)
+    
 );
 
 -- Index penting
@@ -683,7 +684,6 @@ BEGIN
 END;
 
 -- 2. Trigger saat data finansial di Order berubah
-DROP TRIGGER IF EXISTS t_invoice_subtotal_after_update;
 CREATE TRIGGER t_invoice_subtotal_after_update
 AFTER UPDATE OF invoice_id, subtotal, discount_amount, tax_amount ON orders
 BEGIN
@@ -708,16 +708,20 @@ END;
 -- TRIGGER UNTUK MENGELOLA PAID_AMOUNT PADA INVOICE
 -- =============================================
 
--- 1. After INSERT Payment
-CREATE TRIGGER t_invoice_paid_after_insert
+-- 1. After INSERT Payment (cash)
+CREATE TRIGGER t_invoice_paid_after_insert_payment
 AFTER INSERT ON payments
-WHEN NEW.invoice_id IS NOT NULL
+WHEN NEW.invoice_id IS NOT NULL AND (
+    NEW.payment_method = 'cash' OR 
+    (NEW.payment_method = 'transfer' AND NEW.transfer_verified = 1)
+)
 BEGIN
     UPDATE invoices
     SET paid_amount = (
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
-        WHERE invoice_id = NEW.invoice_id
+        WHERE invoice_id = NEW.invoice_id 
+          AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
     )
     WHERE id = NEW.invoice_id;
 END;
@@ -725,6 +729,10 @@ END;
 -- 2. After UPDATE Payment
 CREATE TRIGGER t_invoice_paid_after_update
 AFTER UPDATE ON payments
+WHEN NEW.invoice_id IS NOT NULL AND (
+    NEW.payment_method = 'cash' OR 
+    ( NEW.payment_method = 'transfer' AND NEW.transfer_verified = 1 ) 
+)
 BEGIN
     -- Update invoice lama
     UPDATE invoices
@@ -732,6 +740,7 @@ BEGIN
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = OLD.invoice_id
+        AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
     )
     WHERE OLD.invoice_id IS NOT NULL 
       AND id = OLD.invoice_id;
@@ -742,6 +751,9 @@ BEGIN
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = NEW.invoice_id
+        AND (payment_method = 'cash' OR 
+            (payment_method = 'transfer' 
+                AND transfer_verified = 1) )
     )
     WHERE NEW.invoice_id IS NOT NULL 
       AND id = NEW.invoice_id;
@@ -758,6 +770,7 @@ BEGIN
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = OLD.invoice_id
+          AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
     )
     WHERE id = OLD.invoice_id;
 END;
@@ -778,7 +791,6 @@ BEGIN
     UPDATE finishing_services
        SET updated_at = datetime('now');
 END;
-
 
 -- ==============================================
 -- TRIGGER validasi Waktu Insert

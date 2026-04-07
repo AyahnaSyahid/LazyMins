@@ -115,7 +115,7 @@ void InstantOrderDialog::recalculate() {
   auto subs = calculatedSubtotal();
   auto total = 0;
   ui->labelSubtotal->setText(locale().toString(subs));
-  total = subs - ui->discountSpinBox->value();
+  total = subs + ui->ppnSpinBox->value() - ui->discountSpinBox->value();
   ui->bayarSpinBox->setMinimum(total);
   ui->labelTotal->setText(locale().toString(total));
   ui->labelKembalian->setText(locale().toString(qAbs(total - ui->bayarSpinBox->value())));
@@ -160,6 +160,7 @@ void InstantOrderDialog::on_bayarButton_clicked() {
   auto p_disc = ui->discountSpinBox->value();
   auto res = DBOperationHelper::createInstantOrder( oh, omod.items(), inv_code, 
                 { {"payment_amount", p_amount - p_disc }, 
+                  {"tax_amount", ui->ppnSpinBox->value()}, 
                   {"cash_received", ui->bayarSpinBox->value()}, 
                   {"cash_change", ui->bayarSpinBox->value() - (p_amount + p_disc)} } );
   if(!res.ok) {

@@ -37,6 +37,8 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"customer_phone", header.customer_phone},
     {"price_level_id", header.price_level_id},
     {"discount_amount", header.discount_amount},
+    {"payment_status", "paid"},
+    {"tax_amount", paymentInfo.value("tax_amount", 0) },
     {"internal_notes", "Order Instant"},
     {"admin_id", currentAdminId}
   };
@@ -161,6 +163,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   auto pay_n = PaymentManager::generatePaymentNumber();
   QVariantMap paymentParams {
     {"payment_number", pay_n},
+    {"payment_status", "verified"},
     {"invoice_id", createdInvoiceId},
     {"amount", paymentInfo.value("payment_amount", 0)},
     {"admin_id", currentAdminId},

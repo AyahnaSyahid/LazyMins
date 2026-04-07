@@ -43,6 +43,7 @@ SELECT k.id,
     model->setHeaderData(4, Qt::Horizontal, "Nomor Telepon");
     
     auto proxy = new QSortFilterProxyModel(this);
+    proxy->setObjectName("proxy");
     proxy->setSourceModel(model);
     proxy->setFilterKeyColumn(1);
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
@@ -77,7 +78,7 @@ void CustomerPickerDialog::on_customerView_clicked(const QModelIndex &index) {
     if (!index.isValid()) {
         return;
     }
-    auto proxy = findChild<QSortFilterProxyModel*>();
+    auto proxy = findChild<QSortFilterProxyModel*>("proxy");
     if(!proxy) return;
     // Handle the selection of a customer
     auto record = model->record(proxy->mapToSource(index).row());

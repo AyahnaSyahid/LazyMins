@@ -146,7 +146,11 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,0">
      <item>
-      <widget class="QListView" name="orderListView"/>
+      <widget class="QListView" name="orderListView">
+       <property name="contextMenuPolicy">
+        <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">

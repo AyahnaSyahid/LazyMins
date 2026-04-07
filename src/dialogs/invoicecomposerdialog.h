@@ -7,6 +7,7 @@ namespace Ui {
 #include <QDialog>
 
 class InvoiceComposerModel;
+class QSqlRecord  ;
 class InvoiceComposerDialog : public QDialog
 {
   Q_OBJECT
@@ -19,7 +20,7 @@ class InvoiceComposerDialog : public QDialog
   public slots:
     void uiSync();
     void refresh();             // ambil kembali data orders yang ada didatabase
-    void setCustomerId(int id);
+    void setCustomer(const QSqlRecord&);
 
   private slots:
     void on_simpanButton_clicked();

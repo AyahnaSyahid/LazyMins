@@ -40,8 +40,6 @@ class InvoiceComposerModel : public QAbstractListModel
     void insertOrder(int order_id);
     void removeOrder(int order_id);
   
-    
-  
   private:
     int m_invoice_id = -1;
     QList<SavedOrder> m_orders;

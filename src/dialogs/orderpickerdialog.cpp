@@ -40,7 +40,9 @@ OrderPickerDialog::OrderPickerDialog(QWidget *parent) :
     connect(delayer, &QTimer::timeout, [this, proxy]() {
       proxy->setFilterFixedString(ui->lineEdit->text());
     });
+    // proxy->setSourceModel(model);
     connect(ui->lineEdit, &QLineEdit::textChanged, delayer, [delayer](){delayer->start(); });
+    connect(this, &OrderPickerDialog::parameterChanged, this, &OrderPickerDialog::onParameterChanged);
 }
 
 OrderPickerDialog::~OrderPickerDialog() { delete ui; }
@@ -58,12 +60,11 @@ void OrderPickerDialog::onParameterChanged() {
            order_number,
            subtotal,
            discount_amount,
-           tax_amount,
            total_amount,
            date(order_date)
       FROM orders
      WHERE customer_id = :cust_id AND invoice_id IS NULL AND id NOT IN ( %1)
-  ORDER BY order_date ASC ;)--");
+  ORDER BY order_date ASC )--");
   
   QStringList ids;
   for(auto const &fid : m_filter_ids) ids << QString::number(fid);
@@ -72,13 +73,15 @@ void OrderPickerDialog::onParameterChanged() {
   QSqlQuery q(BaseManager::connection);
   
   q.prepare(baseQuery);
-  q.bindValue("cust_id", m_customer_id);
-  q.exec();
+  q.bindValue(":cust_id", m_customer_id);
+  if (! q.exec() )  qDebug() << "OrderPickerDialog : exec failed ->" << q.lastError().text();
   
   model->setQuery(std::move(q));
   while(model->canFetchMore()) model->fetchMore();
+  
   auto proxy = qobject_cast<QSortFilterProxyModel*>(ui->orderView->model());
-  if (proxy) proxy->setSourceModel(model);
+  if (proxy && proxy->sourceModel() != model) proxy->setSourceModel(model);
+  qDebug() << "OrderPickerDialog : onParameterChanged";
 }
 
 void OrderPickerDialog::setFilterIds(const QList<int> &ids) {

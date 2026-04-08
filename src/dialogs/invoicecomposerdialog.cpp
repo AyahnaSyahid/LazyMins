@@ -36,6 +36,9 @@ void InvoiceComposerDialog::on_bayarButton_clicked()
 void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
 {
   OrderPickerDialog opd(this);
+  opd.setCustomerId(m_customer_id);
+  opd.setFilterIds(model->imported());
+  connect(&opd, &OrderPickerDialog::ordersPicked, this, &InvoiceComposerDialog::importOrders);
   opd.exec();
 }
 

@@ -52,16 +52,17 @@ void FinishingItemDelegate::paint(QPainter *painter,
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
     opt.text = "";   // we draw text ourselves
-    opt.features = opt.features ^ QStyleOptionViewItem::HasCheckIndicator;
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
 
     // draw background (selection / hover handled by the style)
-    if (opt.widget)
-        opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
-    else
-        QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+    // if (opt.widget)
+        // opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
+    // else
+        // QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+
+    QStyledItemDelegate::paint(painter, opt, index);
 
     // ── fonts ─────────────────────────────────────────────────────────────────
     QFont boldFont = opt.font;

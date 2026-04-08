@@ -194,21 +194,39 @@ void OrderDialog::on_cariButton_clicked()
   auto dialog = new CustomerPickerDialog(this);
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowFlags(dialog->windowFlags() | Qt::FramelessWindowHint);
+  if (!dialog->availableCustomers()) {
+    dialog->deleteLater();
+    QMessageBox::information(nullptr, "Selesai", "Tidak ditemukan konsumen yang memiliki order tanpa invoice");
+    return ;
+  }
   auto buttonGeo = ui->cariButton->geometry();
-  auto globalPos = mapToGlobal(buttonGeo.topLeft());
+  auto globalPos = mapToGlobal(buttonGeo.topRight());
   dialog->move(globalPos);
-
-  connect(dialog, &CustomerPickerDialog::customerPicked, [this](const QSqlRecord &record)
-          {
-    ui->konsumenLineEdit->setText(record.value("nama_lengkap").toString());
-    ui->kontakLineEdit->setText(record.value("nomor_telp").toString());
-    customerSet.id = record.value("id").toInt();
-    customerSet.name = record.value("nama_lengkap").toString();
-    // simpan price level untuk digunakan di OrderItemDialog
-    int priceLevelId = record.value("pl_id").toInt();
-    // qDebug() << "Selected price level ID:" << priceLevelId;
-    ui->priceLevelComboBox->setLevelID(priceLevelId); });
+  connect(dialog, &CustomerPickerDialog::customerPicked, this, &OrderDialog::setCustomer);
   dialog->open();
+}
+
+void OrderDialog::setCustomer(const QSqlRecord& rc) {
+  auto new_id = rc.value("id").toInt();
+  if (new_id == 0) return ;
+  if (new_id == customerSet.id) return ;
+  
+  if (customerSet.id > 0) {
+    auto confirm = QMessageBox::question(
+            this,
+            "Ganti Pelanggan?",
+            "Anda akan mengubah pelanggan yang telah disetel saat ini.\n"
+            "Lanjutkan?",
+            QMessageBox::Yes | QMessageBox::No
+        );
+    if (confirm == QMessageBox::No) return ;
+  }
+  customerSet.id = new_id;
+  customerSet.name = rc.value("nama_lengkap").toString();
+  int priceLevelId = rc.value("pl_id").toInt();
+  ui->priceLevelComboBox->setLevelID(priceLevelId);
+  ui->kontakLineEdit->setText(rc.value("nomor_telp").toString());
+  ui->konsumenLineEdit->setText(customerSet.name);
 }
 
 void OrderDialog::updateCalculation()
@@ -315,8 +333,3 @@ void OrderDialog::on_simpanButton_clicked()
   }
   accept();
 }
-
-// void OrderDialog::on_pajakRpSpinBox_valueChanged(int ch) {
-  // Q_UNUSED(ch);
-  // QTimer::singleShot(0, this, [this]() { updateCalculation(); });
-// }

@@ -342,6 +342,7 @@ CREATE TABLE kategori_transaksi (
 -- Tabel Transaksi: Catatan pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE transaksi (
     id INTEGER PRIMARY KEY,
+    akun_id INTEGER,
     transaction_number TEXT UNIQUE,   -- TAMBAHAN: Nomor transaksi unik
     admin_id INTEGER NOT NULL,
     kategori_id INTEGER,
@@ -366,6 +367,7 @@ CREATE TABLE transaksi (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
+    FOREIGN KEY (akun_id) REFERENCES akun_transaksi(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (kategori_id) REFERENCES kategori_transaksi(id) ON DELETE RESTRICT
 );
@@ -374,8 +376,36 @@ CREATE TABLE transaksi (
 CREATE INDEX idx_transaksi_admin_tanggal ON transaksi(tanggal, admin_id);
 CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
+CREATE INDEX idx_transaksi_akun ON transaksi(akun_id);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
 CREATE INDEX idx_transaksi_creation ON transaksi(created_at);
+
+-- Tabel Akun Transaksi: Rekening/Sumber Dana
+CREATE TABLE akun_transaksi (
+    id INTEGER PRIMARY KEY,
+    kode TEXT UNIQUE NOT NULL,            -- Kode akun: 'CASH', 'BRI', 'BCA'
+    nama TEXT UNIQUE NOT NULL,            -- Nama tampilan: 'Kas Admin', 'Bank BRI'
+    tipe TEXT NOT NULL CHECK(tipe IN (
+        'cash',         -- Uang tunai
+        'bank',         -- Rekening bank
+        'ewallet',      -- Dompet digital (OVO, DANA, GoPay)
+        'lainnya'       -- Akun lain
+    )),
+    
+    -- Informasi rekening (opsional, untuk bank/ewallet)
+    nama_bank TEXT,                       -- 'BRI', 'BCA', 'Mandiri', dll
+    nomor_rekening TEXT,                  -- Nomor rekening/akun
+    atas_nama TEXT,                       -- Nama pemilik rekening
+    
+    -- Saldo
+    saldo_awal INTEGER NOT NULL DEFAULT 0,
+    saldo_saat_ini INTEGER NOT NULL DEFAULT 0,
+    
+    is_active INTEGER DEFAULT 1,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ============================================================================
 -- 8.2 TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)

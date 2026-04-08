@@ -355,11 +355,14 @@ Internal</string>
           <property name="accelerated">
            <bool>true</bool>
           </property>
+          <property name="showGroupSeparator" stdset="0">
+           <bool>true</bool>
+          </property>
           <property name="maximum">
            <number>9999999</number>
           </property>
           <property name="singleStep">
-           <number>1000</number>
+           <number>500</number>
           </property>
          </widget>
         </item>

@@ -28,8 +28,8 @@ public:
 
   int total() const;
 
-  const QList<FinishingItem> *getItems() const { return m_items; }
+  const QList<FinishingItem> &getItems() const { return m_items; }
 
 private:
-  QList<FinishingItem> *m_items;
+  QList<FinishingItem> m_items;
 };

@@ -25,11 +25,16 @@ class InvoiceComposerDialog : public QDialog
   private slots:
     void on_simpanButton_clicked();
     void on_bayarButton_clicked();
+    void on_removeSelectedOrdersAction_triggered();
     void onImportOrder(); // buka dialog order picker
     void importOrders(const QList<int> &imported);
     void on_orderListView_customContextMenuRequested(const QPoint&);
     void on_pilihButton_clicked();
-
+    void onCustomerChanged();
+  
+  signals:
+    void customerChanged();
+  
   private:
     Ui::InvoiceComposerDialog *ui;
 

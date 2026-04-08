@@ -40,30 +40,62 @@ QVariant InvoiceComposerModel::data(const QModelIndex& ix, int role) const {
 };
 
 void InvoiceComposerModel::insertOrder(int order_id) {
-  SavedOrder imported;
-  imported.loadFromId(order_id);
-  if(imported.id < 1) return;
-  imported.validate();
-  m_orders << imported;
-  insertRows(rowCount(), 1, QModelIndex());
+
+  SavedOrder imp;
+  imp.loadFromId(order_id);
+  
+  if(imp.id < 1) return;
+  
+  imp.validate();
+  
+  auto newRow = m_orders.size();
+  beginInsertRows(QModelIndex(), newRow, newRow);
+  m_orders << imp;
+  endInsertRows();
 }
 
 void InvoiceComposerModel::removeOrder(int order_id) {
   if(!m_orders.size()) return;
-  int ix = 0;
+  
   for(int r = 0; r < m_orders.size(); ++r) {
     if (m_orders.at(r).id == order_id) {
-      ix = r;
+      beginRemoveRows(QModelIndex(), r, r);
+      m_orders.remove(r);
+      endRemoveRows();
+      return ;
     }
   }
-  auto so = m_orders.takeAt(ix);
-  removeRows(ix, 1, QModelIndex());
 }
 
 QList<int> InvoiceComposerModel::imported() const {
   QList<int> imp;
   for(auto const& so : m_orders) imp << so.id ;
   return imp;
+}
+
+void InvoiceComposerModel::clearOrders()
+{
+  beginResetModel();
+  m_orders.clear();
+  endResetModel();
+}
+
+int InvoiceComposerModel::subtotal() const
+{
+  auto ret = 0;
+  for(auto const& order : m_orders) {
+    ret += order.subtotal;
+  }
+  return ret;
+}
+
+int InvoiceComposerModel::discount() const
+{
+  auto ret = 0;
+  for(auto const& order : m_orders) {
+    ret += order.discount_amount;
+  }
+  return ret;
 }
 
 SavedOrder &SavedOrder::loadFromId(int sid)
@@ -79,6 +111,7 @@ SavedOrder &SavedOrder::loadFromId(int sid)
   } else {
     *this = SavedOrder(); // reset all to the new
   }
+  qDebug() << "SaveOrder : loaded id : " << id; 
   return *this;
 }
 

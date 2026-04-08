@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QSqlRecord>
+#include <QMessageBox>
 
 InvoiceComposerDialog::InvoiceComposerDialog(QWidget *p):
 ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialog(p)
@@ -18,6 +19,11 @@ ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialo
   ui->orderListView->setModel(model);
   ui->orderListView->setItemDelegate(new InvoiceComposerDelegate(this));
   ui->dateEdit->setDate(QDate::currentDate());
+  ui->orderListView->addAction(ui->removeSelectedOrdersAction);
+  this->addAction(ui->importOrdersAction);
+  connect(this, &InvoiceComposerDialog::customerChanged, this, &InvoiceComposerDialog::onCustomerChanged);
+  connect(model, &QAbstractItemModel::rowsInserted, this, &InvoiceComposerDialog::uiSync);
+  connect(ui->importOrdersAction, &QAction::triggered, this, &InvoiceComposerDialog::onImportOrder);
 };
 
 InvoiceComposerDialog::~InvoiceComposerDialog() { delete ui; }
@@ -38,6 +44,11 @@ void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
   OrderPickerDialog opd(this);
   opd.setCustomerId(m_customer_id);
   opd.setFilterIds(model->imported());
+  if(opd.availableCount() < 1) { 
+    QMessageBox::information(this, "Semua Order Sudah Diimpor",
+    "Semua order milik pelanggan ini sudah ada di invoice.");
+    return ;
+  }
   connect(&opd, &OrderPickerDialog::ordersPicked, this, &InvoiceComposerDialog::importOrders);
   opd.exec();
 }
@@ -46,6 +57,24 @@ void InvoiceComposerDialog::on_pilihButton_clicked()
 {
   CustomerPickerDialog kpd;
   kpd.setWindowFlag(Qt::FramelessWindowHint, true);
+  kpd.setModelQuery(R"-(
+    SELECT k.id,
+           nama_lengkap,
+           pl.id AS pl_id,
+           level_name,
+           nomor_telp
+      FROM konsumen k
+           JOIN price_levels pl ON k.price_level_id = pl.id
+     WHERE EXISTS (
+               SELECT 1
+                 FROM orders o
+                WHERE o.customer_id = k.id
+                  AND o.invoice_id IS NULL )
+  )-");
+  if (!kpd.availableCustomers()) {
+    QMessageBox::information(nullptr, "Selesai", "Tidak ditemukan konsumen yang memiliki order tanpa invoice");
+    return ;
+  }
   connect(&kpd, &CustomerPickerDialog::customerPicked, this, &InvoiceComposerDialog::setCustomer);
   auto pos = ui->pilihButton->mapToGlobal(ui->pilihButton->rect().topRight());
   kpd.move(pos);
@@ -62,18 +91,48 @@ void InvoiceComposerDialog::importOrders(const QList<int> &imported)
   }
 }
 
+void InvoiceComposerDialog::on_removeSelectedOrdersAction_triggered() {
+  auto ixs = ui->orderListView->selectionModel()->selectedIndexes();
+  if( !ixs.size() ) return;
+  QSet<int> orderIds;
+  for (auto const& ix : ixs) {
+    orderIds << ix.data(InvoiceComposerModel::IdRole).toInt();
+  }
+  for(auto const& id : orderIds) model->removeOrder(id);
+}
+
 void InvoiceComposerDialog::on_orderListView_customContextMenuRequested(const QPoint& p)
 {
   QMenu ctx;
   ctx.setToolTipsVisible(true);
   auto act = ctx.addAction("Import");
   connect(act, &QAction::triggered, this, &InvoiceComposerDialog::onImportOrder);
+  auto ix = ui->orderListView->indexAt(p);
+  if(ix.isValid()) {
+    int id = ix.data(InvoiceComposerModel::IdRole).toInt();
+    ctx.addSeparator();
+    auto actDelete = ctx.addAction("Hapus");
+    connect(actDelete, &QAction::triggered, ui->removeSelectedOrdersAction, &QAction::trigger);
+  }
   ctx.exec(ui->orderListView->viewport()->mapToGlobal(p));
+}
+
+void InvoiceComposerDialog::onCustomerChanged() {
+  // model->clearOrders(); 
+  ui->labelNama->setText(m_customer_name);
+  ui->phoneLineEdit->setText(m_customer_phone);
 }
 
 void InvoiceComposerDialog::uiSync()
 {
-  if (!model->rowCount()) return;
+  auto sub   = model->subtotal();
+  auto disc  = model->discount();
+  auto total = sub - disc;
+  auto pajak = ui->pajakSpinBox->value();
+  
+  ui->subtotalLineEdit->setText(locale().toString(sub));
+  ui->diskonTotalLineEdit->setText(locale().toString(disc));
+  ui->totalSpinBox->setValue(total + pajak);
 }
 
 void InvoiceComposerDialog::refresh()              // reload data orders dari didatabase
@@ -81,12 +140,26 @@ void InvoiceComposerDialog::refresh()              // reload data orders dari di
   
 }
 
-void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc) // setel konsumen
+void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc)
 {
-  m_customer_id = rc.value("id").toInt();
-  m_customer_name = rc.value("nama_lengkap").toString();
-  m_customer_phone = rc.value("nomor_telp").toString();
-  
-  ui->labelNama->setText(m_customer_name);
-  ui->phoneLineEdit->setText(m_customer_phone);
+    auto newId = rc.value("id").toInt();
+
+    if (newId < 1) return;
+    if (newId == m_customer_id) return;
+
+    if (m_customer_id > 0 && model->rowCount() ) {
+        auto confirm = QMessageBox::question(
+            this,
+            "Ganti Pelanggan?",
+            "Mengganti pelanggan akan menghapus semua order yang sudah diimpor.\n"
+            "Lanjutkan?",
+            QMessageBox::Yes | QMessageBox::No
+        );
+        if (confirm == QMessageBox::No) return;
+        model->clearOrders();
+    }
+    m_customer_id    = rc.value("id").toInt();
+    m_customer_name  = rc.value("nama_lengkap").toString();
+    m_customer_phone = rc.value("nomor_telp").toString();
+    emit customerChanged();
 }

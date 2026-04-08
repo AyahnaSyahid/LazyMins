@@ -17,12 +17,14 @@ void InvoiceComposerDelegate::paint(QPainter *painter, const QStyleOptionViewIte
     painter->setRenderHint(QPainter::Antialiasing);
 
     // Menggambar background selection/hover
-    if (option.state & QStyle::State_Selected) {
-        painter->fillRect(option.rect, option.palette.highlight());
-    } else if (option.state & QStyle::State_MouseOver) {
-        painter->fillRect(option.rect, option.palette.alternateBase());
-    }
-
+    // if (option.state & QStyle::State_Selected) {
+        // painter->fillRect(option.rect, option.palette.highlight());
+    // } else if (option.state & QStyle::State_MouseOver) {
+        // painter->fillRect(option.rect, option.palette.alternateBase());
+    // }
+    
+    QStyledItemDelegate::paint(painter, option, index);
+    
     // Area gambar dengan margin dalam (padding)
     QRect rect = option.rect.adjusted(10, 10, -10, -10);
 
@@ -45,7 +47,7 @@ void InvoiceComposerDelegate::paint(QPainter *painter, const QStyleOptionViewIte
 
     int subtotal = index.data(InvoiceComposerModel::SubtotalRole).toInt();
     int discount = index.data(InvoiceComposerModel::DiscountRole).toInt();
-    QString details = QString("Subtotal: %1 | Disc: %2").arg(subtotal).arg(discount);
+    QString details = QString("Subtotal: %L1 | Disc: %L2").arg(subtotal).arg(discount);
     painter->drawText(rect.left(), rect.bottom() - 5, details);
 
     // --- 3. Menggambar Total (Kanan Bawah) ---
@@ -61,7 +63,7 @@ void InvoiceComposerDelegate::paint(QPainter *painter, const QStyleOptionViewIte
         painter->setPen(option.palette.highlightedText().color());
     }
 
-    QString totalStr = QString("Total: %1").arg(index.data(InvoiceComposerModel::TotalRole).toInt());
+    QString totalStr = QString("Total: %L1").arg(index.data(InvoiceComposerModel::TotalRole).toInt());
     painter->drawText(rect, Qt::AlignRight | Qt::AlignBottom, totalStr);
 
     painter->restore();

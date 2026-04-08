@@ -25,14 +25,14 @@ CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     model->setQuery(R"--(
-SELECT k.id,
-       nama_lengkap,
-       pl.id as pl_id,
-       level_name,
-       nomor_telp
-  FROM konsumen k
-       JOIN
-       price_levels pl ON k.price_level_id = pl.id;)--", BaseManager::connection);
+    SELECT k.id,
+           nama_lengkap,
+           pl.id AS pl_id,
+           level_name,
+           nomor_telp
+      FROM konsumen k
+           JOIN price_levels pl ON k.price_level_id = pl.id
+    )--", BaseManager::connection);
     
     while(model->canFetchMore()) model->fetchMore();
     
@@ -84,4 +84,15 @@ void CustomerPickerDialog::on_customerView_clicked(const QModelIndex &index) {
     auto record = model->record(proxy->mapToSource(index).row());
     emit customerPicked(record);
     accept(); // Close the dialog after selection    
-}   
+}
+
+void CustomerPickerDialog::setModelQuery(const QString& name)
+{
+  QSqlQuery q(BaseManager::connection);
+  q.prepare(name);
+  if (!q.exec()) {
+    qWarning() << "CustomerPickerDialog : setModelQuery Error :" << q.lastError().text() ;
+    return ;
+  }
+  model->setQuery(std::move(q));
+}

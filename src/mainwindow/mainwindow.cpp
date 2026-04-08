@@ -13,6 +13,7 @@
 #include "src/dialogs/logindialog.h"
 #include "src/dialogs/kategoriprodukdialog.h"
 #include "src/managers/adminmanager.h"
+#include "src/managers/appsettingsmanager.h"
 #include <QDockWidget>
 #include <QMessageBox>
 
@@ -119,6 +120,10 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
+  
+  // Window Title
+  AppSettingsManager apm;
+  setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");
 }
 
 MainWindow::~MainWindow() {delete ui;}

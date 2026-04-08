@@ -215,11 +215,17 @@
             <property name="buttonSymbols">
              <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
             </property>
+            <property name="accelerated">
+             <bool>true</bool>
+            </property>
             <property name="showGroupSeparator" stdset="0">
              <bool>true</bool>
             </property>
             <property name="maximum">
              <number>99999999</number>
+            </property>
+            <property name="singleStep">
+             <number>500</number>
             </property>
            </widget>
           </item>
@@ -391,6 +397,31 @@
     </layout>
    </item>
   </layout>
+  <action name="removeSelectedOrdersAction">
+   <property name="text">
+    <string>Hapus</string>
+   </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="importOrdersAction">
+   <property name="text">
+    <string>Import</string>
+   </property>
+   <property name="toolTip">
+    <string>Import Orders</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

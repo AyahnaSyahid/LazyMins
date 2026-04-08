@@ -56,7 +56,7 @@ void InstantOrderDialog::on_pilihButton_clicked()
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowFlags(dialog->windowFlags() | Qt::FramelessWindowHint);
   auto buttonGeo = ui->pilihButton->geometry();
-  auto globalPos = mapToGlobal(buttonGeo.topLeft());
+  auto globalPos = mapToGlobal(buttonGeo.topRight());
   dialog->move(globalPos);
 
   connect(dialog, &CustomerPickerDialog::customerPicked,

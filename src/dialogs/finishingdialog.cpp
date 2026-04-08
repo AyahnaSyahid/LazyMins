@@ -10,19 +10,20 @@
 #include "src/managers/basemanager.h"
 
 FinishingDialog::FinishingDialog(QWidget *parent) :
-  QDialog(parent), ui(new Ui::FinishingDialog), m_finishingModel(new QSqlQueryModel(this)), m_mode(Mode::Create), m_item(nullptr)
+  QDialog(parent), ui(new Ui::FinishingDialog), m_queryFinishingModel(new QSqlQueryModel(this)), m_mode(Mode::Create), m_item()
 {
   ui->setupUi(this);
 
   // setting up finishing_services model
-  m_finishingModel->setQuery(R"--(
+  m_queryFinishingModel->setQuery(R"--(
     SELECT id, code, name, description, price_per_unit, unit
     FROM finishing_services WHERE is_active = 1;
   )--", BaseManager::connection);
   
-  while(m_finishingModel->canFetchMore()) m_finishingModel->fetchMore();
+  while(m_queryFinishingModel->canFetchMore()) m_queryFinishingModel->fetchMore();
+  
   ui->finishingComboBox->blockSignals(true);
-  ui->finishingComboBox->setModel(m_finishingModel);
+  ui->finishingComboBox->setModel(m_queryFinishingModel);
   ui->finishingComboBox->setModelColumn(2);
   ui->finishingComboBox->setCurrentIndex(-1);
   ui->finishingComboBox->blockSignals(false);
@@ -41,7 +42,7 @@ FinishingDialog::FinishingDialog(QWidget *parent) :
 
   connect(ui->finishingComboBox, &QComboBox::currentIndexChanged, this, [this]() {
     if (ui->finishingComboBox->currentIndex() != -1) {
-      auto index = m_finishingModel->index(ui->finishingComboBox->currentIndex(), 0);
+      auto index = m_queryFinishingModel->index(ui->finishingComboBox->currentIndex(), 0);
       int harga = index.siblingAtColumn(4).data().toInt();
       ui->hargaSpinBox->setValue(harga);
     } else {
@@ -61,18 +62,18 @@ void FinishingDialog::recalculate() {
   ui->totalSpinBox->setValue(ui->hargaSpinBox->value() * ui->qtySpinBox->value());
 }
 
-void FinishingDialog::setItem(FinishingItem *item) {
+void FinishingDialog::setItem(const FinishingItem &item) {
   m_mode = Mode::Modify;
   m_item = item;
   
   // FIX: use .row() to get the combobox row index, not .data() which returns
   // the finishing_id (column 0 value) and would set the wrong combo index.
-  auto indexes = m_finishingModel->match(m_finishingModel->index(0, 0), Qt::DisplayRole, item->finishing_id, 1, Qt::MatchExactly);
+  auto indexes = m_queryFinishingModel->match(m_queryFinishingModel->index(0, 0), Qt::DisplayRole, item.finishing_id, 1, Qt::MatchExactly);
   if (!indexes.isEmpty()) {
     ui->finishingComboBox->setCurrentIndex(indexes.at(0).row());
   }
-  ui->hargaSpinBox->setValue(item->finishing_price);
-  ui->qtySpinBox->setValue(item->quantity);
+  ui->hargaSpinBox->setValue(item.finishing_price);
+  ui->qtySpinBox->setValue(item.quantity);
 };
 
 void FinishingDialog::on_simpanButton_clicked() {
@@ -80,7 +81,7 @@ void FinishingDialog::on_simpanButton_clicked() {
     QMessageBox::information(this, "Periksa masukkan", "Anda belum menentukan jenis finishing");
     return ;
   }
-  auto modelIndex = m_finishingModel->index(ui->finishingComboBox->currentIndex(), 0);
+  auto modelIndex = m_queryFinishingModel->index(ui->finishingComboBox->currentIndex(), 0);
   auto f_id = modelIndex.data().toInt();
   if (m_mode == Create) {
     FinishingItem item;
@@ -90,10 +91,11 @@ void FinishingDialog::on_simpanButton_clicked() {
     item.finishing_price = ui->hargaSpinBox->value();
     emit createItem(item);
   } else {
-    m_item->finishing_id = f_id;
-    m_item->finishing_name = ui->finishingComboBox->currentText();
-    m_item->quantity = ui->qtySpinBox->value();
-    m_item->finishing_price = ui->hargaSpinBox->value();
+    m_item.finishing_id = f_id;
+    m_item.finishing_name = ui->finishingComboBox->currentText();
+    m_item.quantity = ui->qtySpinBox->value();
+    m_item.finishing_price = ui->hargaSpinBox->value();
+    emit itemModified(m_item);
   }
   accept();
 }

@@ -28,7 +28,7 @@ public:
     
     void setOrder(OrderItem *order);
     
-    const FinishingListModel& finishingModel() const { return m_finModel; }
+    const FinishingListModel& finishingModel() const { return m_finishingListModel; }
     const Mode &mode() { return m_mode; }
 
 public slots:
@@ -52,7 +52,9 @@ private slots:
     void onCreateFinishing(const FinishingItem& item);
     
     // handle editFinishing
-    void onFinishingAccepted();
+    void onFinishingEdited(const FinishingItem& item);
+    
+    void on_finishingView_customContextMenuRequested(const QPoint& p);
     
 signals:
     void itemCreated(const OrderItem& orderItem);
@@ -62,8 +64,8 @@ private:
     int calculatedPrice() const;
     Ui::OrderItemDialog *ui;
     int m_customerPriceLevel = 1;
-    FinishingListModel m_finModel;
-    QList<FinishingItem> new_fItems;
+    FinishingListModel m_finishingListModel;
+    QList<FinishingItem> m_newFinishingItems;
     ProductPriceManager m_priceManager;
     ProductManager m_productManager;
     Mode m_mode;

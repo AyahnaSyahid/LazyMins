@@ -38,8 +38,9 @@ public:
     bool isCreateMode() const { return m_mode == FormMode::Create; }
     bool isModifyMode() const { return m_mode == FormMode::Modify; }
     bool isModified() const;
-
     void accept() override;
+    
+    virtual bool isInputAcceptable() const { return false; }
 
 protected:
     virtual void setupFields() = 0;

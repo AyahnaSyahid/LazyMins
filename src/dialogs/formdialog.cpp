@@ -3,9 +3,7 @@
 
 FormDialog::FormDialog(QWidget* parent)
     : QDialog(parent)
-{
-    // Tidak lagi connect accepted secara otomatis – kita handle manual di accept()
-}
+{}
 
 void FormDialog::prepareCreate()
 {
@@ -73,6 +71,7 @@ void FormDialog::addBoundField( const QString& column, ValueGetter getter, Value
 QVariantMap FormDialog::collect() const
 {
     QVariantMap result;
+    if (!isInputAcceptable()) return result;
 
     // 1. Field standar (yang terdaftar via FieldMap)
     for (const auto& f : m_fields) {
@@ -144,17 +143,17 @@ void FormDialog::populateFields()
 
 void FormDialog::clearFields()
 {
-    for (const auto& f : m_fields) {
-        std::visit([](auto* editor) {
-            using T = std::decay_t<decltype(*editor)>;
-            if constexpr (std::is_same_v<T, QLineEdit>)
-                editor->clear();
-            else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
-                editor->setValue(0);
-            else if constexpr (std::is_same_v<T, QSpinBox>)
-                editor->setValue(0);
-            else if constexpr (std::is_same_v<T, QPlainTextEdit>)
-                editor->clear();
-        }, f.editor);
-    }
+  for (const auto& f : m_fields) {
+      std::visit([](auto* editor) {
+          using T = std::decay_t<decltype(*editor)>;
+          if constexpr (std::is_same_v<T, QLineEdit>)
+              editor->clear();
+          else if constexpr (std::is_same_v<T, QDoubleSpinBox>)
+              editor->setValue(0);
+          else if constexpr (std::is_same_v<T, QSpinBox>)
+              editor->setValue(0);
+          else if constexpr (std::is_same_v<T, QPlainTextEdit>)
+              editor->clear();
+      }, f.editor);
+  }
 }

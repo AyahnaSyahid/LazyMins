@@ -19,7 +19,7 @@ class InvoiceDataViewer : public DataViewer
   public slots:
     void onCreateInvoice();
     void openContextMenu(const QPoint& pt);
-  
+
   private slots:
     
   private:

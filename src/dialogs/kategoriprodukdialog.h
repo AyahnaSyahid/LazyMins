@@ -19,6 +19,8 @@ public:
   void prepareCreate();
   void prepareModify(int _id);
 
+  bool isInputAcceptable() const;
+  
 private slots:
   void on_simpanButton_clicked();
 

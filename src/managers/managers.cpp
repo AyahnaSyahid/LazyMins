@@ -27,7 +27,8 @@ QString generateCode(const QString& tableName,
                .arg(QDateTime::currentMSecsSinceEpoch());
 }
 
-QString dateToSql(const QDate& d) { return d.toString("yyyy-MM-dd"); }
+QString dateToSql(const QDate& d = QDateTime::currentDateTimeUtc().date()) { return d.toString("yyyy-MM-dd"); }
+QString datetimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc()) { return d.toString("yyyy-MM-dd HH:mm:ss"); }
 
 } // anonymous namespace
 
@@ -101,7 +102,7 @@ bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
     q.prepare(QString("UPDATE %1 SET stock = stock + :delta, updated_at = :updated_at WHERE id = :id")
                   .arg(tableName()));
     q.bindValue(":delta", delta);
-    q.bindValue(":updated_at", QDateTime::currentDateTimeUtc());
+    q.bindValue(":updated_at", datetimeToSql());
     q.bindValue(":id", id);
     if (!q.exec()) {
         qDebug() << "ProductManager::adjustStock error:" << q.lastError().text();
@@ -169,8 +170,8 @@ bool ProductPriceManager::upsert(int productId, int priceLevelId, int price)
     q.bindValue(":pid",        productId);
     q.bindValue(":plid",       priceLevelId);
     q.bindValue(":price",      price);
-    q.bindValue(":created_at", QDateTime::currentDateTimeUtc());
-    q.bindValue(":updated_at", QDateTime::currentDateTimeUtc());
+    q.bindValue(":created_at", datetimeToSql());
+    q.bindValue(":updated_at", datetimeToSql());
     if (!q.exec()) {
         qDebug() << "ProductPriceManager::upsert error:" << q.lastError().text();
         return false;
@@ -250,7 +251,7 @@ QVariantMap FinishingServiceManager::validateParams(const QVariantMap& params)
 
 QList<QSqlRecord> OrderManager::getByStatus(const QString& status, const QString& orderBy)
 {
-    return getWhere("status = :status", {{"status", status}}, orderBy);
+    return getWhere("staging_status = :status", {{"status", status}}, orderBy);
 }
 
 QList<QSqlRecord> OrderManager::getByPaymentStatus(const QString& paymentStatus)
@@ -289,7 +290,7 @@ QList<QSqlRecord> OrderManager::getOverdue()
 {
     return getWhere(
         "deadline_date < :now AND status NOT IN ('completed','cancelled')",
-        {{"now", QDateTime::currentDateTimeUtc()}},
+        {{"now", datetimeToSql()}},
         "deadline_date ASC");
 }
 
@@ -300,17 +301,17 @@ std::optional<QSqlRecord> OrderManager::findByOrderNumber(const QString& orderNu
     return std::nullopt;
 }
 
-bool OrderManager::updateStatus(int id, const QString& newStatus)
+bool OrderManager::updateStagingStatus(int id, const QString& newStatus)
 {
     QVariantMap p;
-    p["status"] = newStatus;
+    p["staging_status"] = newStatus;
     if (newStatus == "completed")
-        p["completion_date"] = QDateTime::currentDateTimeUtc();
+        p["completion_date"] = datetimeToSql();
     return update(id, p);
 }
 
-bool OrderManager::cancel(int id)  { return updateStatus(id, "cancelled"); }
-bool OrderManager::markCompleted(int id) { return updateStatus(id, "completed"); }
+bool OrderManager::cancel(int id)  { return updateStagingStatus(id, "cancelled"); }
+bool OrderManager::markCompleted(int id) { return updateStagingStatus(id, "completed"); }
 
 QString OrderManager::generateOrderNumber(const QString& prefix)
 {
@@ -327,10 +328,11 @@ QVariantMap OrderManager::validateParams(const QVariantMap& params)
 {
     QVariantMap p = params;
     static const QStringList allowed {
-        "order_number", "customer_id", "customer_name", "customer_phone", "price_level_id",
-        "subtotal", "discount_amount", "discount_percentage", "total_amount",
-        "status", "priority", "order_date", "deadline_date", "completion_date", "paid_amount", "notes", "internal_notes", "admin_id",
-        "invoice_id", "invoice_number",          // ← NEW fields from schema
+        "order_number", "invoice_id", "invoice_number", "customer_id", 
+        "customer_name", "customer_phone", "price_level_id",
+        "subtotal", "discount_amount",
+        "staging_status", "priority", "order_date", "deadline_date", 
+        "completion_date", "notes", "internal_notes", "admin_id",
         "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
@@ -343,7 +345,7 @@ void OrderManager::beforeCreate(QVariantMap& params)
     if (!params.contains("order_number") || params["order_number"].toString().isEmpty())
         params["order_number"] = generateOrderNumber();
     if (!params.contains("order_date"))
-        params["order_date"] = QDateTime::currentDateTimeUtc();
+        params["order_date"] = datetimeToSql();
 }
 
 // ============================================================================
@@ -407,33 +409,6 @@ QVariantMap OrderItemFinishingManager::validateParams(const QVariantMap& params)
 }
 
 // ============================================================================
-// PaymentMethodManager
-// ============================================================================
-
-QList<QSqlRecord> PaymentMethodManager::getActive()
-{
-    return getWhere("is_active = 1", {}, "method_name");
-}
-
-std::optional<QSqlRecord> PaymentMethodManager::findByCode(const QString& methodCode)
-{
-    auto rows = getWhere("method_code = :method_code", {{"method_code", methodCode}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-
-QVariantMap PaymentMethodManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "method_code", "method_name", "is_active", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
-// ============================================================================
 // PaymentManager
 // ============================================================================
 
@@ -473,15 +448,15 @@ std::optional<QSqlRecord> PaymentManager::findByPaymentNumber(const QString& pay
 bool PaymentManager::verify(int id, int verifiedByAdminId)
 {
     return update(id, {
-        {"payment_status", "verified"},
+        {"verification_status", "verified"},
         {"verified_by",    verifiedByAdminId},
-        {"verified_at",    QDateTime::currentDateTimeUtc()}
+        {"verified_at",    datetimeToSql()}
     });
 }
 
 bool PaymentManager::cancelPayment(int id)
 {
-    return update(id, {{"payment_status", "cancelled"}});
+    return update(id, {{"verification_status", "cancelled"}});
 }
 
 QString PaymentManager::generatePaymentNumber(const QString& prefix)
@@ -500,13 +475,11 @@ QVariantMap PaymentManager::validateParams(const QVariantMap& params)
 {
     QVariantMap p = params;
     static const QStringList allowed {
-        "payment_number", "order_id", "customer_id", "amount", "payment_method",
-        "transfer_bank", "transfer_account_name", "transfer_account_number",
-        "transfer_verified", "transfer_proof_image",
+        "payment_number", "invoice_id", "amount", 
+        "akun_transaksi_id", // Menggantikan payment_method
         "cash_received", "cash_change",
-        "payment_status", "notes",
-        "admin_id", "payment_date", "verified_by", "verified_at",
-        "invoice_id",                    // ← NEW (now required by schema)
+        "verification_status", "notes", "admin_id", 
+        "payment_date", "verified_by", "verified_at",
         "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
@@ -519,7 +492,7 @@ void PaymentManager::beforeCreate(QVariantMap& params)
     if (!params.contains("payment_number") || params["payment_number"].toString().isEmpty())
         params["payment_number"] = generatePaymentNumber();
     if (!params.contains("payment_date"))
-        params["payment_date"] = QDateTime::currentDateTimeUtc();
+        params["payment_date"] = datetimeToSql();
 }
 
 // ============================================================================
@@ -640,7 +613,7 @@ QVariantMap TransaksiManager::validateParams(const QVariantMap& params)
     QVariantMap p = params;
     static const QStringList allowed {
         "transaction_number", "admin_id", "kategori_id",
-        "tipe", "deskripsi", "amount_before", "amount", "amount_after",
+        "tipe", "deskripsi", "amount_before", "amount", "amount_after", "akun_id",
         "payment_method", "reference_type", "reference_id", "attachment",
         "tanggal", "created_at", "updated_at"
     };
@@ -701,7 +674,7 @@ std::optional<QSqlRecord> StockConsumesRepo::recordConsumes(
     p["stock_before"]   = stockBefore;
     p["stock_after"]    = stockAfter;
     p["admin_id"]       = adminId;
-    p["consumes_date"]  = QDateTime::currentDateTimeUtc();
+    p["consumes_date"]  = datetimeToSql();
     if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
     if (referenceId > 0)          p["reference_id"]   = referenceId;
     if (!notes.isEmpty())         p["notes"]          = notes;
@@ -769,7 +742,7 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(
     p["stock_before"]   = stockBefore;
     p["stock_after"]    = stockAfter;
     p["admin_id"]       = adminId;
-    p["movement_date"]  = QDateTime::currentDateTimeUtc();
+    p["movement_date"]  = datetimeToSql();
     if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
     if (referenceId > 0)          p["reference_id"]   = referenceId;
     if (!notes.isEmpty())         p["notes"]          = notes;
@@ -878,7 +851,7 @@ QList<QSqlRecord> InvoiceManager::getOverdue()
 {
     return getWhere(
         "due_date < :now AND status NOT IN ('paid','cancelled')",
-        {{"now", QDateTime::currentDateTimeUtc()}},
+        {{"now", datetimeToSql()}},
         "due_date ASC");
 }
 
@@ -914,11 +887,11 @@ QVariantMap InvoiceManager::validateParams(const QVariantMap& params)
 {
     QVariantMap p = params;
     static const QStringList allowed {
-        "invoice_number", "customer_id", "customer_name", "customer_phone", "price_level_id",
-        "subtotal", "discount_amount", "tax_amount", "total_amount", "paid_amount",
-        "due_date", "status", "issue_date", "remaining_amount", "payment_status", "revision_number",
-        "parent_id", "is_active", 
-        "notes", "internal_notes", "admin_id",
+        "invoice_number", "customer_id", "customer_name", "customer_phone", 
+        "price_level_id", "admin_id", "subtotal", "discount_amount", 
+        "tax_amount", "paid_amount",
+        "staging_status", "settlement_status", "revision_no", "parent_id", 
+        "is_active", "issue_date", "due_date", "notes", "internal_notes",
         "created_at", "updated_at"
     };
     for (const QString& key : p.keys())
@@ -931,7 +904,46 @@ void InvoiceManager::beforeCreate(QVariantMap& params)
     if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty())
         params["invoice_number"] = generateInvoiceNumber();
     if (!params.contains("issue_date"))
-        params["issue_date"] = QDateTime::currentDateTimeUtc();
-    if (!params.contains("status"))
-        params["status"] = "draft";
+        params["issue_date"] = datetimeToSql();
+    if (!params.contains("staging_status"))
+        params["staging_status"] = "draft";
+}
+
+// ============================================================================
+// AkunTransaksiManager
+// ============================================================================
+
+QList<QSqlRecord> AkunTransaksiManager::getActive()
+{
+    return getWhere("is_active = 1", {}, "nama ASC");
+}
+
+std::optional<QSqlRecord> AkunTransaksiManager::findByKode(const QString& kode)
+{
+    auto rows = getWhere("kode = :kode", {{"kode", kode}});
+    if (!rows.isEmpty()) return rows.first();
+    return std::nullopt;
+}
+
+bool AkunTransaksiManager::updateSaldo(int id, qint64 newSaldo)
+{
+    return update(id, {{"saldo", newSaldo}});
+}
+
+QVariantMap AkunTransaksiManager::validateParams(const QVariantMap& params)
+{
+    QVariantMap p = params;
+    // Daftar kolom sesuai dengan percetakan_schema_improved.sql
+    static const QStringList allowed {
+        "kode", "nama", "tipe", "nama_bank", "nomor_rekening", 
+        "atas_nama", "saldo", "is_active", "description", 
+        "created_at", "updated_at"
+    };
+    
+    for (const QString& key : p.keys()) {
+        if (!allowed.contains(key)) {
+            p.remove(key);
+        }
+    }
+    return p;
 }

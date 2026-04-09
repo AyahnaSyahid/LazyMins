@@ -13,13 +13,13 @@ class FinishingServiceManager;
 class OrderManager;
 class OrderItemManager;
 class OrderItemFinishingManager;
-class PaymentMethodManager;
 class PaymentManager;
 class KategoriTransaksiManager;
 class TransaksiManager;
 class StockMovementManager;
 class ActivityLogManager;
 class InvoiceManager;
+class AkunTransaksiManager;
 
 // ============================================================================
 // ProductCategoryManager — tabel: product_categories
@@ -141,13 +141,13 @@ public:
     std::optional<QSqlRecord> findByOrderNumber(const QString& orderNumber);
 
     // Status transitions
-    bool updateStatus(int id, const QString& newStatus);
+    bool updateStagingStatus(int id, const QString& newStatus);
     bool cancel(int id);
     bool markCompleted(int id);
-
+    
     // Number generation  (prefix from app_settings, e.g. "ORD")
     static QString generateOrderNumber(const QString& prefix = "ORD");
-
+    
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
     void beforeCreate(QVariantMap& params) override;
@@ -187,22 +187,6 @@ protected:
 };
 
 // ============================================================================
-// PaymentMethodManager — tabel: payment_methods
-// ============================================================================
-class PaymentMethodManager : public BaseManager
-{
-public:
-    explicit PaymentMethodManager()
-        : BaseManager("payment_methods") {}
-
-    QList<QSqlRecord> getActive();
-    std::optional<QSqlRecord> findByCode(const QString& methodCode);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-};
-
-// ============================================================================
 // PaymentManager — tabel: payments
 // ============================================================================
 class PaymentManager : public BaseManager
@@ -215,7 +199,8 @@ public:
     QList<QSqlRecord> getByCustomer(int customerId);
     QList<QSqlRecord> getByStatus(const QString& status);
     QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-
+    QList<QSqlRecord> getByInvoice(int invoiceId);
+    
     std::optional<QSqlRecord> findByPaymentNumber(const QString& paymentNumber);
 
     bool verify(int id, int verifiedByAdminId);
@@ -328,6 +313,27 @@ protected:
     QVariantMap validateParams(const QVariantMap& params) override;
 };
 
+// ============================================================================
+// AkunTransaksiManager — tabel: akun_transaksi
+// ============================================================================
+class AkunTransaksiManager : public BaseManager
+{
+public:
+    explicit AkunTransaksiManager()
+        : BaseManager("akun_transaksi") {}
+
+    // Mengambil semua akun yang masih aktif
+    QList<QSqlRecord> getActive();
+    
+    // Mengambil akun berdasarkan kode unik (misal: 'CASH', 'BCA')
+    std::optional<QSqlRecord> findByKode(const QString& kode);
+
+    // Fungsi manual untuk update saldo (jika diperlukan di luar trigger)
+    bool updateSaldo(int id, qint64 newSaldo);
+
+protected:
+    QVariantMap validateParams(const QVariantMap& params) override;
+};
 
 // ============================================================================
 // ActivityLogManager — tabel: activity_logs

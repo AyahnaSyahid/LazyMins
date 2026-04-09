@@ -37,18 +37,19 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"customer_phone", header.customer_phone},
     {"price_level_id", header.price_level_id},
     {"discount_amount", header.discount_amount},
-    {"payment_status", "paid"},
+    {"settlement_status", "paid"},
+    {"staging_status", "sent"},
     {"tax_amount", paymentInfo.value("tax_amount", 0) },
     {"internal_notes", "Order Instant"},
     {"admin_id", currentAdminId}
   };
-  
+
   auto opt_invoice = invoiceManager.create(invoiceParam);
   
   if(!opt_invoice.has_value()) {
     con.rollback();
     auto err = invoiceManager.errorString();
-    qWarning() << "createInstantOrderFailed"
+    qWarning() << "createInstantOrderFailed while createInvoice"
                << err;
     return {false, err};
   }
@@ -75,7 +76,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   if(!opt_order.has_value()) {
     con.rollback();
     auto err = invoiceManager.errorString();
-    qWarning() << "createInstantOrderFailed"
+    qWarning() << "createInstantOrderFailed while createOrder"
                << err;
     return {false, err};
   }
@@ -111,7 +112,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     if(!opt_orderItem.has_value()) {
       con.rollback();
       auto err = orderItemManager.errorString();
-      qWarning() << "createInstantOrderFailed on create orderItem"
+      qWarning() << "createInstantOrderFailed while createOrderItem"
                  << err;
       return {false, err};
     }
@@ -142,7 +143,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
       if(!opt_finishingItem.has_value()) {
         con.rollback();
         auto err = orderFinishingManager.errorString();
-        qWarning() << "createInstantOrderFailed on create finishingItem"
+        qWarning() << "createInstantOrderFailed while createFinishingItem"
                    << err;
         return {false, err};
       }
@@ -153,7 +154,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     if(!order_item_updated) {
       con.rollback();
       auto err = orderItemManager.errorString();
-      qWarning() << "createInstantOrderFailed on create update finishing_total"
+      qWarning() << "createInstantOrderFailed while create & update finishing_total"
                  << err;
       return { false, err };
     }
@@ -163,10 +164,11 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   auto pay_n = PaymentManager::generatePaymentNumber();
   QVariantMap paymentParams {
     {"payment_number", pay_n},
-    {"payment_status", "verified"},
+    {"verification_status", "verified"},
     {"invoice_id", createdInvoiceId},
     {"amount", paymentInfo.value("payment_amount", 0)},
     {"admin_id", currentAdminId},
+    {"akun_transaksi_id", 1}, // CASH
     {"cash_received", paymentInfo.value("cash_received", 0)},
     {"cash_change", paymentInfo.value("cash_change", 0)}
   };
@@ -176,38 +178,53 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   if (!opt_payment.has_value()) {
     con.rollback();
     auto err = paymentManager.errorString();
-    qWarning() << "createInstantOrderFailed on create create payment"
+    qWarning() << "createInstantOrderFailed while createPayment"
                << err;
     return { false, err };
   }
   
   auto createdPaymentId = (*opt_payment).value("id").toInt();
   
-  TransaksiManager transaksiManager;
+  AkunTransaksiManager akunTransaksiManager;
   
-  auto opt_last_tr = transaksiManager.lastTransaction();
+  auto paymentAmount = paymentInfo.value("payment_amount").toInt();
   
-  int amount_before = 0,
-      amount = paymentInfo.value("payment_amount").toInt(),
-      amount_after = 0;
+  auto opt_accTr = akunTransaksiManager.getById(1);
   
-  if(opt_last_tr.has_value()) {
-    amount_before = (*opt_last_tr).value("amount_after").toInt();
+  if (!opt_accTr.has_value()) {
+    auto err = "CASH akun_transaksi tidak ditemukan";
+    qWarning() << "createInstantOrderFailed while finding akun_transaksi by id"
+               << err;
+    return  { false, err };
   }
   
-  amount_after = amount_before + amount;
+  auto saldoAkun = (*opt_accTr).value("saldo").toInt();
+  
+  if(!akunTransaksiManager.updateSaldo(1, paymentAmount)) {
+    auto err = akunTransaksiManager.errorString();
+    qWarning() << "createInstantOrderFailed while updating saldo akun_transaksi"
+               << err;
+    return  { false, err };
+  }
+  
+  TransaksiManager transaksiManager;
+
+  int amount_before = saldoAkun,
+      amount = paymentAmount;
+  
   
   auto tr_num = transaksiManager.generateTransactionNumber();
   
   QVariantMap transaksiParams {
-    {"tr_num", tr_num},
+    {"transaction_number", tr_num},
     {"admin_id", currentAdminId},
     {"kategori_id", 1},
+    {"akun_id", 1},
     {"tipe", "pemasukan"},
     {"deskripsi", "Pembayaran Cash"},
     {"amount_before", amount_before},
     {"amount", amount},
-    {"amount_after", amount_after},
+    {"amount_after", amount_before + amount }, // dijumlahkan karena ini pembayaran
     {"payment_method", "cash"},
     {"reference_type", "payments"},
     {"reference_id", createdPaymentId}
@@ -217,7 +234,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   
   if(!opt_transaksi.has_value()) {
     auto err = transaksiManager.errorString();
-    qWarning() << "createInstantOrderFailed on logging Transaksi"
+    qWarning() << "createInstantOrderFailed while logging Transaksi"
                << err;
     return { false, err };
   }

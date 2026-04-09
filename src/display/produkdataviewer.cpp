@@ -54,7 +54,7 @@ ProdukDataViewer::ProdukDataViewer(QWidget *parent)
 {
     ui = Ui();
     auto m = &model();
-    m->setQueryArgs(R"--(
+    setQueryArgs(R"--(
 SELECT p.id, sku, name, category_name,
        p.description, unit, stock, min_stock, 
        cost_price, CAST(p.is_active AS INTEGER) AS active, use_area
@@ -190,6 +190,7 @@ QAction* ProdukDataViewer::addProductAction()
 
 void ProdukDataViewer::onAddProductActionTriggered() {
   ProductDialog pd(this);
+  pd.prepareCreate();
   connect(&pd, &QDialog::accepted, this, &DataViewer::refresh);
   pd.setWindowTitle("Form Produk Baru");
   pd.exec();
@@ -208,6 +209,7 @@ QAction* ProdukDataViewer::addCategoryProductAction() {
 
 void ProdukDataViewer::onAddCategoryProductActionTriggered() {
   KategoriProdukDialog dl(this);
+  dl.prepareCreate();
   connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);
   dl.setWindowTitle("Form Kategori Produk Baru");
   dl.exec();

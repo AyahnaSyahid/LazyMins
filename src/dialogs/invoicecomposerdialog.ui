@@ -279,18 +279,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QComboBox" name="metodeBayar">
-            <item>
-             <property name="text">
-              <string>Cash</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Transfer</string>
-             </property>
-            </item>
-           </widget>
+           <widget class="QueryComboBox" name="metodeBayar"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="diskonTotalLabel_2">
@@ -308,7 +297,7 @@
              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
             <property name="readOnly">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -423,6 +412,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QueryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/querycombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

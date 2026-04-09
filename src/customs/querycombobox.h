@@ -3,17 +3,17 @@
 #include <QComboBox>
 #include <QTableView>
 #include <QSqlQueryModel>
-#include "src/database/databasemanager.h"
+#include "src/managers/managers.h"
 
 class QSqlQueryModel;
 class QueryComboBox : public QComboBox
 {
   Q_OBJECT
   public:
-    QueryComboBox(QWidget *p=nullptr);
+    QueryComboBox(QWidget * = nullptr);
 
-    void setQuery(const QString& s, QSqlDatabase &db = DatabaseManager::instance().database());
-    void setQuery(const QString& s, const QVariantMap &binding, QSqlDatabase &db = DatabaseManager::instance().database());
+    void setQuery(const QString& s, QSqlDatabase &db = BaseManager::connection);
+    void setQuery(const QString& s, const QVariantMap &binding, QSqlDatabase &db = BaseManager::connection);
     int  findValue(const QVariant& value, int column = 0) const;
     void showColumn(int column, bool show = true);
     

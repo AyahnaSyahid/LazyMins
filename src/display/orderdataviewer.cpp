@@ -59,7 +59,7 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
       FROM orders o
            LEFT JOIN
            invoices inv ON o.invoice_id = inv.id
-     WHERE inv.payment_status <> 'paid' OR 
+     WHERE inv.settlement_status <> 'paid' OR 
            inv.id IS NULL
  )--");
   

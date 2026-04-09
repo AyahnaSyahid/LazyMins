@@ -26,6 +26,8 @@ class InvoiceComposerDialog : public QDialog
     void on_simpanButton_clicked();
     void on_bayarButton_clicked();
     void on_removeSelectedOrdersAction_triggered();
+    void on_metodeBayar_currentIndexChanged(int);
+    // void on_pajakSpinBix_valueChanged(int);
     void onImportOrder(); // buka dialog order picker
     void importOrders(const QList<int> &imported);
     void on_orderListView_customContextMenuRequested(const QPoint&);

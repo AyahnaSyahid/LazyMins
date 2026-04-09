@@ -11,7 +11,7 @@
 CREATE TABLE roles (
     id INTEGER PRIMARY KEY,
     role_name TEXT NOT NULL UNIQUE,  -- Nama role: super_admin, kasir, operator
-    description TEXT,                 -- Deskripsi role
+    description TEXT,                -- Deskripsi role
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -80,7 +80,6 @@ CREATE TABLE product_categories (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
 
 -- Tabel Products: Produk yang dijual (diperbaiki)
 CREATE TABLE products (
@@ -166,13 +165,13 @@ CREATE TABLE orders (
     -- Informasi finansial (tetap di orders untuk performa produksi)
     subtotal            INTEGER NOT NULL DEFAULT 0,
     discount_amount     INTEGER NOT NULL DEFAULT 0,
-    discount_percentage INTEGER NOT NULL DEFAULT 0,
+    discount_percentage REAL    DEFAULT 0,
     total_amount        INTEGER GENERATED ALWAYS AS (
                             COALESCE(subtotal,0) - COALESCE(discount_amount, 0)
                         ) VIRTUAL,
     
     -- Status operasional
-    status              TEXT DEFAULT 'pending' CHECK(status IN ('pending','processing','ready','completed','cancelled')),
+    staging_status      TEXT DEFAULT 'pending' CHECK(staging_status IN ('pending','processing','ready','completed','cancelled')),
     priority            TEXT DEFAULT 'normal',
     
     -- Jadwal
@@ -198,7 +197,7 @@ CREATE TABLE orders (
 -- Index untuk orders
 CREATE INDEX idx_orders_invoice ON orders(invoice_id);
 CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_status ON orders(staging_status);
 CREATE INDEX idx_orders_deadline ON orders(deadline_date);
 CREATE INDEX idx_orders_creation ON orders(created_at);
 
@@ -259,16 +258,6 @@ CREATE INDEX idx_order_finishings_item ON order_item_finishings(order_item_id);
 -- 6. TABEL TRANSAKSI - PEMBAYARAN
 -- ============================================================================
 
--- Tabel Payment Methods (TAMBAHAN BARU)
-CREATE TABLE payment_methods (
-    id INTEGER PRIMARY KEY,
-    method_code TEXT UNIQUE NOT NULL,
-    method_name TEXT NOT NULL,
-    is_active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Tabel Payments: Pembayaran dari customer (diperbaiki)
 CREATE TABLE payments (
     id                       INTEGER PRIMARY KEY,
@@ -277,7 +266,6 @@ CREATE TABLE payments (
 
     -- Detail pembayaran
     amount                   INTEGER NOT NULL CHECK(amount > 0),
-    payment_method           TEXT NOT NULL,
     akun_transaksi_id        INTEGER NOT NULL,
     
     -- Informasi tunai
@@ -285,7 +273,7 @@ CREATE TABLE payments (
     cash_change              INTEGER,
     
     -- Status & catatan
-    payment_status           TEXT DEFAULT 'pending' CHECK( payment_status IN ('pending','verified','cancelled') ),
+    verification_status      TEXT DEFAULT 'pending' CHECK( verification_status IN ('pending','verified','cancelled') ),
     notes                    TEXT,
     
     -- Tracking
@@ -297,7 +285,6 @@ CREATE TABLE payments (
     created_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (payment_method)    REFERENCES payment_methods(method_code) ON DELETE RESTRICT,
     FOREIGN KEY (invoice_id)        REFERENCES invoices(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id)          REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (verified_by)       REFERENCES admins(id) ON DELETE RESTRICT,
@@ -305,11 +292,11 @@ CREATE TABLE payments (
 );
 
 -- Index untuk payments
-CREATE INDEX idx_payments_admi    ON payments(admin_id);
+CREATE INDEX idx_payments_admin   ON payments(admin_id);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_date    ON payments(payment_date);
-CREATE INDEX idx_payments_status  ON payments(payment_status);
-CREATE INDEX idx_payments_method  ON payments(payment_method);
+CREATE INDEX idx_payments_status  ON payments(verification_status);
+CREATE INDEX idx_payments_akun_tr ON payments(akun_transaksi_id);
 
 
 -- ============================================================================
@@ -497,12 +484,12 @@ CREATE TABLE invoices (
 
     -- Logika Status yang Terpisah
     -- Status Dokumen: Fokus pada siklus hidup (Workflow)
-    status           TEXT       DEFAULT 'draft' 
-                                CHECK (status IN ('draft', 'issued', 'sent', 'cancelled')),
+    staging_status      TEXT    DEFAULT 'draft' 
+                                CHECK (staging_status IN ('draft', 'issued', 'sent', 'cancelled')),
     
     -- Status Pembayaran: Fokus pada kas (Financial)
-    payment_status   TEXT       DEFAULT 'unpaid' 
-                                CHECK (payment_status IN ('unpaid', 'partial', 'paid', 'refunded')),
+    settlement_status   TEXT    DEFAULT 'unpaid' 
+                                CHECK (settlement_status IN ('unpaid', 'partial', 'paid', 'refunded')),
 
     -- Penanganan Revisi
     revision_no      INTEGER    DEFAULT 0,
@@ -530,7 +517,7 @@ CREATE TABLE invoices (
 CREATE INDEX idx_invoices_number ON invoices(invoice_number);
 CREATE INDEX idx_invoices_customer ON invoices(customer_id);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
-CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_status ON invoices(staging_status);
 CREATE INDEX idx_invoices_creation ON invoices(created_at);
 
 -- ============================================================================
@@ -545,10 +532,7 @@ SELECT
     o.customer_name,
     o.customer_phone,
     o.total_amount,
-    o.paid_amount,
-    (o.total_amount - o.paid_amount) AS remaining_amount,
-    o.status,
-    o.payment_status,
+    o.staging_status,
     o.priority,
     o.order_date,
     o.deadline_date,
@@ -580,11 +564,9 @@ SELECT
     DATE(o.order_date) AS sale_date,
     COUNT(DISTINCT o.id) AS total_orders,
     SUM(o.total_amount) AS total_sales,
-    SUM(o.paid_amount) AS total_received,
-    SUM(o.total_amount - o.paid_amount) AS total_outstanding,
     COUNT(DISTINCT o.customer_id) AS unique_customers
 FROM orders o
-WHERE o.status != 'cancelled'
+WHERE o.staging_status != 'cancelled'
 GROUP BY DATE(o.order_date);
 
 -- View: Top Selling Products
@@ -601,7 +583,7 @@ FROM products p
 LEFT JOIN product_categories pc ON p.category_id = pc.id
 LEFT JOIN order_items oi ON p.id = oi.product_id
 LEFT JOIN orders o ON oi.order_id = o.id
-WHERE o.status != 'cancelled'
+WHERE o.staging_status != 'cancelled'
 GROUP BY p.id
 ORDER BY total_revenue DESC;
 
@@ -618,7 +600,7 @@ CREATE VIEW v_top_customers AS
       FROM konsumen k
            LEFT JOIN
            orders o ON o.customer_id = k.id AND
-                       o.status != 'cancelled'-- jangan hitung order batal
+                       o.staging_status != 'cancelled'-- jangan hitung order batal
      WHERE k.is_active = 1
      GROUP BY k.id,
               k.customer_code,
@@ -728,20 +710,17 @@ END;
 -- TRIGGER UNTUK MENGELOLA PAID_AMOUNT PADA INVOICE
 -- =============================================
 
--- 1. After INSERT Payment (cash)
+-- 1. After INSERT Payment
 CREATE TRIGGER t_invoice_paid_after_insert_payment
 AFTER INSERT ON payments
-WHEN NEW.invoice_id IS NOT NULL AND (
-    NEW.payment_method = 'cash' OR 
-    (NEW.payment_method = 'transfer' AND NEW.transfer_verified = 1)
-)
+WHEN NEW.invoice_id IS NOT NULL
 BEGIN
     UPDATE invoices
     SET paid_amount = (
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = NEW.invoice_id 
-          AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
+          AND verification_status = 'verified'
     )
     WHERE id = NEW.invoice_id;
 END;
@@ -749,38 +728,29 @@ END;
 -- 2. After UPDATE Payment
 CREATE TRIGGER t_invoice_paid_after_update
 AFTER UPDATE ON payments
-WHEN NEW.invoice_id IS NOT NULL AND (
-    NEW.payment_method = 'cash' OR 
-    ( NEW.payment_method = 'transfer' AND NEW.transfer_verified = 1 ) 
-)
 BEGIN
-    -- Update invoice lama
+    -- Update invoice lama (jika ada perpindahan invoice_id)
     UPDATE invoices
     SET paid_amount = (
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = OLD.invoice_id
-        AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
+          AND verification_status = 'verified'
     )
-    WHERE OLD.invoice_id IS NOT NULL 
-      AND id = OLD.invoice_id;
+    WHERE id = OLD.invoice_id;
 
-    -- Update invoice baru (jika invoice_id diubah)
+    -- Update invoice baru
     UPDATE invoices
     SET paid_amount = (
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = NEW.invoice_id
-        AND (payment_method = 'cash' OR 
-            (payment_method = 'transfer' 
-                AND transfer_verified = 1) )
+          AND verification_status = 'verified'
     )
-    WHERE NEW.invoice_id IS NOT NULL 
-      AND id = NEW.invoice_id;
+    WHERE id = NEW.invoice_id;
 END;
 
-
--- 3. After DELETE Payment (Opsional)
+-- 3. After DELETE Payment
 CREATE TRIGGER t_invoice_paid_after_delete
 AFTER DELETE ON payments
 WHEN OLD.invoice_id IS NOT NULL
@@ -790,13 +760,14 @@ BEGIN
         SELECT COALESCE(SUM(amount), 0)
         FROM payments 
         WHERE invoice_id = OLD.invoice_id
-          AND (payment_method = 'cash' OR (payment_method = 'transfer' AND transfer_verified = 1))
+          AND verification_status = 'verified'
     )
     WHERE id = OLD.invoice_id;
 END;
 
 -- ================================================
 -- Trigger : finishing_services save update time
+-- ================================================
 CREATE TRIGGER trg_saveUpdate_time
          AFTER UPDATE OF id,
                          code,
@@ -850,7 +821,7 @@ BEGIN
 END;
 
 CREATE TRIGGER validate_transaksi_time
-BEFORE INSERT ON order_items
+BEFORE INSERT ON transaksi
 FOR EACH ROW
 BEGIN
     SELECT
@@ -861,7 +832,7 @@ BEGIN
 END;
 
 CREATE TRIGGER validate_payments_time
-BEFORE INSERT ON order_items
+BEFORE INSERT ON payments
 FOR EACH ROW
 BEGIN
     SELECT
@@ -872,7 +843,7 @@ BEGIN
 END;
 
 CREATE TRIGGER validate_stock_movements_time
-BEFORE INSERT ON order_items
+BEFORE INSERT ON stock_movements
 FOR EACH ROW
 BEGIN
     SELECT
@@ -939,15 +910,6 @@ INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
 ('Utilitas', 'pengeluaran', 'Listrik, air, internet'),
 ('Maintenance', 'pengeluaran', 'Perawatan mesin dan peralatan'),
 ('Lain-lain (Pengeluaran)', 'pengeluaran', 'Pengeluaran lainnya');
-
-
--- Data awal payment methods
-INSERT INTO payment_methods (method_code, method_name) VALUES
-('cash', 'Tunai'),
-('transfer', 'Transfer Bank'),
-('qris', 'QRIS'),
-('debit', 'Kartu Debit'),
-('credit', 'Kartu Kredit');
 
 -- COMMENT INSERT INI Dalam PRODUKSI
 -- INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES 

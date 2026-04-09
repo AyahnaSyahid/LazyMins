@@ -1,10 +1,5 @@
--- ============================================================================
--- SKEMA DATABASE APLIKASI ADMINISTRASI PERCETAKAN (IMPROVED VERSION)
--- ============================================================================
--- Versi yang disempurnakan dengan fitur tambahan untuk manajemen order,
--- pembayaran, inventori, dan laporan keuangan percetakan
--- ============================================================================
 
+-- di handle di aplikasi
 -- PRAGMA foreign_keys = ON;
 -- BEGIN TRANSACTION;
 
@@ -282,21 +277,15 @@ CREATE TABLE payments (
 
     -- Detail pembayaran
     amount                   INTEGER NOT NULL CHECK(amount > 0),
-    payment_method           TEXT NOT NULL DEFAULT 'cash',
-    
-    -- Informasi transfer
-    transfer_bank            TEXT,
-    transfer_account_name    TEXT,
-    transfer_account_number  TEXT,
-    transfer_verified        INTEGER DEFAULT 0,
-    transfer_proof_image     TEXT,
+    payment_method           TEXT NOT NULL,
+    akun_transaksi_id        INTEGER NOT NULL,
     
     -- Informasi tunai
     cash_received            INTEGER,
     cash_change              INTEGER,
     
     -- Status & catatan
-    payment_status           TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','verified','cancelled')),
+    payment_status           TEXT DEFAULT 'pending' CHECK( payment_status IN ('pending','verified','cancelled') ),
     notes                    TEXT,
     
     -- Tracking
@@ -308,17 +297,19 @@ CREATE TABLE payments (
     created_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (invoice_id)    REFERENCES invoices(id) ON DELETE RESTRICT,
-    FOREIGN KEY (admin_id)      REFERENCES admins(id) ON DELETE RESTRICT,
-    FOREIGN KEY (verified_by)   REFERENCES admins(id)
+    FOREIGN KEY (payment_method)    REFERENCES payment_methods(method_code) ON DELETE RESTRICT,
+    FOREIGN KEY (invoice_id)        REFERENCES invoices(id) ON DELETE RESTRICT,
+    FOREIGN KEY (admin_id)          REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (verified_by)       REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (akun_transaksi_id) REFERENCES akun_transaksi(id)  ON DELETE RESTRICT
 );
 
 -- Index untuk payments
+CREATE INDEX idx_payments_admi    ON payments(admin_id);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
-CREATE INDEX idx_payments_date ON payments(payment_date);
-CREATE INDEX idx_payments_status ON payments(payment_status);
-CREATE INDEX idx_payments_method ON payments(payment_method);
-CREATE INDEX idx_payments_creation ON payments(created_at);
+CREATE INDEX idx_payments_date    ON payments(payment_date);
+CREATE INDEX idx_payments_status  ON payments(payment_status);
+CREATE INDEX idx_payments_method  ON payments(payment_method);
 
 
 -- ============================================================================
@@ -330,7 +321,7 @@ CREATE TABLE kategori_transaksi (
     id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
-    tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL CHECK( tipe IN ('pemasukan', 'pengeluaran')),
     parent_id INTEGER,                -- TAMBAHAN: Untuk sub-kategori
     description TEXT,                 -- TAMBAHAN: Deskripsi kategori
     is_active INTEGER DEFAULT 1,
@@ -342,13 +333,13 @@ CREATE TABLE kategori_transaksi (
 -- Tabel Transaksi: Catatan pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE transaksi (
     id INTEGER PRIMARY KEY,
-    akun_id INTEGER,
+    akun_id INTEGER NOT NULL,
     transaction_number TEXT UNIQUE,   -- TAMBAHAN: Nomor transaksi unik
     admin_id INTEGER NOT NULL,
     kategori_id INTEGER,
     
     -- Detail transaksi
-    tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL CHECK( tipe IN ('pemasukan', 'pengeluaran')),
     deskripsi TEXT,
     
     -- Ledger Mode (Buku Besar)
@@ -398,8 +389,7 @@ CREATE TABLE akun_transaksi (
     atas_nama TEXT,                       -- Nama pemilik rekening
     
     -- Saldo
-    saldo_awal INTEGER NOT NULL DEFAULT 0,
-    saldo_saat_ini INTEGER NOT NULL DEFAULT 0,
+    saldo INTEGER DEFAULT 0,
     
     is_active INTEGER DEFAULT 1,
     description TEXT,
@@ -819,7 +809,7 @@ CREATE TRIGGER trg_saveUpdate_time
             ON finishing_services
 BEGIN
     UPDATE finishing_services
-       SET updated_at = datetime('now');
+       SET updated_at = CURRENT_DATETIME;
 END;
 
 -- ==============================================
@@ -1014,6 +1004,10 @@ INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_t
 ('CUST-004', 'Siti Aminah', 'Individual', NULL, '021-34567890', 'Jl. Sudirman No. 321', 'Medan', '54321', NULL, 'Pelanggan dengan potensi besar', 1),
 ('CUST-005', 'PT. Global Abadi', 'Company', 'info@globalabadi.com', '021-45678901', 'Jl. Diponegoro No. 567', 'Semarang', '78901', '12.345.678.9-000.000', 'Pelanggan utama', 1),
 ('CUST-006', 'Ahmad Fauzi', 'Individual', 'ahmad.fauzi@email.com', '021-56789012', 'Jl. Gatot Subroto No. 678', 'Yogyakarta', '89012', NULL, 'Pelanggan loyal', 1);
+
+-- buat akun transaksi default
+INSERT INTO akun_transaksi ( kode, nama, tipe, nama_bank, nomor_rekening, atas_nama, saldo, description ) VALUES 
+( 'CASH', 'Kas Admin', 'cash', NULL, NULL, NULL, 0, 'Akun trasaksi default' )
 
 -- buat inisiasi kas
 -- INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 

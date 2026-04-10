@@ -109,3 +109,5 @@ void DataViewer::setColumnVisible(int col, bool vis) {
 void DataViewer::setEditable(bool editable) {
   ui->dataView->setEditTriggers(editable ? QTableView::AllEditTriggers : QTableView::NoEditTriggers);
 }
+
+void DataViewer::adjustColumns() { ui->dataView->resizeColumnsToContents(); }

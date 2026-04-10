@@ -136,6 +136,7 @@ namespace {
             QStyledItemDelegate::initStyleOption(option, mi);
 
             // 2. Timpa teks dan perataan sesuai kebutuhan kolom
+            if(mi.data(Qt::UserRole + 102).toBool()) option->backgroundBrush = QColor(255, 255, 200);
             switch (mi.column()) {
                 case 0: {
                     option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;

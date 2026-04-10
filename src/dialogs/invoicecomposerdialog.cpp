@@ -24,7 +24,7 @@ ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialo
   
   // init metode bayar
   ui->metodeBayar->setQuery(R"-(
-    SELECT id, kode, tipe, nama_bank, nomor_rekening, atas_nama, description FROM akun_transaksi WHERE is_active = 1 ORDER BY kode ASC
+    SELECT id, kode, nama, nama_bank, nomor_rekening, atas_nama, description FROM akun_transaksi WHERE is_active = 1 ORDER BY kode ASC
   )-");
   auto isOnlyMethod = ui->metodeBayar->count() == 1;
   ui->metodeBayar->setCurrentIndex( isOnlyMethod ? 0 : -1);
@@ -59,11 +59,12 @@ void InvoiceComposerDialog::on_metodeBayar_currentIndexChanged(int i) {
     return;
   }
   auto  m_model = ui->metodeBayar->model();
-  ui->akunBank->setText(m_model->index(i, 0).data().toString());
-  ui->akunBank->setToolTip(QString("%1\n%2\n%3").arg(
+  ui->akunBank->setText(m_model->index(i, 2).data().toString());
+  ui->akunBank->setToolTip(QString("%1\n%2\n%3\n%4").arg(
+    m_model->index(i, 3).data().toString(),
     m_model->index(i, 4).data().toString(),
     m_model->index(i, 5).data().toString(),
-    m_model->index(i, 6).data().toString()));
+    m_model->index(i, 6).data().toString()).simplified());
 }
 
 

@@ -43,7 +43,6 @@ void FormDialog::accept()
         return;
     }
 
-
     if (!onSave(changes)) {
         QMessageBox::warning(
             this,

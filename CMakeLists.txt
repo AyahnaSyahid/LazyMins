@@ -108,6 +108,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/invoicecomposerdialog.h
                            src/dialogs/invoicecomposerdialog.ui
                            src/dialogs/invoicecomposerdialog.cpp
+                           src/dialogs/akuntransaksidialog.h
+                           src/dialogs/akuntransaksidialog.ui
+                           src/dialogs/akuntransaksidialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui
@@ -141,6 +144,8 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/mainwindow/mainwindow.h
                            src/mainwindow/mainwindow.ui
                            src/mainwindow/mainwindow.cpp
+                           src/mainwindow/actiongroup.h
+                           src/mainwindow/actiongroup.cpp
                            
                            src/utils/sessionmanager.h
                            src/utils/sessionmanager.cpp
@@ -156,4 +161,8 @@ target_link_libraries(Ui_LAdmins PUBLIC Mgr_LAdmins Qt6::Widgets)
 qt_add_executable(test_logform src/main.cpp)
 
 target_link_libraries(test_logform PRIVATE Mgr_LAdmins Ui_LAdmins)
+
+message(STATUS "========================================")
+message(STATUS "Build type saat ini: ${CMAKE_BUILD_TYPE}")
+message(STATUS "========================================")
 

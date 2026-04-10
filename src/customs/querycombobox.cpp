@@ -20,7 +20,7 @@ qmodel(new QSqlQueryModel(this)), boxView(new QTableView), QComboBox(p)
   vh->setMinimumSectionSize(22);
   vh->setDefaultSectionSize(20);
   vh->hide();
-  boxView->setHorizontalScrollMode(QTableView::ScrollPerPixel);
+  boxView->setVerticalScrollMode(QTableView::ScrollPerPixel);
   boxView->setSelectionBehavior(QTableView::SelectRows);
   boxView->horizontalHeader()->hide();
   boxView->setAlternatingRowColors(true);

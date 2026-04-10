@@ -76,6 +76,7 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
   ui->dataView->resizeColumnsToContents();
   ui->dataView->verticalHeader()->hide();
+  adjustColumns();
 }
 
 OrderDataViewer::~OrderDataViewer(){}

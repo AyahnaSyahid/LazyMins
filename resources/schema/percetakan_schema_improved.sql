@@ -171,7 +171,7 @@ CREATE TABLE orders (
                         ) VIRTUAL,
     
     -- Status operasional
-    staging_status      TEXT DEFAULT 'pending' CHECK(staging_status IN ('pending','processing','ready','completed','cancelled')),
+    staging_status      TEXT DEFAULT 'pending' COLLATE NOCASE CHECK(staging_status IN ('pending','processing','ready','completed','cancelled')),
     priority            TEXT DEFAULT 'normal',
     
     -- Jadwal
@@ -273,7 +273,7 @@ CREATE TABLE payments (
     cash_change              INTEGER,
     
     -- Status & catatan
-    verification_status      TEXT DEFAULT 'pending' CHECK( verification_status IN ('pending','verified','cancelled') ),
+    verification_status      TEXT DEFAULT 'pending' COLLATE NOCASE CHECK( verification_status IN ('pending','verified','cancelled') ),
     notes                    TEXT,
     
     -- Tracking
@@ -308,7 +308,7 @@ CREATE TABLE kategori_transaksi (
     id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
-    tipe TEXT NOT NULL CHECK( tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran')),
     parent_id INTEGER,                -- TAMBAHAN: Untuk sub-kategori
     description TEXT,                 -- TAMBAHAN: Deskripsi kategori
     is_active INTEGER DEFAULT 1,
@@ -326,7 +326,7 @@ CREATE TABLE transaksi (
     kategori_id INTEGER,
     
     -- Detail transaksi
-    tipe TEXT NOT NULL CHECK( tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran')),
     deskripsi TEXT,
     
     -- Ledger Mode (Buku Besar)
@@ -363,7 +363,7 @@ CREATE TABLE akun_transaksi (
     id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE NOT NULL,            -- Kode akun: 'CASH', 'BRI', 'BCA'
     nama TEXT UNIQUE NOT NULL,            -- Nama tampilan: 'Kas Admin', 'Bank BRI'
-    tipe TEXT NOT NULL CHECK(tipe IN (
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK(tipe IN (
         'cash',         -- Uang tunai
         'bank',         -- Rekening bank
         'ewallet',      -- Dompet digital (OVO, DANA, GoPay)
@@ -392,7 +392,7 @@ CREATE TABLE akun_transaksi (
 CREATE TABLE stock_movements (
     id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
-    movement_type TEXT NOT NULL CHECK(movement_type IN ('in', 'out', 'adjustment')),
+    movement_type TEXT NOT NULL COLLATE NOCASE CHECK(movement_type IN ('in', 'out', 'adjustment')),
     stock_before REAL NOT NULL,       -- Stok sebelum transaksi
     quantity     REAL NOT NULL,       -- Positif untuk masuk, negatif untuk keluar
     stock_after  REAL NOT NULL,       -- Stok setelah transaksi
@@ -484,11 +484,11 @@ CREATE TABLE invoices (
 
     -- Logika Status yang Terpisah
     -- Status Dokumen: Fokus pada siklus hidup (Workflow)
-    staging_status      TEXT    DEFAULT 'draft' 
+    staging_status      TEXT    DEFAULT 'draft' COLLATE NOCASE 
                                 CHECK (staging_status IN ('draft', 'issued', 'sent', 'cancelled')),
     
     -- Status Pembayaran: Fokus pada kas (Financial)
-    settlement_status   TEXT    DEFAULT 'unpaid' 
+    settlement_status   TEXT    DEFAULT 'unpaid' COLLATE NOCASE 
                                 CHECK (settlement_status IN ('unpaid', 'partial', 'paid', 'refunded')),
 
     -- Penanganan Revisi
@@ -780,7 +780,7 @@ CREATE TRIGGER trg_saveUpdate_time
             ON finishing_services
 BEGIN
     UPDATE finishing_services
-       SET updated_at = CURRENT_DATETIME;
+       SET updated_at = CURRENT_TIMESTAMP;
 END;
 
 -- ==============================================

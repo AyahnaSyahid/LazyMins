@@ -12,7 +12,22 @@ namespace {
       Delegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
       ~Delegate() = default;
       void initStyleOption(QStyleOptionViewItem *option, const QModelIndex& index) const override {
-        
+        QStyledItemDelegate::initStyleOption(option, index);
+        switch (index.column()) {
+          case 0:
+            option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+            break;
+          case 1:
+          case 5:
+            option->displayAlignment = Qt::AlignCenter;
+            break;
+          case 2:
+          case 3:
+          case 4:
+            option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+            option->text = QString("%L1").arg(index.data().toInt());
+            break;
+        }
       }
   };
 }
@@ -32,7 +47,7 @@ OrderPickerDialog::OrderPickerDialog(QWidget *parent) :
     ui->orderView->verticalHeader()->setMinimumSectionSize(20);
     ui->orderView->verticalHeader()->setDefaultSectionSize(22);
     ui->orderView->setAlternatingRowColors(true);
-    
+    ui->orderView->setItemDelegate(new Delegate(this));
     auto delayer = new QTimer(this);
     delayer->setSingleShot(true);
     delayer->setInterval(500);
@@ -56,12 +71,12 @@ void OrderPickerDialog::setCustomerId(int id)
 void OrderPickerDialog::onParameterChanged() {
   
   QString baseQuery (R"--(
-    SELECT id,
-           order_number,
-           subtotal,
-           discount_amount,
-           total_amount,
-           date(order_date)
+    SELECT id AS ID,
+           order_number AS Nomor,
+           subtotal AS Subtotal,
+           discount_amount AS Diskon,
+           total_amount AS Total,
+           date(order_date, 'localtime') AS Tanggal
       FROM orders
      WHERE customer_id = :cust_id AND invoice_id IS NULL AND id NOT IN ( %1)
   ORDER BY order_date ASC )--");
@@ -81,7 +96,7 @@ void OrderPickerDialog::onParameterChanged() {
   
   auto proxy = qobject_cast<QSortFilterProxyModel*>(ui->orderView->model());
   if (proxy && proxy->sourceModel() != model) proxy->setSourceModel(model);
-  qDebug() << "OrderPickerDialog : onParameterChanged";
+  ui->orderView->resizeColumnsToContents();
 }
 
 void OrderPickerDialog::setFilterIds(const QList<int> &ids) {

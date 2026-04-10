@@ -31,12 +31,12 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
     return std::nullopt;
   }
   
-  if (!validatedParams.contains("created_at")) {
-      validatedParams["created_at"] = QDateTime::currentDateTimeUtc();
-  }
-  if (!validatedParams.contains("updated_at")) {
-      validatedParams["updated_at"] = QDateTime::currentDateTimeUtc();
-  }
+  // if (!validatedParams.contains("created_at")) {
+      // validatedParams["created_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
+  // }
+  // if (!validatedParams.contains("updated_at")) {
+      // validatedParams["updated_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
+  // }
   
   // Hook before create
   beforeCreate(validatedParams);

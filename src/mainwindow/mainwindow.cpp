@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "actiongroup.h"
 #include "src/dialogs/konsumendialog.h"
 #include "src/dialogs/userdialog.h"
 #include "src/dialogs/orderdialog.h"
@@ -114,6 +115,10 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     dialog->open();
   });
   
+  // Various actions
+  auto actionGroup = new ActionGroup(this);
+  ui->menuTambah->addSeparator();
+  ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
   
   // UserSession
   auto &sm = SessionManager::instance();

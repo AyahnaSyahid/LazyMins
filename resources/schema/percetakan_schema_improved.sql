@@ -88,7 +88,7 @@ CREATE TABLE products (
     name TEXT NOT NULL,
     category_id INTEGER,              -- TAMBAHAN: Kategori produk
     description TEXT,                 -- TAMBAHAN: Deskripsi produk
-    unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter, dll)
+    unit TEXT COLLATE NOCASE DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter, dll)
     stock REAL DEFAULT 0,
     min_stock REAL DEFAULT 0,         -- TAMBAHAN: Minimum stok untuk alert
     cost_price INTEGER DEFAULT 0,     -- TAMBAHAN: Harga pokok (HPP)

@@ -19,6 +19,7 @@ class InvoiceDataViewer : public DataViewer
   public slots:
     void onCreateInvoice();
     void openContextMenu(const QPoint& pt);
+    void on_dataView_customContextMenuRequested(const QPoint& p);
 
   private slots:
     
@@ -26,4 +27,5 @@ class InvoiceDataViewer : public DataViewer
     Ui::DataViewer *ui;
     QAction *m_createInvoiceAction;
     
+    QMenu* dataBaruMenu;
 };

@@ -6,6 +6,7 @@
 #include "src/dialogs/orderpickerdialog.h"
 #include "src/dialogs/customerpickerdialog.h"
 #include "src/managers/managers.h"
+#include "src/managers/helpers.h"
 
 #include <QDate>
 #include <QMenu>
@@ -38,11 +39,9 @@ ui(new Ui::InvoiceComposerDialog), model(new InvoiceComposerModel(this)), QDialo
   connect(model,                  &QAbstractItemModel::rowsInserted,       this, &InvoiceComposerDialog::uiSync);
   connect(ui->pajakSpinBox,       &QSpinBox::valueChanged,                 this, &InvoiceComposerDialog::uiSync);
   connect(ui->importOrdersAction, &QAction::triggered,                     this, &InvoiceComposerDialog::onImportOrder);
+  connect(ui->phoneLineEdit, &QLineEdit::textChanged, [this](const QString& txt) { m_customer_phone = txt; });
   
-  ui->line_2->hide();
-  ui->totalLabel_2->hide();
-  ui->totalSpinBox_2->hide();
-
+  ui->frame_3->hide();
 };
 
 InvoiceComposerDialog::~InvoiceComposerDialog() { delete ui; }
@@ -67,12 +66,41 @@ void InvoiceComposerDialog::on_metodeBayar_currentIndexChanged(int i) {
     m_model->index(i, 6).data().toString()).simplified());
 }
 
+bool InvoiceComposerDialog::makePayment() {
+  auto res = DBOperationHelper::createPaymentForOrders(params(), {}, model->imported());
+  if(!res.ok) {
+    QMessageBox::warning(this, "Gagal membuat Invoice", QString("Error :\n%1").arg(res.error));
+    return false;
+  }
+  return true;
+}
+
+bool InvoiceComposerDialog::makeInvoice() {
+  auto res = DBOperationHelper::createInvoiceForOrders(params(), model->imported());
+  if(!res.ok) {
+    QMessageBox::warning(this, "Gagal membuat Invoice", QString("Error :\n%1").arg(res.error));
+    return false;
+  }
+  return true;
+}
 
 void InvoiceComposerDialog::on_simpanButton_clicked()
-{}
+{
+  if (!checkInput()) return;
+  if (makeInvoice()) {
+    emit invoiceCreated();
+    accept();
+  }
+}
 
 void InvoiceComposerDialog::on_bayarButton_clicked()
-{}
+{ 
+  if (!checkInput()) return;
+  if (makePayment()) {
+    emit paymentCreated();
+    accept();
+  }
+}
 
 void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
 {
@@ -153,7 +181,6 @@ void InvoiceComposerDialog::on_orderListView_customContextMenuRequested(const QP
 }
 
 void InvoiceComposerDialog::onCustomerChanged() {
-  // model->clearOrders(); 
   ui->labelNama->setText(m_customer_name);
   ui->phoneLineEdit->setText(m_customer_phone);
 }
@@ -170,9 +197,14 @@ void InvoiceComposerDialog::uiSync()
   ui->totalSpinBox->setValue(total + pajak);
 }
 
-void InvoiceComposerDialog::refresh()              // reload data orders dari didatabase
+// reload data orders dari didatabase
+void InvoiceComposerDialog::refresh()
 {
-  
+  auto imp = model->imported();
+  model->clearOrders();
+  for(auto const& i : imp) {
+    model->insertOrder(i);
+  }
 }
 
 void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc)
@@ -197,4 +229,37 @@ void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc)
     m_customer_name  = rc.value("nama_lengkap").toString();
     m_customer_phone = rc.value("nomor_telp").toString();
     emit customerChanged();
+}
+
+bool InvoiceComposerDialog::checkInput()
+{
+  if (m_customer_id < 1) {
+    QMessageBox::warning(this, "Periksa masukan", "Anda belum menentukan Konsumen");
+    return false;
+  }
+
+  if (ui->phoneLineEdit->text().simplified().isEmpty()) {
+    auto proceed = QMessageBox::question(this, "Nomor Telepon", "Apakah anda sengaja mengosongkan nomor telepon", QMessageBox::Yes | QMessageBox::No);
+    if (proceed == QMessageBox::No) return false;
+  }
+
+  QStringList errs;
+  if (ui->dateEdit->date() < QDate::currentDate()) {
+    auto proceed = QMessageBox::question(this, "Tanggal Dibelakang", "Apakah anda sengaja membuat invoice dari tanggal sebelumnya ?", QMessageBox::Yes | QMessageBox::No);
+    if (proceed == QMessageBox::No) return false;
+  }
+  return true;
+}
+
+QVariantMap InvoiceComposerDialog::params() const
+{
+  QVariantMap ret { 
+    {"customer_id", m_customer_id},
+    {"customer_name", m_customer_name},
+    {"customer_phone", m_customer_phone},
+    {"issue_date", ui->dateEdit->date().toString("yyyy-MM-dd")},
+    {"tax_amount", ui->pajakSpinBox->value()} };
+  
+  if (!ui->plainTextEdit->toPlainText().simplified().isEmpty()) ret["notes"] = ui->plainTextEdit->toPlainText();
+  return ret;
 }

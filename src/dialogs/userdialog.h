@@ -19,7 +19,7 @@ public:
 protected:
     bool onSave(const QVariantMap &changes) override;
     void setupFields() override;
-    bool validateFields(const QVariantMap &changes);
+    bool isInputAcceptable() const override;
 
 private slots:
     void on_simpanButton_clicked();

@@ -39,6 +39,14 @@ QVariant InvoiceComposerModel::data(const QModelIndex& ix, int role) const {
   }
 };
 
+bool InvoiceComposerModel::setData(const QModelIndex& ix, const QVariant& val, int role) {
+  if (!ix.isValid()) return false;
+  if (role == IdRole) return false;
+  qWarning() << "This function isnt implemented yet";
+  return false;
+}
+
+
 void InvoiceComposerModel::insertOrder(int order_id) {
 
   SavedOrder imp;

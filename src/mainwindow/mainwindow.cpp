@@ -77,7 +77,8 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ord1->setPageSize(50);
   ord1->refresh();
   ui->menuView->addAction(dsO->toggleViewAction());
-  
+  connect(ui->actionOrderCreate, &QAction::triggered, ord1, &OrderDataViewer::openCreateOrderDialog);
+
   auto idv = new InvoiceDataViewer;
   auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
   addDockWidget(Qt::TopDockWidgetArea, dsI);
@@ -85,6 +86,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   idv->refresh();
   ui->menuView->addAction(dsI->toggleViewAction());
   connect(ui->actionInvoiceCreate, &QAction::triggered, idv, &InvoiceDataViewer::onCreateInvoice);
+  connect(idv, &DataViewer::refreshed, ord1, &DataViewer::refresh); // Hati2 jangan sampai circular
   tabifyDockWidget(dsO, dsI);
   
   connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
@@ -94,15 +96,6 @@ ui(new Ui::MainWindow), QMainWindow(p) {
       // return pd;
     // }, this);
   
-  auto createOrderDialog = [this, ord1, dv1]() {
-    auto d = new OrderDialog(this);
-    d->setAttribute(Qt::WA_DeleteOnClose);
-    connect(d, &OrderDialog::accepted, ord1, &OrderDataViewer::refresh);
-    connect(d, &OrderDialog::accepted, dv1, &DataViewer::refresh);
-    d->open();
-  };
-  
-  connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
   connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", 
     [this](){ 
       auto ud = new UserDialog(this);

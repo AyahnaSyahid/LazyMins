@@ -22,22 +22,15 @@ BaseManager::~BaseManager()
 
 std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
 {
+  m_lastInsertId = QVariant();
   resetErrorString();
-  
   QVariantMap validatedParams = validateParams(params); 
   
   if (validatedParams.isEmpty()) { 
     setErrorString("Parameter Kosong");
     return std::nullopt;
   }
-  
-  // if (!validatedParams.contains("created_at")) {
-      // validatedParams["created_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
-  // }
-  // if (!validatedParams.contains("updated_at")) {
-      // validatedParams["updated_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
-  // }
-  
+
   // Hook before create
   beforeCreate(validatedParams);
   
@@ -50,12 +43,12 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   for (auto it = validatedParams.begin(); it != validatedParams.end(); ++it) {
       query.bindValue(":" + it.key(), it.value());
   }
-  
 
   if (query.exec()) {
-      int lastId = query.lastInsertId().toInt();
+      m_lastInsertId = query.lastInsertId();
+      int lastId = m_lastInsertId.toInt();
       auto record = getById(lastId);
-   
+
       // Hook after create
       if (record)
         afterCreate(*record);

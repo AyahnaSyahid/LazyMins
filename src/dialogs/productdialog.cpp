@@ -2,10 +2,16 @@
 #include "ui_productdialog.h"
 #include "src/managers/managers.h"
 #include <QMessageBox>
+#include <QSqlQueryModel>
+
 ProductDialog::ProductDialog(QWidget *p):
 ui(new Ui::ProductDialog), FormDialog(p)
 {
   ui->setupUi(this);
+  auto unitModel = new QSqlQueryModel(this);
+  unitModel->setQuery("SELECT DISTINCT unit FROM products ORDER BY unit ASC");
+  ui->comboUnit->setModel(unitModel);
+  ui->comboUnit->setCurrentText("");
 }
 
 ProductDialog::~ProductDialog() { delete ui; }
@@ -48,7 +54,6 @@ void ProductDialog::on_simpanButton_clicked() {
 }
 
 void ProductDialog::onPrepareCreate() {
-  qDebug() << "prepare create ProductDialog called";
   ui->productCategoriesComboBox->blockSignals(true);
   ui->productCategoriesComboBox->setCurrentIndex(-1);
   ui->productCategoriesComboBox->blockSignals(false);

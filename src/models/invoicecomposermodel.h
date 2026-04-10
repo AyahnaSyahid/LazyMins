@@ -33,6 +33,8 @@ class InvoiceComposerModel : public QAbstractListModel
     int      rowCount(const QModelIndex& = QModelIndex()) const override;
     QVariant data(const QModelIndex& ix, int role) const override;
     
+    // unimplemented
+    bool     setData(const QModelIndex& ix, const QVariant& va, int role) override;
     
     QList<int> imported() const;
 

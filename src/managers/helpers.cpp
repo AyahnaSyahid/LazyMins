@@ -14,7 +14,10 @@ namespace {
   qreal roundedValue(double v) {
     return std::round(v * 10000.0) / 10000.0;
   }
+
 }
+
+int DBOperationHelper::currentAdminId() { return getAdminId(); }
 
 DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   const OrderHeader &header,
@@ -344,4 +347,71 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int p
   if (!opt_movement.has_value()) opr.error = stockManager.errorString();
   BaseManager::connection.rollback();
   return opr;
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(const QVariantMap& param, QList<int> oids)
+{
+    if (oids.isEmpty()) {
+        return { false, "Daftar ID pesanan kosong." };
+    }
+
+    // Menggunakan QSqlDatabase secara eksplisit untuk manajemen transaksi yang lebih aman
+    
+    auto &db = BaseManager::connection;
+    if (!db.transaction()) {
+        return { false, "Gagal memulai transaksi database." };
+    }
+
+    InvoiceManager invoiceManager;
+    
+    QVariantMap copyParam(param);
+    
+    copyParam["admin_id"] = currentAdminId();
+
+    // 1. Buat Invoice
+    auto optInvoice = invoiceManager.create(copyParam);
+    if (!optInvoice.has_value()) {
+        QString err = invoiceManager.errorString();
+        qWarning() << "DBOperationHelper::createInvoiceForOrders (Invoice Create) failed:" << err;
+        db.rollback();
+        return { false, err };
+    }
+
+    QSqlRecord recInv = *optInvoice;
+    int invoiceId = recInv.value("id").toInt();
+    QString invoiceNum = recInv.value("invoice_number").toString();
+
+    // 2. Update Orders dalam satu batch
+    // Mengonversi QList<int> ke QStringList untuk klausa IN
+    QStringList idStrings;
+    for (int id : oids) idStrings << QString::number(id);
+    
+    QSqlQuery q(db);
+    QString queryStr = QString("UPDATE orders SET invoice_id = :iid, invoice_number = :inum "
+                               "WHERE id IN (%1)").arg(idStrings.join(','));
+    
+    q.prepare(queryStr);
+    q.bindValue(":iid", invoiceId);
+    q.bindValue(":inum", invoiceNum);
+
+    if (!q.exec()) {
+        QString err = q.lastError().text();
+        qWarning() << "DBOperationHelper::createInvoiceForOrders (Update Orders) failed:" << err;
+        db.rollback();
+        return { false, err };
+    }
+
+    // 3. Finalisasi Transaksi
+    if (db.commit()) {
+        return { true, "" };
+    }
+
+    QString lastErr = db.lastError().text();
+    db.rollback();
+    return { false, lastErr };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids) {
+  
+  return { false, "Unimplemented"};
 }

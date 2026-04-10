@@ -36,9 +36,15 @@ class InvoiceComposerDialog : public QDialog
   
   signals:
     void customerChanged();
+    void invoiceCreated();
+    void paymentCreated();
   
   private:
+    bool checkInput();
+    QVariantMap params() const;
     Ui::InvoiceComposerDialog *ui;
+    bool makeInvoice();
+    bool makePayment();
 
     // data invoice
     int m_invoice_id = -1; // < 0 Menanadakan mode create

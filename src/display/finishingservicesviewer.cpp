@@ -207,6 +207,7 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   
   ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->dataView, &QTableView::customContextMenuRequested, this, &FinishingServicesViewer::on_dataView_customContextMenuRequested);
+  connect(this, &DataViewer::refreshed, ui->dataView, &QTableView::resizeColumnsToContents);
 }
 
 FinishingServicesViewer::~FinishingServicesViewer() {}

@@ -54,6 +54,9 @@ public:
     // Errors String
     virtual QString errorString() const { return m_errorString; }
     virtual QSqlRecord empty() const;
+    
+    QVariant lastInsertId() const;
+
 protected:
     QString tableName() const { return m_tableName; }
     bool useSoftDelete() const { return m_useSoftDelete; }
@@ -75,6 +78,7 @@ protected:
     QString getDeleteCondition() const;
     
 private:
+    QVariant m_lastInsertId;
     QString m_errorString;
     QString m_tableName;
     bool m_useSoftDelete;

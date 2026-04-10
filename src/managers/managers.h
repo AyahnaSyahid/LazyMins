@@ -381,7 +381,8 @@ public:
     bool updateStatus(int id, const QString& newStatus);
     bool cancel(int id);
     bool markPaid(int id);
-
+    
+    
     // Number generation (daily format like orders)
     static QString generateInvoiceNumber(const QString& prefix = "INV");
 

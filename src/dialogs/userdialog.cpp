@@ -36,8 +36,6 @@ UserDialog::UserDialog(QWidget *parent) : ui(new Ui::UserDialog),
                                           FormDialog(parent)
 {
     ui->setupUi(this);
-    // pastikan hanya user dengan role super_admin yang bisa membuka dialog ini
-    // hasValidUserOrClose(this);
 }
 
 UserDialog::~UserDialog()
@@ -54,128 +52,47 @@ void UserDialog::setupFields()
                {ui->passwordEdit1, "literal_password"}});
 }
 
-bool UserDialog::validateFields(const QVariantMap &changes)
+bool UserDialog::isInputAcceptable() const
 {
-    auto pass1 = ui->passwordEdit1->text();
-    auto pass2 = ui->passwordEdit2->text();
-    auto markFieldError = [this](QList<QLineEdit *> fields)
-    {
-        for (auto field : fields)
-        {
-            field->setStyleSheet("background-color: #ffcccc;");
-        }
-        fields.first()->setFocus();
-        QTimer::singleShot(2000, [fields]()
-                           {
-            for (auto field : fields)
-            {
-                field->setStyleSheet("");
-            } });
-    };
-
-    QList<QPair<QString, QString>> requiredFields = {
-        {"nama_lengkap", "Nama lengkap harus diisi"},
-        {"nomor_telp", "Nomor telepon harus diisi"},
-        {"email", "Email harus diisi"},
-        {"username", "Username harus diisi"},
-    };
-    // pengecekan harus sesuai dengan urutan field di form agar penandaan errornya benar
-    for (const auto &[fieldKey, errorMsg] : requiredFields)
-    { 
-        auto err = false;
-        if (changes.value(fieldKey).toString().isEmpty())
-        {
-          if (fieldKey == "nama_lengkap") {
-            QMessageBox::warning(this, "Error", errorMsg);
-            markFieldError({ui->fullnameEdit});
-            err = true;
-          }
-          else if (fieldKey == "nomor_telp"){
-            QMessageBox::warning(this, "Error", errorMsg);
-            markFieldError({ui->phoneEdit});
-            err = true;
-          }
-          else if (fieldKey == "email") {
-            QMessageBox::warning(this, "Error", errorMsg);
-            markFieldError({ui->emailEdit});
-            err = true;
-          }
-          else if (fieldKey == "username"){
-            QMessageBox::warning(this, "Error", errorMsg);
-            markFieldError({ui->usernameEdit});
-            err = true;
-          }
-        }
-        if(err) return false;
-    }
-    if (pass1 != pass2)
-    {
-        QMessageBox::warning(this, "Error", "Password tidak cocok");
-        markFieldError({ui->passwordEdit1, ui->passwordEdit2});
-        return false;
-    }
-    if (pass1.isEmpty() || pass1.length() < 6)
-    {
-        QMessageBox::warning(this, "Error", "Password harus minimal 6 karakter");
-        markFieldError({ui->passwordEdit1, ui->passwordEdit2});
-        return false;
-    }
-    if (isCreateMode() && m_adminManager.exists(changes.value("username").toString()))
-    {
-        QMessageBox::warning(this, "Error", "Username sudah digunakan");
-        markFieldError({ui->usernameEdit});
-        return false;
-    }
-    // username harus lebih dari 6 karakter dalam semua mode
-    if (changes.value("username").toString().length() < 6)
-    {
-        QMessageBox::warning(this, "Error", "Username harus minimal 6 karakter");
-        markFieldError({ui->usernameEdit});
-        return false;
-    }
-    return true;
+  QStringList err;
+  if (ui->fullnameEdit->text().trimmed().isEmpty()) err  << " - Nama lengkap";
+  if (ui->phoneEdit->text().trimmed().isEmpty()) err     << " - Nomor Telepon";
+  if (ui->emailEdit->text().trimmed().isEmpty()) err     << " - Email";
+  if (ui->usernameEdit->text().trimmed().isEmpty()) err  << " - Username";
+  if (ui->passwordEdit1->text().trimmed().isEmpty()) err << " - Password";
+  
+  auto pass1 = ui->passwordEdit1->text();
+  auto pass2 = ui->passwordEdit2->text();
+  
+  if (pass1 != pass2) err << "- Password & Verifikasi Harus sama";
+  
+  if (err.size()) {
+    QMessageBox::warning(nullptr, "Input Ditolak", QString("Pastikan kriteria berikut terpenuhi:\n%1").arg(err.join("\n")));
+    return false;
+  }
+  return true;
 }
 
 bool UserDialog::onSave(const QVariantMap &changes)
 {
-    if (isCreateMode())
-    {
-        auto opt = m_adminManager.create(changes);
-        if (opt) {
-          qDebug() << "Create admin berhasil";
-        } else {
-          qDebug() << "Create admin gagal";
-        }
-        return opt.has_value();
-    }
-    else if (isModifyMode())
-    {
-        return m_adminManager.update(originalRecord().value("id").toInt(), changes);
-    }
-    return false;
+  
+  if (isCreateMode()) {
+      auto opt = m_adminManager.create(changes);
+      if (!opt.has_value()) {
+        QMessageBox::warning(this, "Tidak dapat menyimpan", "Error: \n" + m_adminManager.errorString());
+        return false;
+      }
+  } else {
+      if (!m_adminManager.update(originalRecord().value("id").toInt(), changes)) {
+        QMessageBox::warning(this, "Tidak dapat menyimpan", "Error: \n" + m_adminManager.errorString());
+        return false;
+      };
+  }
+  return true;
 }
 
 void UserDialog::on_simpanButton_clicked()
 {
-  auto cl = collect();
-  for(auto const& [field, val] : cl.asKeyValueRange()) {
-    qDebug().noquote() << field << ':' << val.toString();
-  }
-  
-  auto valid = validateFields(cl);
-  if (valid)
-  {
-    AdminManager am;
-    auto opt_adm = am.create(cl);
-    if(opt_adm.has_value()) {
-      QMessageBox::information(this, "Berhasil", "Admin baru berhasil ditambahkan");
-      QDialog::accept();
-      return;
-    } else {
-      QMessageBox::information(this, "Gagal", "Admin baru gagal ditambahkan, Error:\n" + am.errorString());
-    }
-  } else {
-    qDebug() << "Invalid fields";
-  }
-  return;
+  if (!isInputAcceptable()) return;
+  accept();
 }

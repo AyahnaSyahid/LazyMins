@@ -231,11 +231,13 @@
   <tabstop>sKULineEdit</tabstop>
   <tabstop>productCategoriesComboBox</tabstop>
   <tabstop>descPlainTextEdit</tabstop>
+  <tabstop>useAreaBox</tabstop>
   <tabstop>comboUnit</tabstop>
   <tabstop>costSpinBox</tabstop>
   <tabstop>minStock</tabstop>
   <tabstop>aktifComboBox</tabstop>
   <tabstop>stokSpinBox</tabstop>
+  <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -4,6 +4,7 @@
 #include "src/customs/invoicecomposerdelegate.h"
 #include "src/models/invoicecomposermodel.h"
 #include "src/dialogs/orderpickerdialog.h"
+#include "src/dialogs/paymentdialog.h"
 #include "src/dialogs/customerpickerdialog.h"
 #include "src/managers/managers.h"
 #include "src/managers/helpers.h"
@@ -66,13 +67,12 @@ void InvoiceComposerDialog::on_metodeBayar_currentIndexChanged(int i) {
     m_model->index(i, 6).data().toString()).simplified());
 }
 
-bool InvoiceComposerDialog::makePayment() {
-  auto res = DBOperationHelper::createPaymentForOrders(params(), {}, model->imported());
-  if(!res.ok) {
-    QMessageBox::warning(this, "Gagal membuat Invoice", QString("Error :\n%1").arg(res.error));
-    return false;
-  }
-  return true;
+void InvoiceComposerDialog::makePayment() {
+  PaymentDialog pd(this);
+  pd.setInvoiceValue(ui->totalSpinBox->value());
+  connect(&pd, &PaymentDialog::paymentGranted, this, &InvoiceComposerDialog::handlePaymentGranted);
+  connect(&pd, &QDialog::rejected, this, &InvoiceComposerDialog::handlePaymentRejected);
+  pd.exec();
 }
 
 bool InvoiceComposerDialog::makeInvoice() {
@@ -81,6 +81,7 @@ bool InvoiceComposerDialog::makeInvoice() {
     QMessageBox::warning(this, "Gagal membuat Invoice", QString("Error :\n%1").arg(res.error));
     return false;
   }
+  emit invoiceCreated(res.data["invoice_id"].toInt());
   return true;
 }
 
@@ -88,7 +89,6 @@ void InvoiceComposerDialog::on_simpanButton_clicked()
 {
   if (!checkInput()) return;
   if (makeInvoice()) {
-    emit invoiceCreated();
     accept();
   }
 }
@@ -96,10 +96,7 @@ void InvoiceComposerDialog::on_simpanButton_clicked()
 void InvoiceComposerDialog::on_bayarButton_clicked()
 { 
   if (!checkInput()) return;
-  if (makePayment()) {
-    emit paymentCreated();
-    accept();
-  }
+  makePayment();
 }
 
 void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
@@ -263,3 +260,20 @@ QVariantMap InvoiceComposerDialog::params() const
   if (!ui->plainTextEdit->toPlainText().simplified().isEmpty()) ret["notes"] = ui->plainTextEdit->toPlainText();
   return ret;
 }
+
+void InvoiceComposerDialog::handlePaymentGranted(const QVariantMap& vmap) {
+  auto res = DBOperationHelper::createPaymentForOrders(params(), vmap, model->imported());
+  if (res.ok) {
+    emit invoiceCreated(res.data["invoice_id"].toInt());
+    emit paymentCreated(res.data["payment_id"].toInt());
+    accept();
+    return;
+  }
+  QMessageBox::warning(this, "Operasi Gagal", res.error);
+}
+
+void InvoiceComposerDialog::handlePaymentRejected() {
+  qWarning() << "Payment Rejected;";
+}
+
+

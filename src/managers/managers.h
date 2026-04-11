@@ -249,11 +249,12 @@ public:
     QList<QSqlRecord> getByKategori(int kategoriId);
     QList<QSqlRecord> getByReference(const QString& referenceType, int referenceId);
     std::optional<QSqlRecord> lastTransaction() const ;
+
     // Aggregates
     qint64 sumByTipe(const QString& tipe, const QDate& from = QDate(), const QDate& to = QDate());
     
     QString generateTransactionNumber(const QString& prefix = "TRX");
-    
+
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
     void beforeCreate(QVariantMap& params) override;

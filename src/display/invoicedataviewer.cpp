@@ -76,6 +76,10 @@ InvoiceDataViewer::~InvoiceDataViewer() {}
 void InvoiceDataViewer::onCreateInvoice() {
   InvoiceComposerDialog ids(this);
   connect(&ids, &QDialog::accepted, this, &DataViewer::refresh);
+  
+  // Signal Forwarding
+  connect(&ids, &InvoiceComposerDialog::invoiceCreated, this, &InvoiceDataViewer::invoiceCreated);
+  connect(&ids, &InvoiceComposerDialog::paymentCreated, this, &InvoiceDataViewer::paymentCreated);
   ids.exec();
 }
 
@@ -91,7 +95,6 @@ void InvoiceDataViewer::openContextMenu(const QPoint& p) {
 void InvoiceDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   QMenu ctx;
   ctx.setToolTipsVisible(true);
-  
   
   ctx.addMenu(dataBaruMenu);
   connect(ctx.addAction("Refresh"), &QAction::triggered, this, &DataViewer::refresh);

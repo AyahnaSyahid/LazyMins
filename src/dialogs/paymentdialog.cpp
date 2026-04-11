@@ -5,7 +5,7 @@
 #include <QStandardItemModel>
 #include <QSqlQueryModel>
 #include <QStandardItem>
-#include <QStandardItem>
+#include <QTimeZone>
 #include "src/managers/managers.h"
 
 PaymentDialog::PaymentDialog(QWidget *p) : 
@@ -17,8 +17,8 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
     SELECT id, kode, nama, nama_bank, nomor_rekening, atas_nama, description FROM akun_transaksi WHERE is_active = 1 ORDER BY kode ASC
   )-");
 
-  auto isOnlyMethod = ui->metodeBayar->count() == 1;
-  ui->akunTransaksiComboBox->setCurrentTEXT( isOnlyMethod ? 0 : -1);
+  auto isOnlyMethod = ui->akunTransaksiComboBox->count() == 1;
+  // ui->akunTransaksiComboBox->setCurrentIndex( isOnlyMethod ? 0 : -1);
   ui->akunTransaksiComboBox->setDisabled( isOnlyMethod ? true : false);
   ui->akunTransaksiComboBox->showColumn(0, false);
   ui->akunTransaksiComboBox->boxViewAutoResize();
@@ -30,6 +30,7 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   // m_paymentModel
   m_paymentModel->setColumnCount(2);
   m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );
+  
 }
 
 PaymentDialog::~PaymentDialog() { delete ui; }
@@ -41,6 +42,10 @@ void PaymentDialog::setInvoiceId(int iid)
   if(!opt_invoice.has_value()) return;
   m_invoiceRecord = *opt_invoice;
   
+  // set the label
+  ui->noInvoiceLabel->setText(m_invoiceRecord.value("invoice_number").toString());
+
+  
   PaymentManager paymentManager;
   m_paymentModel->clear();
   auto payment_records = paymentManager.getWhere("invoice_id = :iid", {{"iid", m_invoiceRecord.value("id")}});
@@ -48,13 +53,15 @@ void PaymentDialog::setInvoiceId(int iid)
   for (auto const& pr : payment_records) {
     auto tanggal = pr.value("payment_date").toDateTime();
     auto value   = pr.value("amount").toInt();
-    sumVal      += value;
-    tanggal.setTimeZone(QTimeZone::LocalTime);
-    auto tanggalItem = new QStandardItem(tanggal.toDate().toString("dd MMMM yyyy"));
+    tanggal.setTimeZone(QTimeZone::LocalTime); // convert to local tz
+    auto tanggalItem = new QStandardItem(tanggal.date().toString("dd MMMM yyyy"));
     auto valueItem   = new QStandardItem(QString("%L1").arg(value));
-    m_paymentModel->insertRow(m_paymentModel->rowCount(), { tanggalItem, valueItem });
+    m_paymentModel->insertRow(m_paymentModel->rowCount(), QList<QStandardItem*> { tanggalItem, valueItem });
   }
-  m_paymentModel->insertRow(m_paymentModel->rowCount(), { new QStandardItem("Terbayar"), new QStandardItem(QString("%L1").arg(sumVal))} );
+  auto rem = m_invoiceRecord.value("remaining_amount").toInt();
+  auto sumItem = new QStandardItem(QString("%L1").arg(rem));
+  m_paymentModel->insertRow(m_paymentModel->rowCount(), { new QStandardItem("Terbayar"), sumItem });
+  ui->belumBayarSpinBox->setValue(rem);
 }
 
 void PaymentDialog::verboseAkunTRCombo()
@@ -74,14 +81,92 @@ void PaymentDialog::verboseAkunTRCombo()
 }
 
 int PaymentDialog::currentTRAkun() const {
-  if (!ui->akunTransaksiComboBox->isEnabled()) return -1;
+  if (ui->akunTransaksiComboBox->count() == 1) return 1;
   if (ui->akunTransaksiComboBox->currentText().isEmpty()) return -1;
   auto akunModel = qobject_cast<QSqlQueryModel*>(ui->akunTransaksiComboBox->model());
   if(!akunModel) return -1;
-  return akunModel->data(akunModel->index(ui->akunTransaksiComboBox->currentIndex(), 0)).toInt());
+  return akunModel->index(ui->akunTransaksiComboBox->currentIndex(), 0).data().toInt();
 }
 
 int PaymentDialog::currentInvoiceId() const {
   auto rv = m_invoiceRecord.value("id");
   return rv.isValid() ? rv.toInt() : -1;
+}
+
+bool PaymentDialog::checkInput() {
+  if (currentTRAkun() < 1) {
+    QMessageBox::warning(this, "Input ditolak", "Anda belum menentukan akun transaksi");
+    return false;
+  }
+  if (ui->dibayarkanSpinBox->value() == 0) {
+    QMessageBox::warning(this, "Input ditolak", "Jumlah uang yang dibayarkan = 0");
+    return false;
+  }
+  if (ui->dibayarkanSpinBox->value() > ui->belumBayarSpinBox->value()) {
+    QMessageBox::warning(this, "Input ditolak", "Jumlah uang yang dibayarkan terlalu banyak");
+    return false;
+  }
+  return true;
+}
+
+void PaymentDialog::setInvoiceValue(int tval)
+{
+  if (currentInvoiceId() > 0) return ; // blok jika invoice telah disetel
+  ui->belumBayarSpinBox->setValue(tval);
+  ui->sisaSpinBox->setValue(tval);
+  ui->dibayarkanSpinBox->setMaximum(tval);
+}
+
+void PaymentDialog::on_dibayarkanSpinBox_valueChanged(int va)
+{
+  auto rem      = ui->belumBayarSpinBox->value();
+  auto receive  = ui->jumlahUangSpinBox->value();
+  
+  ui->kembalianSpinBox->setValue(receive - va);
+  ui->sisaSpinBox->setValue(rem - va);
+}
+
+void PaymentDialog::on_jumlahUangSpinBox_valueChanged(int va)
+{
+  auto rem      = ui->belumBayarSpinBox->value();
+
+  if (va <= rem) {
+    ui->dibayarkanSpinBox->setMaximum(va);
+    ui->dibayarkanSpinBox->setValue(va);
+    if ( va == rem) ui->kembalianSpinBox->setValue(0);
+    return ;
+  }
+  
+  ui->dibayarkanSpinBox->setMaximum(rem);
+  auto willpaid = ui->dibayarkanSpinBox->value();
+  
+  ui->kembalianSpinBox->setValue(va - willpaid);
+  ui->sisaSpinBox->setValue(rem - va);
+}
+
+void PaymentDialog::on_okButton_clicked() {
+  if (!checkInput()) return ;
+  if (currentInvoiceId() > 0) {
+    // lakukan payment
+    
+    return;
+  }
+  emit paymentGranted(collect());
+  accept();
+}
+
+QVariantMap PaymentDialog::collect() const {
+  QVariantMap coll {
+    { "akun_transaksi_id", currentTRAkun() },
+    { "cash_received",     ui->jumlahUangSpinBox->value() },
+    { "cash_change",       ui->kembalianSpinBox->value() },
+    { "amount",            ui->dibayarkanSpinBox->value() },
+    { "payment_date",      QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd") }
+  };
+  if (currentTRAkun() == 1) {
+    coll["verification_status"] = "verified";
+    coll["verified_at"]         = coll["payment_date"];
+  }
+
+  return coll;
 }

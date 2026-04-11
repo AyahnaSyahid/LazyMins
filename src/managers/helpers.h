@@ -6,7 +6,10 @@
 namespace DBOperationHelper {
   struct OperationResult {
     bool ok; 
-    QString error; 
+    QString error;
+    
+    // neded if caller requires some value after database item creation
+    QVariantMap data; // maybe empty
   };
   // digunakan di InstantOrderDialog
   // menggunakan transaction
@@ -14,9 +17,13 @@ namespace DBOperationHelper {
                                       const QList<OrderItem> &items, 
                                       const QString& invoiceCode,
                                       const QVariantMap& paymentInfo );
-
-  OperationResult createInvoiceForOrders(const QVariantMap& iPar, QList<int> orderIds);
-  OperationResult createPaymentForOrders(const QVariantMap& iPar, const QVariantMap& pPar, QList<int> orderIds);
+  
+  // tanpa transaction
+  OperationResult internalCreateInvoice( const QVariantMap& param, QList<int> oids);
+  
+  // menggunakan transaction
+  OperationResult createInvoiceForOrders(const QVariantMap& iPar,  QList<int> orderIds);
+  OperationResult createPaymentForOrders(const QVariantMap& iPar,  const QVariantMap& pPar, QList<int> orderIds);
 
   // tanpa transaction
   OperationResult stockUpdate( const OrderItem& it, 

@@ -111,6 +111,9 @@ qt_add_library(Ui_LAdmins STATIC resources/database_resources.qrc
                            src/dialogs/akuntransaksidialog.h
                            src/dialogs/akuntransaksidialog.ui
                            src/dialogs/akuntransaksidialog.cpp
+                           src/dialogs/paymentdialog.h
+                           src/dialogs/paymentdialog.ui
+                           src/dialogs/paymentdialog.cpp
                            
                            src/display/dataviewer.h
                            src/display/dataviewer.ui

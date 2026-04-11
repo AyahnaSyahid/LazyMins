@@ -349,44 +349,27 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int p
   return opr;
 }
 
-DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(const QVariantMap& param, QList<int> oids)
+DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(const QVariantMap& param, QList<int> oids)
 {
-    if (oids.isEmpty()) {
-        return { false, "Daftar ID pesanan kosong." };
-    }
-
-    // Menggunakan QSqlDatabase secara eksplisit untuk manajemen transaksi yang lebih aman
-    
-    auto &db = BaseManager::connection;
-    if (!db.transaction()) {
-        return { false, "Gagal memulai transaksi database." };
-    }
-
     InvoiceManager invoiceManager;
-    
     QVariantMap copyParam(param);
-    
     copyParam["admin_id"] = currentAdminId();
 
     // 1. Buat Invoice
     auto optInvoice = invoiceManager.create(copyParam);
     if (!optInvoice.has_value()) {
-        QString err = invoiceManager.errorString();
-        qWarning() << "DBOperationHelper::createInvoiceForOrders (Invoice Create) failed:" << err;
-        db.rollback();
-        return { false, err };
+        return { false, invoiceManager.errorString() };
     }
 
     QSqlRecord recInv = *optInvoice;
     int invoiceId = recInv.value("id").toInt();
     QString invoiceNum = recInv.value("invoice_number").toString();
 
-    // 2. Update Orders dalam satu batch
-    // Mengonversi QList<int> ke QStringList untuk klausa IN
+    // 2. Update Orders
     QStringList idStrings;
     for (int id : oids) idStrings << QString::number(id);
     
-    QSqlQuery q(db);
+    QSqlQuery q(BaseManager::connection);
     QString queryStr = QString("UPDATE orders SET invoice_id = :iid, invoice_number = :inum "
                                "WHERE id IN (%1)").arg(idStrings.join(','));
     
@@ -395,23 +378,125 @@ DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(con
     q.bindValue(":inum", invoiceNum);
 
     if (!q.exec()) {
-        QString err = q.lastError().text();
-        qWarning() << "DBOperationHelper::createInvoiceForOrders (Update Orders) failed:" << err;
-        db.rollback();
-        return { false, err };
+        return { false, q.lastError().text() };
     }
 
-    // 3. Finalisasi Transaksi
-    if (db.commit()) {
-        return { true, "" };
-    }
-
-    QString lastErr = db.lastError().text();
-    db.rollback();
-    return { false, lastErr };
+    // Kembalikan data invoice agar bisa dipakai oleh proses payment jika diperlukan
+    QVariantMap resData;
+    resData["invoice_id"] = invoiceId;
+    resData["invoice_number"] = invoiceNum;
+    
+    return { true, "", resData };
 }
 
-DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids) {
-  
-  return { false, "Unimplemented"};
+DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(const QVariantMap& param, QList<int> oids)
+{
+    if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
+
+    auto &db = BaseManager::connection;
+    if (!db.transaction()) return { false, "Gagal memulai transaksi." };
+
+    // Panggil fungsi internal
+    auto result = internalCreateInvoice(param, oids);
+
+    if (result.ok && db.commit()) {
+        return result;
+    }
+
+    db.rollback();
+    return { false, result.error.isEmpty() ? db.lastError().text() : result.error };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids)
+{
+    if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
+
+    auto &db = BaseManager::connection;
+    if (!db.transaction()) return { false, "Gagal memulai transaksi." };
+
+    // A. REUSE: Buat Invoice dulu melalui internal function
+    auto invRes = internalCreateInvoice(inv, oids);
+    if (!invRes.ok) {
+        db.rollback();
+        return invRes;
+    }
+
+    // B. Buat Record Pembayaran
+    PaymentManager paymentManager;
+    QVariantMap copyPay(pay);
+    copyPay["invoice_id"] = invRes.data["invoice_id"]; // Pakai ID dari hasil internal
+    copyPay["admin_id"] = currentAdminId();
+    
+    bool verifiedPayment = false;
+    
+    if (copyPay["verification_status"].toString() == "verified") {
+      copyPay["verified_by"] = copyPay["admin_id"];
+      verifiedPayment = true;
+    }
+    
+    // qDebug() << "is_verifiedPayment" << verifiedPayment;
+    
+    auto optPayment = paymentManager.create(copyPay);
+    if (!optPayment.has_value()) {
+        QString err = paymentManager.errorString();
+        db.rollback();
+        return { false, "Gagal mencatat pembayaran: " + err };
+    }
+    
+    auto recPay = *optPayment;
+    // Log Transaksi hanya jika payment verified
+    // qDebug() << copyPay;
+    
+    if (verifiedPayment) {
+        TransaksiManager transaksiManager;
+        AkunTransaksiManager akunTransaksiManager;
+        
+        int akun_id = copyPay["akun_transaksi_id"].toInt();
+        auto optAkun = akunTransaksiManager.getById(akun_id);
+        if (!optAkun.has_value()) {
+            db.rollback();
+            return { false, "Akun transaksi tidak ditemukan" };
+        }
+        
+        QSqlRecord recAkun = *optAkun;
+        qlonglong saldoAwal = recAkun.value("saldo").toInt();
+        qlonglong amount = copyPay["amount"].toInt();
+        
+        // Pastikan updateSaldo mengembalikan saldo terbaru atau lakukan SELECT ulang setelah UPDATE
+        if (!akunTransaksiManager.updateSaldo(akun_id, amount)) {
+            db.rollback();
+            return { false, "Gagal update saldo" };
+        }
+        
+        QVariantMap trParam {
+            { "akun_id", akun_id },
+            { "transaction_number", transaksiManager.generateTransactionNumber() },
+            { "admin_id", currentAdminId() },
+            { "kategori_id", 1 },
+            { "tipe", "pemasukan" },
+            { "amount_before", saldoAwal },
+            { "amount", amount },
+            { "amount_after", saldoAwal + amount }, // Konsisten dengan DB
+            { "reference_type", "payments" },
+            { "reference_id", recPay.value("id") },
+            { "tanggal", recPay.value("payment_date") }
+        };
+        
+        auto optTrans = transaksiManager.create(trParam);
+        if (!optTrans.has_value()) {
+          db.rollback();
+          return { false, "Gagal mencatat transaksi\n" + transaksiManager.errorString() };
+        }
+    }
+
+    // C. Finalisasi - Koreksi Mapping
+    if (db.commit()) {
+        QVariantMap resData;
+        resData["payment_id"] = recPay.value("id");
+        resData["invoice_id"] = invRes.data["invoice_id"]; // Gunakan ID invoice yang benar
+        return { true, "", resData };
+    }
+
+    db.rollback();
+    return { false, db.lastError().text() };
 }

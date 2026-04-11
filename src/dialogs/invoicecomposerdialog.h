@@ -33,18 +33,20 @@ class InvoiceComposerDialog : public QDialog
     void on_orderListView_customContextMenuRequested(const QPoint&);
     void on_pilihButton_clicked();
     void onCustomerChanged();
-  
+    void handlePaymentGranted(const QVariantMap&);
+    void handlePaymentRejected();
+
   signals:
     void customerChanged();
-    void invoiceCreated();
-    void paymentCreated();
-  
+    void invoiceCreated(int id);
+    void paymentCreated(int id);
+
   private:
     bool checkInput();
     QVariantMap params() const;
     Ui::InvoiceComposerDialog *ui;
     bool makeInvoice();
-    bool makePayment();
+    void makePayment();
 
     // data invoice
     int m_invoice_id = -1; // < 0 Menanadakan mode create

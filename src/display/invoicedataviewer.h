@@ -21,7 +21,10 @@ class InvoiceDataViewer : public DataViewer
     void openContextMenu(const QPoint& pt);
     void on_dataView_customContextMenuRequested(const QPoint& p);
 
-  private slots:
+  signals:
+    // penerusan signal
+    void invoiceCreated(int id);
+    void paymentCreated(int id);
     
   private:
     Ui::DataViewer *ui;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QDialog>
-#include "src/managers/managers.h"
+#include "src/managers/productmanager.h"
 
 namespace Ui {
   class StockRefillDialog;

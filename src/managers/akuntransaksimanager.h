@@ -4,7 +4,7 @@
 // AkunTransaksiManager — tabel: akun_transaksi
 // ============================================================================
 
-#include "managers.h"
+#include "basemanager.h"
 
 class AkunTransaksiManager : public BaseManager
 {

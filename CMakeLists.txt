@@ -38,18 +38,27 @@ set(PROJECT_SOURCES
     src/database/initializeschema.cpp
 
     # Managers
-    src/managers/basemanager.cpp
+    src/managers/activitylogmanager.cpp
     src/managers/adminmanager.cpp
-    src/managers/managers.cpp
-    src/managers/rolesmanager.cpp
-    src/managers/konsumenmanager.cpp
-    src/managers/appsettingsmanager.cpp
-    src/managers/helpers.cpp
-    src/managers/transaksimanager.cpp
     src/managers/akuntransaksimanager.cpp
-    src/managers/paymentmanager.cpp
+    src/managers/appsettingsmanager.cpp
+    src/managers/basemanager.cpp
+    src/managers/finishingservicemanager.cpp
     src/managers/invoicemanager.cpp
+    src/managers/kategoritransaksimanager.cpp
+    src/managers/konsumenmanager.cpp
     src/managers/orderitemfinishingmanager.cpp
+    src/managers/orderitemmanager.cpp
+    src/managers/ordermanager.cpp
+    src/managers/paymentmanager.cpp
+    src/managers/pricelevelmanager.cpp
+    src/managers/productcategorymanager.cpp
+    src/managers/productmanager.cpp
+    src/managers/productpricemanager.cpp
+    src/managers/rolesmanager.cpp
+    src/managers/stockmovementmanager.cpp
+    src/managers/transaksimanager.cpp
+    src/managers/helpers.cpp
 
     # Models
     src/models/ordermodel.cpp

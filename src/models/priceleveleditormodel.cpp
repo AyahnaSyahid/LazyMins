@@ -1,4 +1,6 @@
 #include "priceleveleditormodel.h"
+#include "src/managers/productmanager.h"
+#include "src/managers/productpricemanager.h"
 #include <QSqlRecord>
 
 PriceLevelEditorModel::PriceLevelEditorModel(QObject *parent)

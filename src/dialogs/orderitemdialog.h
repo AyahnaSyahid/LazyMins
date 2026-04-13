@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/managers/managers.h"
 #include "src/models/finishinglistmodel.h"
+#include "src/managers/managers.h"
 
 namespace Ui {
     class OrderItemDialog;

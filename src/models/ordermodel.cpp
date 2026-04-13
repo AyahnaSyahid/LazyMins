@@ -1,6 +1,6 @@
 #include "ordermodel.h"
 
-#include "src/managers/basemanager.h"
+#include "src/managers/productmanager.h"
 #include "src/managers/orderitemfinishingmanager.h"
 
 #include <QSqlDatabase>

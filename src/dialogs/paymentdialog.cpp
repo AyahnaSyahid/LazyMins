@@ -18,6 +18,7 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   )-");
 
   auto isOnlyMethod = ui->akunTransaksiComboBox->count() == 1;
+
   // ui->akunTransaksiComboBox->setCurrentIndex( isOnlyMethod ? 0 : -1);
   ui->akunTransaksiComboBox->setDisabled( isOnlyMethod ? true : false);
   ui->akunTransaksiComboBox->showColumn(0, false);
@@ -29,8 +30,7 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   
   // m_paymentModel
   m_paymentModel->setColumnCount(2);
-  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );
-  
+  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );  
 }
 
 PaymentDialog::~PaymentDialog() { delete ui; }
@@ -44,17 +44,15 @@ void PaymentDialog::setInvoiceId(int iid)
   
   // set the label
   ui->noInvoiceLabel->setText(m_invoiceRecord.value("invoice_number").toString());
-
   
   PaymentManager paymentManager;
   m_paymentModel->clear();
   auto payment_records = paymentManager.getWhere("invoice_id = :iid", {{"iid", m_invoiceRecord.value("id")}});
   auto sumVal = 0;
   for (auto const& pr : payment_records) {
-    auto tanggal = pr.value("payment_date").toDateTime();
+    auto tanggal = pr.value("payment_date").toDateTime().toLocalTime().date();
     auto value   = pr.value("amount").toInt();
-    tanggal.setTimeZone(QTimeZone::LocalTime); // convert to local tz
-    auto tanggalItem = new QStandardItem(tanggal.date().toString("dd MMMM yyyy"));
+    auto tanggalItem = new QStandardItem(tanggal.toString("dd MMMM yyyy"));
     auto valueItem   = new QStandardItem(QString("%L1").arg(value));
     m_paymentModel->insertRow(m_paymentModel->rowCount(), QList<QStandardItem*> { tanggalItem, valueItem });
   }
@@ -146,11 +144,6 @@ void PaymentDialog::on_jumlahUangSpinBox_valueChanged(int va)
 
 void PaymentDialog::on_okButton_clicked() {
   if (!checkInput()) return ;
-  if (currentInvoiceId() > 0) {
-    // lakukan payment
-    
-    return;
-  }
   emit paymentGranted(collect());
   accept();
 }
@@ -161,12 +154,15 @@ QVariantMap PaymentDialog::collect() const {
     { "cash_received",     ui->jumlahUangSpinBox->value() },
     { "cash_change",       ui->kembalianSpinBox->value() },
     { "amount",            ui->dibayarkanSpinBox->value() },
-    { "payment_date",      QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd") }
+    { "payment_date",      QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd") },
+    { "verification_status", "pending" }
   };
   if (currentTRAkun() == 1) {
     coll["verification_status"] = "verified";
     coll["verified_at"]         = coll["payment_date"];
   }
-
+  if ((!m_invoiceRecord.isEmpty()) && m_invoiceRecord.contains("id")) {
+    coll["invoice_id"] = m_invoiceRecord.value("id");
+  }
   return coll;
 }

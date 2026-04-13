@@ -1,11 +1,13 @@
-#include "konsuemndataviewer.h"
+#include "konsumendataviewer.h"
 #include "ui_dataviewer.h"
 
 // TODO: Buat dialog untuk tambah/edit konsumen
-// #include "src/dialogs/konsuemndialog.h"
+#include "src/dialogs/konsumendialog.h"
+#include "src/managers/konsumenmanager.h"
 
 #include <QStyledItemDelegate>
 #include <QMenu>
+#include <QMessageBox>
 #include <QAction>
 
 namespace {
@@ -38,7 +40,7 @@ namespace {
                     option->displayAlignment = Qt::AlignCenter;
                     QDateTime dt = ix.data().toDateTime();
                     if (dt.isValid())
-                        option->text = dt.toString("dd MMM yyyy");
+                        option->text = dt.toString("dd MMMM yyyy");
                     break;
                 }
                 default:
@@ -123,23 +125,29 @@ void KonsumenDataViewer::onAddKonsumenActionTriggered()
 
 void KonsumenDataViewer::openCreateKonsumenDialog()
 {
-    // TODO: implementasi saat dialog tersedia
-    // KonsumenDialog dlg(this);
-    // dlg.prepareCreate();
-    // connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-    // dlg.setWindowTitle("Form Konsumen Baru");
-    // dlg.exec();
+    KonsumenDialog dlg(this);
+    dlg.prepareCreate();
+    connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
+    dlg.setWindowTitle("Form Konsumen Baru");
+    dlg.exec();
 }
 
 void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId)
 {
+    KonsumenManager konsumenManager;
+    auto optKon = konsumenManager.getById(konsumenId);
+    if (!optKon.has_value()) {
+      QMessageBox::warning(this, "Kesalahan", "Data Konsumen tidak ditemukan");
+      return ;
+    }
+    
+    auto recKon = *optKon;
     // TODO: implementasi saat dialog tersedia
-    // KonsumenDialog dlg(this);
-    // if (!dlg.setKonsumenId(konsumenId)) return;
-    // connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-    // dlg.setWindowTitle("Edit Data Konsumen");
-    // dlg.exec();
-    Q_UNUSED(konsumenId)
+    KonsumenDialog dlg(this);
+    dlg.prepareModify(recKon);
+    connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
+    dlg.setWindowTitle("Edit Data Konsumen");
+    dlg.exec();
 }
 
 void KonsumenDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)

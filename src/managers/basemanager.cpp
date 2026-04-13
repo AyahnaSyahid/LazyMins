@@ -5,6 +5,8 @@ void debugMap(const QVariantMap&);
 
 QSqlDatabase BaseManager::connection;
 
+QMap<QString, QStringList> BaseManager::s_columnCache;
+
 QSqlQuery BaseManager::baseQuery() {
   return QSqlQuery {connection};
 }
@@ -32,7 +34,7 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   }
 
   // Hook before create
-  beforeCreate(validatedParams);
+  if ( !beforeCreate(validatedParams) ) return std::nullopt;
   
   auto query = BaseManager::baseQuery();
   QString sql = buildInsertQuery(validatedParams);
@@ -50,10 +52,8 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
       auto record = getById(lastId);
 
       // Hook after create
-      if (record)
-        afterCreate(*record);
-      
-      return record;
+      if (record && afterCreate(*record))
+        return record;
   }
   
   qDebug() << "exec failed" << query.lastError().text() 
@@ -66,9 +66,9 @@ std::optional<QSqlRecord> BaseManager::getById(int id) const
 {
     QSqlQuery query(BaseManager::connection);
     
+    QString deleteCondition = getDeleteCondition();
     QString sql = QString("SELECT * FROM %1 WHERE id = :id %2")
-                      .arg(m_tableName, getDeleteCondition());
-    
+                      .arg(m_tableName, deleteCondition.isEmpty() ? "" : "AND " + deleteCondition);
     query.prepare(sql);
     query.bindValue(":id", id);
     
@@ -92,10 +92,15 @@ bool BaseManager::update(int id, const QVariantMap& params)
     }
     
     // Hook before update
-    beforeUpdate(id, validatedParams);
+    if ( !beforeUpdate(id, validatedParams) ) return false;
     
     QSqlQuery query(BaseManager::connection);
+    QString deleteCondition = getDeleteCondition();
     QString sql = buildUpdateQuery(id, validatedParams);
+    
+    if (!deleteCondition.isEmpty()) {
+        sql += " AND " + deleteCondition;
+    }
     
     query.prepare(sql);
     query.bindValue(":id", id);
@@ -115,7 +120,7 @@ bool BaseManager::update(int id, const QVariantMap& params)
     if (success) {
         auto record = getById(id);
         // Hook after update
-        afterUpdate(id, *record);
+        if ( !afterUpdate(id, *record) ) return false;
     }
     
     return success;
@@ -124,7 +129,7 @@ bool BaseManager::update(int id, const QVariantMap& params)
 bool BaseManager::remove(int id)
 {
     // Hook before delete
-    beforeDelete(id);
+    if( !beforeDelete(id) ) return false;
     
     if (m_useSoftDelete) {
         return softDelete(id);
@@ -146,10 +151,9 @@ bool BaseManager::remove(int id)
     
     if (success) {
         // Hook after delete
-        afterDelete(id);
+        if ( !afterDelete(id) ) return false;
     }
     
-    qDebug() << "Removing FROM " << m_tableName << " Success";
     return success;
 }
 
@@ -162,16 +166,11 @@ QList<QSqlRecord> BaseManager::getAll(const QString& orderBy, int limit)
     QList<QSqlRecord> records;
     QSqlQuery query(BaseManager::connection);
     
-    QString sql = QString("SELECT * FROM %1 %2")
-                      .arg(m_tableName, getDeleteCondition());
-    
-    if (!orderBy.isEmpty()) {
-        sql += " ORDER BY " + orderBy;
-    }
-    
-    if (limit > 0) {
-        sql += QString(" LIMIT %1").arg(limit);
-    }
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT * FROM %1").arg(m_tableName);
+    if (!deleteCondition.isEmpty()) sql += " WHERE " + deleteCondition;
+    if (!orderBy.isEmpty()) sql += " ORDER BY " + orderBy;
+    if (limit > 0) sql += QString(" LIMIT %1").arg(limit);
     
     if (query.exec(sql)) {
         while (query.next()) {
@@ -196,9 +195,9 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
     QString deleteCondition = getDeleteCondition();
     
     if (!whereClause.isEmpty() && !deleteCondition.isEmpty()) {
-        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition.mid(6); // Remove "WHERE "
+        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition;
     } else if (!deleteCondition.isEmpty()) {
-        whereClause = deleteCondition.mid(6); // Remove "WHERE "
+        whereClause = deleteCondition; // Remove "WHERE "
     }
     
     QString sql = QString("SELECT * FROM %1").arg(m_tableName);
@@ -249,8 +248,11 @@ QList<QSqlRecord> BaseManager::getByIds(const QList<int>& ids)
         placeholders << QString(":id%1").arg(i);
     }
     
-    QString sql = QString("SELECT * FROM %1 WHERE id IN (%2) %3")
-                      .arg(m_tableName, placeholders.join(", "), getDeleteCondition());
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT * FROM %1 WHERE id IN (%2)")
+                      .arg(m_tableName, placeholders.join(", "));
+    
+    if (!deleteCondition.isEmpty()) sql += " AND " + deleteCondition;
     
     query.prepare(sql);
     
@@ -353,9 +355,9 @@ int BaseManager::count(const QString& condition, const QVariantMap& bindings)
     QString deleteCondition = getDeleteCondition();
     
     if (!whereClause.isEmpty() && !deleteCondition.isEmpty()) {
-        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition.mid(6);
+        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition;
     } else if (!deleteCondition.isEmpty()) {
-        whereClause = deleteCondition.mid(6);
+        whereClause = deleteCondition;
     }
     
     QString sql = QString("SELECT COUNT(*) as total FROM %1").arg(m_tableName);
@@ -383,8 +385,10 @@ bool BaseManager::exists(int id)
 {
     QSqlQuery query(BaseManager::connection);
     
-    QString sql = QString("SELECT COUNT(*) as total FROM %1 WHERE id = :id %2")
-                      .arg(m_tableName, getDeleteCondition());
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT COUNT(*) as total FROM %1 WHERE id = :id")
+                      .arg(m_tableName);
+    if(!deleteCondition.isEmpty()) sql += " AND " + deleteCondition; 
     
     query.prepare(sql);
     query.bindValue(":id", id);
@@ -428,47 +432,95 @@ QString BaseManager::buildUpdateQuery(int id, const QVariantMap& params)
 
 QVariantMap BaseManager::validateParams(const QVariantMap& params)
 {
-    // Default: return as is
-    // Override di derived class untuk validasi custom
-    return params;
+    if (m_tableName.isEmpty()) return params;
+
+    // 1. Cek apakah skema tabel sudah ada di static cache
+    if (!s_columnCache.contains(m_tableName)) {
+        QSqlRecord schema = connection.record(m_tableName);
+        QStringList fields;
+        
+        for (int i = 0; i < schema.count(); ++i) {
+            fields << schema.fieldName(i);
+        }
+        
+        // Simpan ke cache global agar bisa digunakan oleh instansi lain
+        s_columnCache[m_tableName] = fields;
+        
+        qDebug() << "[Static Cache] Initialized schema for table:" << m_tableName 
+                 << "with" << fields.count() << "columns";
+    }
+
+    // Ambil daftar kolom dari cache
+    const QStringList& fieldNames = s_columnCache[m_tableName];
+
+    if (fieldNames.isEmpty()) return params;
+
+    QVariantMap filteredParams;
+    // Gunakan iterator yang efisien untuk QVariantMap
+    for (auto it = params.begin(); it != params.end(); ++it) {
+        const QString& key = it.key();
+
+        // A. Validasi keberadaan kolom di database
+        if (!fieldNames.contains(key)) {
+            qDebug() << "[Manager :" << m_tableName << "] :"
+                     << "Unused parameter key :\"" << key << "\" Removed";
+            continue;
+        }
+
+        // B. Proteksi Primary Key (Auto Increment)
+        if (key == "id") continue;
+
+        // C. Proteksi kolom Soft Delete internal
+        if (m_useSoftDelete && key == "deleted_at") continue;
+
+        filteredParams[key] = it.value();
+    }
+    
+    return filteredParams;
 }
 
-void BaseManager::beforeCreate(QVariantMap& params)
+bool BaseManager::beforeCreate(QVariantMap& params)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(params)
+    return true;
 }
 
-void BaseManager::afterCreate(const QSqlRecord& record)
+bool BaseManager::afterCreate(const QSqlRecord& record)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(record)
+    return true;
 }
 
-void BaseManager::beforeUpdate(int id, QVariantMap& params)
+bool BaseManager::beforeUpdate(int id, QVariantMap& params)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
     Q_UNUSED(params)
+    return true;
 }
 
-void BaseManager::afterUpdate(int id, const QSqlRecord& record)
+bool BaseManager::afterUpdate(int id, const QSqlRecord& record)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
     Q_UNUSED(record)
+    return true;
 }
 
-void BaseManager::beforeDelete(int id)
+bool BaseManager::beforeDelete(int id)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
+    return true;
 }
 
-void BaseManager::afterDelete(int id)
+bool BaseManager::afterDelete(int id)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
+    return true;
 }
 
 // ============================================================================
@@ -478,7 +530,7 @@ void BaseManager::afterDelete(int id)
 QString BaseManager::getDeleteCondition() const
 {
     if (m_useSoftDelete) {
-        return "WHERE deleted_at IS NULL";
+        return "deleted_at IS NULL";
     }
     return "";
 }

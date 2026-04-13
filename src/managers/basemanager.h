@@ -40,11 +40,6 @@ public:
     virtual bool softDelete(int id);
     virtual bool restore(int id);
 
-    // Transaction support
-    // static bool beginTransaction();
-    // static bool commit();
-    // static bool rollback();
-
     // Count
     virtual int count(const QString& condition = "", const QVariantMap& bindings = QVariantMap());
     
@@ -65,12 +60,12 @@ protected:
     virtual QString buildInsertQuery(const QVariantMap& params);
     virtual QString buildUpdateQuery(int id, const QVariantMap& params);
     virtual QVariantMap validateParams(const QVariantMap& params);
-    virtual void beforeCreate(QVariantMap& params);
-    virtual void afterCreate(const QSqlRecord& record);
-    virtual void beforeUpdate(int id, QVariantMap& params);
-    virtual void afterUpdate(int id, const QSqlRecord& record);
-    virtual void beforeDelete(int id);
-    virtual void afterDelete(int id);
+    virtual bool beforeCreate(QVariantMap& params);
+    virtual bool afterCreate(const QSqlRecord& record);
+    virtual bool beforeUpdate(int id, QVariantMap& params);
+    virtual bool afterUpdate(int id, const QSqlRecord& record);
+    virtual bool beforeDelete(int id);
+    virtual bool afterDelete(int id);
 
     void resetErrorString();
     void setErrorString(const QString& err) { m_errorString = err; }
@@ -78,6 +73,7 @@ protected:
     QString getDeleteCondition() const;
     
 private:
+    static QMap<QString, QStringList> s_columnCache;
     QVariant m_lastInsertId;
     QString m_errorString;
     QString m_tableName;

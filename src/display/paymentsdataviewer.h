@@ -20,10 +20,14 @@ public:
 public slots:
     void openCreatePaymentDialog();
 
+signals :
+    void paymentVerified(int);
+
 private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
     void onAddPaymentActionTriggered();
     void openVerifyPaymentDialog(int paymentId);
+
 
 private:
     Ui::DataViewer *ui;

@@ -9,7 +9,10 @@ class KonsumenManager : public BaseManager
     ~KonsumenManager() {}
     int getPriceLevelById(int) const;
   
+  protected:
+    QVariantMap validateParams(const QVariantMap& params) override;
+  
   private:
-    void beforeUpdate(int id, QVariantMap &m) override;
-    void beforeCreate(QVariantMap &m) override;
+    bool beforeUpdate(int id, QVariantMap &m) override;
+    bool beforeCreate(QVariantMap &m) override;
 };

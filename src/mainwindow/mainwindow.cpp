@@ -6,13 +6,19 @@
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/instantorderdialog.h"
+#include "src/dialogs/kategoriprodukdialog.h"
+#include "src/dialogs/logindialog.h"
+
 #include "src/utils/sessionmanager.h"
+
 #include "src/display/produkdataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
 #include "src/display/invoicedataviewer.h"
-#include "src/dialogs/logindialog.h"
-#include "src/dialogs/kategoriprodukdialog.h"
+#include "src/display/akuntransaksidataviewer.h"
+#include "src/display/konsumendataviewer.h"
+#include "src/display/paymentsdataviewer.h"
+
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
 #include <QDockWidget>
@@ -69,7 +75,6 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   fs1->refresh();
   ui->menuView->addAction(dsF->toggleViewAction());
 
-  tabifyDockWidget(dsP, dsF);
 
   auto ord1 = new OrderDataViewer;
   auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
@@ -87,14 +92,44 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuView->addAction(dsI->toggleViewAction());
   connect(ui->actionInvoiceCreate, &QAction::triggered, idv, &InvoiceDataViewer::onCreateInvoice);
   connect(idv, &DataViewer::refreshed, ord1, &DataViewer::refresh); // Hati2 jangan sampai circular
-  tabifyDockWidget(dsO, dsI);
   
-  connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
-  // connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()
-    // { auto pd =  new ProductDialog(this);
-      // pd->connect(pd, &QDialog::accepted, dv1, &DataViewer::refresh);
-      // return pd;
-    // }, this);
+  auto atdv = new AkunTransaksiDataViewer;
+  auto dsAT = dockSetup(new QDockWidget(this), "Akun Transaksi", atdv);
+  addDockWidget(Qt::BottomDockWidgetArea, dsAT);
+  atdv->setPageSize(100);
+  atdv->refresh();
+  ui->menuView->addAction(dsAT->toggleViewAction());
+
+  auto kdv = new KonsumenDataViewer;
+  auto dsK = dockSetup(new QDockWidget(this), "Data Konsumen", kdv);
+  addDockWidget(Qt::BottomDockWidgetArea, dsK);
+  kdv->setPageSize(100);
+  kdv->refresh();
+  ui->menuView->addAction(dsK->toggleViewAction());
+  connect(ui->actionKonsumenAdd, &QAction::triggered, kdv, &KonsumenDataViewer::openCreateKonsumenDialog);
+  
+  auto pdv = new PaymentsDataViewer;
+  auto dsPy = dockSetup(new QDockWidget(this), "Pembayaran", pdv);
+  addDockWidget(Qt::RightDockWidgetArea, dsPy);
+  pdv->setPageSize(100);
+  pdv->refresh();
+  ui->menuView->addAction(dsPy->toggleViewAction());
+  
+  // InvoiceDataViewer bisa membuat pembayaran
+  connect(idv, &InvoiceDataViewer::paymentCreated, pdv, &DataViewer::refresh);
+  
+  // PaymentsDataViewer bisa memverifikasi pembayaran
+  connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
+
+  tabifyDockWidget(dsP, dsF); // products, finishings
+  dsP->raise();
+  
+  tabifyDockWidget(dsO, dsI); // orders, invoices
+  tabifyDockWidget(dsI, dsPy); // invoices, payments
+  dsO->raise();
+  
+  tabifyDockWidget(dsK, dsAT); // AkunTransaksi, konsumen
+  dsK->raise();
   
   connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", 
     [this](){ 
@@ -107,18 +142,18 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     connect(dialog, &QDialog::accepted, idv, &DataViewer::refresh); 
     dialog->open();
   });
-  
+
   // Various actions
   auto actionGroup = new ActionGroup(this);
   ui->menuTambah->addSeparator();
   ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
-  
+
   // UserSession
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
-  
+
   // Window Title
   AppSettingsManager apm;
   setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");

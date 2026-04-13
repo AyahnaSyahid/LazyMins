@@ -353,6 +353,8 @@ DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(cons
 {
     InvoiceManager invoiceManager;
     QVariantMap copyParam(param);
+    // Ini adalah mode create jadi kita bersihkan dulu parameter id jika ada
+    copyParam.remove("id");
     copyParam["admin_id"] = currentAdminId();
 
     // 1. Buat Invoice

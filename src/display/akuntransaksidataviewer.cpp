@@ -2,10 +2,12 @@
 #include "ui_dataviewer.h"
 
 // TODO: Buat dialog untuk tambah/edit akun transaksi
-// #include "src/dialogs/akuntransaksidialog.h"
+#include "src/dialogs/akuntransaksidialog.h"
+#include "src/managers/managers.h"
 
 #include <QStyledItemDelegate>
 #include <QMenu>
+#include <QMessageBox>
 #include <QAction>
 
 namespace {
@@ -47,7 +49,7 @@ namespace {
     };
 }
 
-AkunTransaksiDataViewer::AkunTransaksiDataViewer(QWidget *parent) : DataViewer(parent)
+AkunTransaksiDataViewer::AkunTransaksiDataViewer(QWidget *parent) :  DataViewer(parent)
 {
     ui = Ui();
     auto m = &model();
@@ -114,22 +116,28 @@ void AkunTransaksiDataViewer::onAddAkunActionTriggered()
 void AkunTransaksiDataViewer::openCreateAkunDialog()
 {
     // TODO: implementasi saat dialog tersedia
-    // AkunTransaksiDialog dlg(this);
-    // dlg.prepareCreate();
-    // connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-    // dlg.setWindowTitle("Form Akun Transaksi Baru");
-    // dlg.exec();
+    AkunTransaksiDialog dlg(this);
+    dlg.prepareCreate();
+    connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
+    dlg.setWindowTitle("Form Akun Transaksi Baru");
+    dlg.exec();
 }
 
 void AkunTransaksiDataViewer::openEditAkunDialog(int akunId)
 {
     // TODO: implementasi saat dialog tersedia
-    // AkunTransaksiDialog dlg(this);
-    // if (!dlg.setAkunId(akunId)) return;
-    // connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-    // dlg.setWindowTitle("Edit Akun Transaksi");
-    // dlg.exec();
-    Q_UNUSED(akunId)
+    AkunTransaksiManager akunTransaksiManager;
+    auto optAcc = akunTransaksiManager.getById(akunId);
+    if (!optAcc.has_value()) {
+      QMessageBox::warning(this, "Kesalahan", "Akun Transaksi tidak ditemukan");
+      return ;
+    }
+    auto recAcc = *optAcc;
+    AkunTransaksiDialog dlg(this);
+    dlg.prepareModify(recAcc);
+    connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
+    dlg.setWindowTitle("Edit Akun Transaksi");
+    dlg.exec();
 }
 
 void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)

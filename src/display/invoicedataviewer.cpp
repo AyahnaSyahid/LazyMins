@@ -2,9 +2,14 @@
 #include "src/display/ui_dataviewer.h"
 #include "src/dialogs/invoicecomposerdialog.h"
 #include "src/dialogs/customerpickerdialog.h"
+#include "src/dialogs/paymentdialog.h"
+#include "src/utils/sessionmanager.h"
+
+#include "src/managers/managers.h"
 
 #include <QMenu>
 #include <QAction>
+#include <QMessageBox>
 #include <QStyledItemDelegate>
 
 namespace {
@@ -96,7 +101,52 @@ void InvoiceDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) 
   QMenu ctx;
   ctx.setToolTipsVisible(true);
   
+  auto clickedIndex = ui->dataView->indexAt(p);
+  if (clickedIndex.isValid()) {
+    int invoiceId = clickedIndex.siblingAtColumn(0).data().toInt();
+    auto createPaymentAction = ctx.addAction("Atur Pembayaran");
+    connect(createPaymentAction, &QAction::triggered, [this, invoiceId]() { openPaymentForInvoice(invoiceId); });
+    
+    ctx.addSeparator();
+  } 
   ctx.addMenu(dataBaruMenu);
   connect(ctx.addAction("Refresh"), &QAction::triggered, this, &DataViewer::refresh);
   ctx.exec(ui->dataView->viewport()->mapToGlobal(p));
+}
+
+void InvoiceDataViewer::openPaymentForInvoice(int invoiceId)
+{
+  PaymentDialog pd(this);
+  pd.setInvoiceId(invoiceId);
+  connect(&pd, &PaymentDialog::paymentGranted, this, &InvoiceDataViewer::onPaymentGranted);
+  pd.exec();
+}
+
+void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
+{
+  if (!vm.contains("invoice_id")) {
+    qDebug() << "Invoice ID tidak ada dalam parameter";
+    return ;
+  }
+  
+  auto user = SessionManager::instance().currentUser();
+  if (!user.has_value()) {
+    QMessageBox::critical(this, "Akses ditolak", "Error:\nTidak ada aktif user dalam sesi ini\nTapi mengapa anda bisa masuk sampai sini ??");
+    return ;
+  }
+  auto userRec = *user;
+  int invoiceId = vm["invoice_id"].toInt();
+  PaymentManager paymentManager;
+  
+  QVariantMap addUser(vm);
+  addUser["admin_id"] = userRec.value("id");
+  
+  auto optPayment = paymentManager.create(addUser);
+  if(!optPayment.has_value()) {
+    QMessageBox::warning(this, "Pembayaran Gagal", "Error:\n" + paymentManager.errorString());
+    return ;
+  }
+  refresh();
+  auto payment = *optPayment;
+  emit paymentCreated(payment.value("id").toInt());
 }

@@ -33,9 +33,6 @@ public:
     // Query helpers
     QList<QSqlRecord> getActive(const QString& orderBy = "category_name");
     std::optional<QSqlRecord> findByName(const QString& name);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -54,9 +51,6 @@ public:
     std::optional<QSqlRecord> findBySku(const QString& sku);
     std::optional<QSqlRecord> findByName(const QString& name);
     bool adjustStock(int id, qreal delta, const QString& notes = "");
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -69,9 +63,6 @@ public:
         : BaseManager("price_levels") {}
 
     std::optional<QSqlRecord> findByName(const QString& levelName);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -93,9 +84,6 @@ public:
     QList<QSqlRecord> getByPriceLevel(int priceLevelId);
     std::optional<int>  getPrice(int productId, int priceLevelId) const;
 
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-
 private:
     // Disable id-based inherited methods — product_prices has no single 'id' PK
     using BaseManager::getById;
@@ -115,9 +103,6 @@ public:
 
     QList<QSqlRecord> getActive(const QString& orderBy = "name");
     std::optional<QSqlRecord> findByCode(const QString& code);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -149,8 +134,7 @@ public:
     static QString generateOrderNumber(const QString& prefix = "ORD");
     
 protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-    void beforeCreate(QVariantMap& params) override;
+    bool beforeCreate(QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -165,9 +149,6 @@ public:
     QList<QSqlRecord> getByOrder(int orderId);
     
     bool removeByOrder(int orderId);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -181,9 +162,6 @@ public:
 
     QList<QSqlRecord> getByOrderItem(int orderItemId);
     bool removeByOrderItem(int orderItemId);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -210,7 +188,10 @@ public:
 
 protected:
     QVariantMap validateParams(const QVariantMap& params) override;
-    void beforeCreate(QVariantMap& params) override;
+    bool beforeCreate(QVariantMap& params) override;
+    bool beforeUpdate(int id, QVariantMap& params) override;
+    // bool afterUpdate(int, const QSqlRecord& rc);
+    // bool afterCreate(const QSqlRecord&);
 };
 
 // ============================================================================
@@ -229,9 +210,6 @@ public:
     std::optional<QSqlRecord> findByNama(const QString& nama);
     
     static QString generateTransactionNumber(const QString& prefix = "TRX");
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -256,8 +234,7 @@ public:
     QString generateTransactionNumber(const QString& prefix = "TRX");
 
 protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-    void beforeCreate(QVariantMap& params) override;
+    bool beforeCreate(QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -285,34 +262,8 @@ public:
                                              int referenceId = -1,
                                              const QString& notes = "");
 
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
-class StockConsumesRepo : public BaseManager
-{
-public:
-  explicit StockConsumesRepo()
-      : BaseManager("stock_consumes") {}
-
-  QList<QSqlRecord> getByProduct(int productId, int limit = -1);
-  QList<QSqlRecord> getByType(const QString& movementType); // 'in' | 'out' | 'adjustment'
-  QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-  QList<QSqlRecord> getByReference(const QString& referenceType, int referenceId);
-
-  // Convenience recorder
-  std::optional<QSqlRecord> recordConsumes(int productId,
-                                           const QString& type,
-                                           int quantity,
-                                           int stockBefore,
-                                           int stockAfter,
-                                           int adminId,
-                                           const QString& referenceType = "",
-                                           int referenceId = -1,
-                                           const QString& notes = "");
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-};
 
 // ============================================================================
 // AkunTransaksiManager — tabel: akun_transaksi
@@ -331,9 +282,6 @@ public:
 
     // Fungsi manual untuk update saldo (jika diperlukan di luar trigger)
     bool updateSaldo(int id, qint64 newSaldo);
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -359,9 +307,6 @@ public:
                                   const QJsonObject& newValue = {},
                                   const QString& ipAddress = "",
                                   const QString& userAgent = "");
-
-protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
 };
 
 class InvoiceManager : public BaseManager
@@ -388,6 +333,5 @@ public:
     static QString generateInvoiceNumber(const QString& prefix = "INV");
 
 protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-    void beforeCreate(QVariantMap& params) override;
+    bool beforeCreate(QVariantMap& params) override;
 };

@@ -2,7 +2,9 @@
 
 #include "dataviewer.h"
 
+
 class QAction;
+class AdvancedQueryModel;
 class AkunTransaksiDataViewer : public DataViewer
 {
     Q_OBJECT
@@ -17,8 +19,8 @@ public slots:
 
 private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
-    void onAddAkunActionTriggered();
     void openEditAkunDialog(int akunId);
+    void onAddAkunActionTriggered();
 
 private:
     Ui::DataViewer *ui;

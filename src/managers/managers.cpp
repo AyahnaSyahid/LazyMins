@@ -49,19 +49,6 @@ std::optional<QSqlRecord> ProductCategoryManager::findByName(const QString& name
     return std::nullopt;
 }
 
-QVariantMap ProductCategoryManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    // Strip fields that don't belong to the table
-    for (const QString& key : p.keys()) {
-        static const QStringList allowed {
-            "category_name", "description", "is_active", "created_at", "updated_at"
-        };
-        if (!allowed.contains(key)) p.remove(key);
-    }
-    return p;
-}
-
 // ============================================================================
 // ProductManager
 // ============================================================================
@@ -111,18 +98,6 @@ bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
     return q.numRowsAffected() > 0;
 }
 
-QVariantMap ProductManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "sku", "name", "category_id", "description", "unit", "use_area", 
-        "stock", "min_stock", "cost_price", "use_area", "is_active", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
 // ============================================================================
 // PriceLevelManager
 // ============================================================================
@@ -132,17 +107,6 @@ std::optional<QSqlRecord> PriceLevelManager::findByName(const QString& levelName
     auto rows = getWhere("level_name = :level_name", {{"level_name", levelName}});
     if (!rows.isEmpty()) return rows.first();
     return std::nullopt;
-}
-
-QVariantMap PriceLevelManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "level_name", "discount_percentage", "description", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
 }
 
 // ============================================================================
@@ -209,15 +173,6 @@ std::optional<int> ProductPriceManager::getPrice(int productId, int priceLevelId
     return std::nullopt;
 }
 
-QVariantMap ProductPriceManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed { "product_id", "price_level_id", "price", "created_at", "updated_at" };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
 // ============================================================================
 // FinishingServiceManager
 // ============================================================================
@@ -232,17 +187,6 @@ std::optional<QSqlRecord> FinishingServiceManager::findByCode(const QString& cod
     auto rows = getWhere("code = :code", {{"code", code}});
     if (!rows.isEmpty()) return rows.first();
     return std::nullopt;
-}
-
-QVariantMap FinishingServiceManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "code", "name", "description", "price_per_unit", "unit", "is_active", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
 }
 
 // ============================================================================
@@ -324,28 +268,13 @@ QString OrderManager::generateOrderNumber(const QString& prefix)
     return generateCode("orders", "id", prefix);
 }
 
-QVariantMap OrderManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "order_number", "invoice_id", "invoice_number", "customer_id", 
-        "customer_name", "customer_phone", "price_level_id",
-        "subtotal", "discount_amount",
-        "staging_status", "priority", "order_date", "deadline_date", 
-        "completion_date", "notes", "internal_notes", "admin_id",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
-void OrderManager::beforeCreate(QVariantMap& params)
+bool OrderManager::beforeCreate(QVariantMap& params)
 {
     if (!params.contains("order_number") || params["order_number"].toString().isEmpty())
         params["order_number"] = generateOrderNumber();
     if (!params.contains("order_date"))
         params["order_date"] = datetimeToSql();
+    return true;
 }
 
 // ============================================================================
@@ -365,20 +294,6 @@ bool OrderItemManager::removeByOrder(int orderId)
     return q.exec();
 }
 
-QVariantMap OrderItemManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "order_id", "product_id", "product_name", "sku", "quantity", "unit",
-        "base_price", "sale_price", "discount_percentage", "discount_amount", "subtotal",
-        "size_width", "size_height", "use_area", "finishing_total",  // ← NEW fields
-        "notes", "created_at", "updated_at", "total"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
 // ============================================================================
 // OrderItemFinishingManager
 // ============================================================================
@@ -394,18 +309,6 @@ bool OrderItemFinishingManager::removeByOrderItem(int orderItemId)
     q.prepare(QString("DELETE FROM %1 WHERE order_item_id = :order_item_id").arg(tableName()));
     q.bindValue(":order_item_id", orderItemId);
     return q.exec();
-}
-
-QVariantMap OrderItemFinishingManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "order_item_id", "finishing_id", "finishing_name", "quantity",
-        "finishing_price", "subtotal", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
 }
 
 // ============================================================================
@@ -463,7 +366,7 @@ QString PaymentManager::generatePaymentNumber(const QString& prefix)
 {
     auto q = baseQuery();
     q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
-                      "FROM payments WHERE date(payment_date) = date('now')")
+                      "FROM payments WHERE date(payment_date, 'localtime') = date('now', 'localtime')")
                   .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
     if (q.exec() && q.next()) {
         return q.value("next_val").toString();
@@ -473,27 +376,27 @@ QString PaymentManager::generatePaymentNumber(const QString& prefix)
 
 QVariantMap PaymentManager::validateParams(const QVariantMap& params)
 {
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "payment_number", "invoice_id", "amount", 
-        "akun_transaksi_id", // Menggantikan payment_method
-        "cash_received", "cash_change",
-        "verification_status", "notes", "admin_id", 
-        "payment_date", "verified_by", "verified_at",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
+    QVariantMap p = BaseManager::validateParams(params);
+    if(!p.contains("payment_number")) p["payment_number"] = generatePaymentNumber();
+    qDebug() << p;
     return p;
 }
 
-void PaymentManager::beforeCreate(QVariantMap& params)
+bool PaymentManager::beforeCreate(QVariantMap& params)
 {
     if (!params.contains("payment_number") || params["payment_number"].toString().isEmpty())
         params["payment_number"] = generatePaymentNumber();
     if (!params.contains("payment_date"))
         params["payment_date"] = datetimeToSql();
+    return true;
 }
+
+bool PaymentManager::beforeUpdate(int id, QVariantMap& params) {
+  Q_UNUSED(id);
+  params.remove("id");
+  params.remove("payment_number");
+  return true;
+};
 
 // ============================================================================
 // KategoriTransaksiManager
@@ -524,17 +427,6 @@ std::optional<QSqlRecord> KategoriTransaksiManager::findByNama(const QString& na
     auto rows = getWhere("nama = :nama", {{"nama", nama}});
     if (!rows.isEmpty()) return rows.first();
     return std::nullopt;
-}
-
-QVariantMap KategoriTransaksiManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "kode", "nama", "tipe", "parent_id", "description", "is_active", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
 }
 
 // ============================================================================
@@ -608,95 +500,14 @@ QString TransaksiManager::generateTransactionNumber(const QString& prefix)
   return generateCode("transaksi", "id", prefix);
 }
 
-QVariantMap TransaksiManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "transaction_number", "admin_id", "kategori_id",
-        "tipe", "deskripsi", "amount_before", "amount", "amount_after", "akun_id",
-        "payment_method", "reference_type", "reference_id", "attachment",
-        "tanggal", "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
-void TransaksiManager::beforeCreate(QVariantMap& params)
+bool TransaksiManager::beforeCreate(QVariantMap& params)
 {
     if (!params.contains("transaction_number") || params["transaction_number"].toString().isEmpty())
         params["transaction_number"] = generateTransactionNumber();
     if (!params.contains("tanggal"))
         params["tanggal"] = QDate::currentDate().toString("yyyy-MM-dd");
+    return true;
 }
-
-// ============================================================================
-// StockConsumesRepo
-// ============================================================================
-
-QList<QSqlRecord> StockConsumesRepo::getByProduct(int productId, int limit)
-{
-    return getWhere("product_id = :product_id",
-                    {{"product_id", productId}},
-                    "consumes_date DESC", limit);
-}
-
-QList<QSqlRecord> StockConsumesRepo::getByType(const QString& movementType)
-{
-    return getWhere("movement_type = :movement_type",
-                    {{"movement_type", movementType}}, "consumes_date DESC");
-}
-
-QList<QSqlRecord> StockConsumesRepo::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "DATE(movement_date) BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "consumes_date DESC");
-}
-
-QList<QSqlRecord> StockConsumesRepo::getByReference(const QString& referenceType, int referenceId)
-{
-    return getWhere(
-        "reference_type = :rt AND reference_id = :rid",
-        {{"rt", referenceType}, {"rid", referenceId}});
-}
-
-std::optional<QSqlRecord> StockConsumesRepo::recordConsumes(
-    int productId, const QString& type, int quantity,
-    int stockBefore, int stockAfter, int adminId,
-    const QString& referenceType, int referenceId, const QString& notes)
-{
-    QVariantMap p;
-    p["product_id"]     = productId;
-    p["movement_type"]  = type;
-    p["quantity"]       = quantity;
-    p["stock_before"]   = stockBefore;
-    p["stock_after"]    = stockAfter;
-    p["admin_id"]       = adminId;
-    p["consumes_date"]  = datetimeToSql();
-    if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
-    if (referenceId > 0)          p["reference_id"]   = referenceId;
-    if (!notes.isEmpty())         p["notes"]          = notes;
-    return create(p);
-}
-
-QVariantMap StockConsumesRepo::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "product_id", "movement_type", "quantity",
-        "stock_before", "stock_after",
-        "reference_type", "reference_id",
-        "notes", "admin_id", "consumes_date",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
-
 
 // ============================================================================
 // StockMovementManager
@@ -749,21 +560,6 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(
     return create(p);
 }
 
-QVariantMap StockMovementManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "product_id", "movement_type", "quantity",
-        "stock_before", "stock_after",
-        "reference_type", "reference_id",
-        "notes", "admin_id", "movement_date",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
 // ============================================================================
 // ActivityLogManager
 // ============================================================================
@@ -809,19 +605,6 @@ std::optional<QSqlRecord> ActivityLogManager::log(
     if (!ipAddress.isEmpty())   p["ip_address"] = ipAddress;
     if (!userAgent.isEmpty())   p["user_agent"] = userAgent;
     return create(p);
-}
-
-QVariantMap ActivityLogManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "admin_id", "action", "table_name", "record_id",
-        "old_value", "new_value", "ip_address", "user_agent",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
 }
 
 // ============================================================================
@@ -883,23 +666,7 @@ QString InvoiceManager::generateInvoiceNumber(const QString& prefix)
     return generateCode("invoices", "id", prefix);
 }
 
-QVariantMap InvoiceManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    static const QStringList allowed {
-        "invoice_number", "customer_id", "customer_name", "customer_phone", 
-        "price_level_id", "admin_id", "subtotal", "discount_amount", 
-        "tax_amount", "paid_amount",
-        "staging_status", "settlement_status", "revision_no", "parent_id", 
-        "is_active", "issue_date", "due_date", "notes", "internal_notes",
-        "created_at", "updated_at"
-    };
-    for (const QString& key : p.keys())
-        if (!allowed.contains(key)) p.remove(key);
-    return p;
-}
-
-void InvoiceManager::beforeCreate(QVariantMap& params)
+bool InvoiceManager::beforeCreate(QVariantMap& params)
 {
     if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty())
         params["invoice_number"] = generateInvoiceNumber();
@@ -907,6 +674,7 @@ void InvoiceManager::beforeCreate(QVariantMap& params)
         params["issue_date"] = datetimeToSql();
     if (!params.contains("staging_status"))
         params["staging_status"] = "draft";
+    return true;
 }
 
 // ============================================================================
@@ -928,22 +696,4 @@ std::optional<QSqlRecord> AkunTransaksiManager::findByKode(const QString& kode)
 bool AkunTransaksiManager::updateSaldo(int id, qint64 newSaldo)
 {
     return update(id, {{"saldo", newSaldo}});
-}
-
-QVariantMap AkunTransaksiManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = params;
-    // Daftar kolom sesuai dengan percetakan_schema_improved.sql
-    static const QStringList allowed {
-        "kode", "nama", "tipe", "nama_bank", "nomor_rekening", 
-        "atas_nama", "saldo", "is_active", "description", 
-        "created_at", "updated_at"
-    };
-    
-    for (const QString& key : p.keys()) {
-        if (!allowed.contains(key)) {
-            p.remove(key);
-        }
-    }
-    return p;
 }

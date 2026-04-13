@@ -2,11 +2,14 @@
 #include "ui_dataviewer.h"
 
 // TODO: Buat dialog untuk tambah/verifikasi pembayaran
-// #include "src/dialogs/paymentdialog.h"
+#include "src/dialogs/paymentdialog.h"
+#include "src/managers/managers.h"
+#include "src/utils/sessionmanager.h"
 
-#include <QStyledItemDelegate>
 #include <QMenu>
 #include <QAction>
+#include <QMessageBox>
+#include <QStyledItemDelegate>
 
 namespace {
     class PaymentDelegate : public QStyledItemDelegate {
@@ -40,7 +43,7 @@ namespace {
                     // payment_date - format tanggal
                     option->displayAlignment = Qt::AlignCenter;
                     QDateTime dt = ix.data().toDateTime();
-                    option->text = dt.toString("dd MMMM yyyy HH:mm");
+                    option->text = dt.toString("dd MMMM yyyy");
                     break;
                 }
                 default:
@@ -73,7 +76,7 @@ PaymentsDataViewer::PaymentsDataViewer(QWidget *parent) : DataViewer(parent)
                p.cash_change,
                p.notes,
                p.verification_status,
-               p.payment_date,
+               date(p.payment_date, 'localtime'),
                a.nama_lengkap AS kasir
           FROM payments p
           JOIN invoices i        ON p.invoice_id = i.id
@@ -81,7 +84,7 @@ PaymentsDataViewer::PaymentsDataViewer(QWidget *parent) : DataViewer(parent)
           JOIN admins a          ON p.admin_id = a.id
     )--");
 
-    setFilterColumnNames({"p.payment_number", "i.invoice_number"});
+    setFilterColumnNames({"payment_number", "invoice_number"});
     ui->dataView->setItemDelegate(new PaymentDelegate(this));
     ui->dataView->verticalHeader()->hide();
     ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
@@ -141,18 +144,31 @@ void PaymentsDataViewer::onAddPaymentActionTriggered()
 
 void PaymentsDataViewer::openCreatePaymentDialog()
 {
-    // TODO: implementasi saat dialog tersedia
-    // PaymentDialog dlg(this);
-    // dlg.prepareCreate();
-    // connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-    // dlg.setWindowTitle("Form Pembayaran Baru");
-    // dlg.exec();
+    // TODO: tamplikan daftar invoice yang belum lunas
+    
+    qDebug() << "Unimplemented";
 }
 
 void PaymentsDataViewer::openVerifyPaymentDialog(int paymentId)
 {
-    // TODO: implementasi dialog verifikasi pembayaran
-    Q_UNUSED(paymentId)
+  PaymentManager paymentManager;
+  auto optUser = SessionManager::instance().currentUser();
+  if (!optUser.has_value()) {
+      QMessageBox::critical(this, "Akses ditolak", "Error:\nTidak ada aktif user dalam sesi ini\nTapi mengapa anda bisa masuk sampai sini ??");
+      return ;
+  }
+  auto user = *optUser;
+  auto ver = QMessageBox::question(this, "Konfirmasi", "Pastikan anda telah menerima bukti transfer yang valid\n"
+                                                       "serta konfirmasi yang valid dari pemegang Akun Transaksi\n"
+                                                       "Lanjutkan ?", QMessageBox::Yes | QMessageBox::No);
+  if (ver == QMessageBox::No) return ;
+
+  if (!paymentManager.verify(paymentId, user.value("id").toInt())) {
+    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat mengubah status verifikasi");
+    return ;
+  }
+  refresh();
+  emit paymentVerified(paymentId);
 }
 
 void PaymentsDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)

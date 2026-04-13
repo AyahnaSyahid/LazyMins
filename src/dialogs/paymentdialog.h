@@ -11,12 +11,18 @@ class QStandardItemModel;
 class QSqlQueryModel;
 class PaymentDialog : public QDialog
 {
+  // Kelas ini hanya bertidak sebagai penerima input data bayar
+  // parameter pembayaran diserahkan sepenuknya ke caller
   Q_OBJECT
   public:
     explicit PaymentDialog(QWidget * = nullptr);
     ~PaymentDialog();
+
     void setInvoiceId(int);     // lookup from database
-    void setInvoiceValue(int);  // setel nilai pembayaran total
+    
+    // setel nilai pembayaran total jika invoice belum dibuat
+    void setInvoiceValue(int);  
+
     int currentTRAkun() const;
     int currentInvoiceId() const;
 

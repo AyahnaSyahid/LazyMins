@@ -72,18 +72,28 @@ std::optional<QSqlRecord> BaseManager::getById(int id) const
     query.prepare(sql);
     query.bindValue(":id", id);
     
-    if (query.exec() && query.next()) {
-        return query.record();
-    } else if (!query.exec()) {
-        qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
+    if (!query.exec()) {
+    qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
+    return std::nullopt;
     }
-    
+    if (query.next()) return query.record();
     return std::nullopt;
 }
 
 bool BaseManager::update(int id, const QVariantMap& params)
 {
     resetErrorString();
+    
+    auto opt_rBefore = getById(id);
+    if(!opt_rBefore.has_value()) {
+      QString err ("Tidak dapat menemukan Record saat mencoba Update");
+      setErrorString(err);
+      qWarning() << "[BaseManager::update] Error: " << err;
+      return false;
+    }
+    
+    auto rBefore = *opt_rBefore;
+    
     QVariantMap validatedParams = validateParams(params);
     
     // Update timestamp
@@ -118,11 +128,18 @@ bool BaseManager::update(int id, const QVariantMap& params)
     bool success = query.numRowsAffected() > 0;
     
     if (success) {
-        auto record = getById(id);
+        auto opt_rAfter = getById(id);
+        if (!opt_rAfter.has_value()) {
+          QString err("Tidak dapat menemukan Record saat update");
+          qWarning() << "[BaseManager::update] Error :" << err;
+          setErrorString(err);
+          return false;
+        }
+        
+        auto rAfter = *opt_rAfter;
         // Hook after update
-        if ( !afterUpdate(id, *record) ) return false;
+        if ( !afterUpdate(id, rBefore, rAfter) ) return false;
     }
-    
     return success;
 }
 
@@ -130,6 +147,15 @@ bool BaseManager::remove(int id)
 {
     // Hook before delete
     if( !beforeDelete(id) ) return false;
+    
+    auto opt_op = getById(id);
+    
+    if (!opt_op.has_value()) {
+      QString err ("Id tidak ditemukan. Data corrupt ?");
+      qWarning() << "[BaseManager::remove] " << m_tableName << ": " << err;
+      setErrorString(err);
+      return false;
+    }
     
     if (m_useSoftDelete) {
         return softDelete(id);
@@ -146,14 +172,12 @@ bool BaseManager::remove(int id)
         return false;
     }
 
-    
     bool success = query.numRowsAffected() > 0;
     
     if (success) {
         // Hook after delete
-        if ( !afterDelete(id) ) return false;
+        if ( !afterDelete(id, *opt_op) ) return false;
     }
-    
     return success;
 }
 
@@ -471,7 +495,7 @@ QVariantMap BaseManager::validateParams(const QVariantMap& params)
         if (key == "id") continue;
 
         // C. Proteksi kolom Soft Delete internal
-        if (m_useSoftDelete && key == "deleted_at") continue;
+        if (!m_useSoftDelete && key == "deleted_at") continue;
 
         filteredParams[key] = it.value();
     }
@@ -496,16 +520,21 @@ bool BaseManager::afterCreate(const QSqlRecord& record)
 bool BaseManager::beforeUpdate(int id, QVariantMap& params)
 {
     // Hook kosong - override di derived class jika perlu
-    Q_UNUSED(id)
-    Q_UNUSED(params)
+    auto cc = s_columnCache.value(m_tableName);
+    if (cc.count()) {
+      if (cc.contains("updated_at") && !params.contains("updated_at")) {
+        params["updated_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
+      }
+    }
     return true;
 }
 
-bool BaseManager::afterUpdate(int id, const QSqlRecord& record)
+bool BaseManager::afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
-    Q_UNUSED(record)
+    Q_UNUSED(a)
+    Q_UNUSED(b)
     return true;
 }
 
@@ -516,7 +545,7 @@ bool BaseManager::beforeDelete(int id)
     return true;
 }
 
-bool BaseManager::afterDelete(int id)
+bool BaseManager::afterDelete(int id, const QSqlRecord&)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
@@ -542,3 +571,23 @@ void BaseManager::resetErrorString() {
 QSqlRecord BaseManager::empty() const {
   return QSqlRecord();
 }
+
+QString BaseManager::generateCode(const QString& tableName,
+                     const QString& numberColumn,
+                     const QString& prefix,
+                     int padWidth)
+{
+    QSqlQuery q(BaseManager::connection);
+    q.prepare(QString("SELECT COALESCE(MAX(%1), 0) + 1 AS next_val FROM %2")
+                  .arg(numberColumn, tableName));
+    if (q.exec() && q.next()) {
+        int next = q.value("next_val").toInt();
+        return QString("%1-%2").arg(prefix).arg(next, padWidth, 10, QChar('0'));
+    }
+    // Fallback: timestamp-based
+    return QString("%1-%2").arg(prefix)
+               .arg(QDateTime::currentMSecsSinceEpoch());
+}
+
+QString BaseManager::dateToSql(const QDate& d) { return d.toString("yyyy-MM-dd"); }
+QString BaseManager::dateTimeToSql(const QDateTime& d) { return d.toString("yyyy-MM-dd HH:mm:ss"); }

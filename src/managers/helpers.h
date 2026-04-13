@@ -2,6 +2,7 @@
 
 #include "src/models/ordermodel.h"
 #include "src/managers/managers.h"
+#include "src/managers/orderitemfinishingmanager.h"
 
 namespace DBOperationHelper {
   struct OperationResult {

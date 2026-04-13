@@ -1,6 +1,14 @@
 #pragma once
 #include <QJsonObject>
 #include "basemanager.h"
+#include "paymentmanager.h"
+#include "transaksimanager.h"
+#include "akuntransaksimanager.h"
+#include "transaksimanager.h"
+#include "invoicemanager.h"
+#include "orderitemfinishingmanager.h"
+// #include "orderitemmanager.h"
+// #include "ordermanager.h"
 
 // ============================================================================
 // FORWARD DECLARATIONS
@@ -12,14 +20,9 @@ class ProductPriceManager;
 class FinishingServiceManager;
 class OrderManager;
 class OrderItemManager;
-class OrderItemFinishingManager;
-class PaymentManager;
 class KategoriTransaksiManager;
-class TransaksiManager;
 class StockMovementManager;
 class ActivityLogManager;
-class InvoiceManager;
-class AkunTransaksiManager;
 
 // ============================================================================
 // ProductCategoryManager — tabel: product_categories
@@ -133,8 +136,12 @@ public:
     // Number generation  (prefix from app_settings, e.g. "ORD")
     static QString generateOrderNumber(const QString& prefix = "ORD");
     
+    bool updateSubtotal(int order_id);
+
 protected:
     bool beforeCreate(QVariantMap& params) override;
+    bool beforeUpdate(int, QVariantMap& params) override;
+    bool afterUpdate(int id, const QSqlRecord&, const QSqlRecord&);
 };
 
 // ============================================================================
@@ -149,49 +156,12 @@ public:
     QList<QSqlRecord> getByOrder(int orderId);
     
     bool removeByOrder(int orderId);
-};
-
-// ============================================================================
-// OrderItemFinishingManager — tabel: order_item_finishings
-// ============================================================================
-class OrderItemFinishingManager : public BaseManager
-{
-public:
-    explicit OrderItemFinishingManager()
-        : BaseManager("order_item_finishings") {}
-
-    QList<QSqlRecord> getByOrderItem(int orderItemId);
-    bool removeByOrderItem(int orderItemId);
-};
-
-// ============================================================================
-// PaymentManager — tabel: payments
-// ============================================================================
-class PaymentManager : public BaseManager
-{
-public:
-    explicit PaymentManager()
-        : BaseManager("payments") {}
-
-    QList<QSqlRecord> getByOrder(int orderId);
-    QList<QSqlRecord> getByCustomer(int customerId);
-    QList<QSqlRecord> getByStatus(const QString& status);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-    QList<QSqlRecord> getByInvoice(int invoiceId);
-    
-    std::optional<QSqlRecord> findByPaymentNumber(const QString& paymentNumber);
-
-    bool verify(int id, int verifiedByAdminId);
-    bool cancelPayment(int id);
-
-    static QString generatePaymentNumber(const QString& prefix = "PYM");
+    bool updateItemFinishingTotal(int orderId);
 
 protected:
-    QVariantMap validateParams(const QVariantMap& params) override;
-    bool beforeCreate(QVariantMap& params) override;
-    bool beforeUpdate(int id, QVariantMap& params) override;
-    // bool afterUpdate(int, const QSqlRecord& rc);
-    // bool afterCreate(const QSqlRecord&);
+    bool afterCreate(const QSqlRecord& c) override;
+    bool afterUpdate(int, const QSqlRecord&, const QSqlRecord& c) override;
+    bool afterDelete(int, const QSqlRecord&) override;
 };
 
 // ============================================================================
@@ -208,33 +178,6 @@ public:
     QList<QSqlRecord> getRootCategories();
     QList<QSqlRecord> getChildren(int parentId);
     std::optional<QSqlRecord> findByNama(const QString& nama);
-    
-    static QString generateTransactionNumber(const QString& prefix = "TRX");
-};
-
-// ============================================================================
-// TransaksiManager — tabel: transaksi
-// ============================================================================
-class TransaksiManager : public BaseManager
-{
-public:
-    explicit TransaksiManager()
-        : BaseManager("transaksi") {}
-
-    QList<QSqlRecord> getByTipe(const QString& tipe);
-    QList<QSqlRecord> getByAdmin(int adminId);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-    QList<QSqlRecord> getByKategori(int kategoriId);
-    QList<QSqlRecord> getByReference(const QString& referenceType, int referenceId);
-    std::optional<QSqlRecord> lastTransaction() const ;
-
-    // Aggregates
-    qint64 sumByTipe(const QString& tipe, const QDate& from = QDate(), const QDate& to = QDate());
-    
-    QString generateTransactionNumber(const QString& prefix = "TRX");
-
-protected:
-    bool beforeCreate(QVariantMap& params) override;
 };
 
 // ============================================================================
@@ -264,26 +207,6 @@ public:
 
 };
 
-
-// ============================================================================
-// AkunTransaksiManager — tabel: akun_transaksi
-// ============================================================================
-class AkunTransaksiManager : public BaseManager
-{
-public:
-    explicit AkunTransaksiManager()
-        : BaseManager("akun_transaksi") {}
-
-    // Mengambil semua akun yang masih aktif
-    QList<QSqlRecord> getActive();
-    
-    // Mengambil akun berdasarkan kode unik (misal: 'CASH', 'BCA')
-    std::optional<QSqlRecord> findByKode(const QString& kode);
-
-    // Fungsi manual untuk update saldo (jika diperlukan di luar trigger)
-    bool updateSaldo(int id, qint64 newSaldo);
-};
-
 // ============================================================================
 // ActivityLogManager — tabel: activity_logs
 // ============================================================================
@@ -307,31 +230,4 @@ public:
                                   const QJsonObject& newValue = {},
                                   const QString& ipAddress = "",
                                   const QString& userAgent = "");
-};
-
-class InvoiceManager : public BaseManager
-{
-public:
-    explicit InvoiceManager()
-        : BaseManager("invoices") {}
-
-    // Query helpers
-    QList<QSqlRecord> getByStatus(const QString& status, const QString& orderBy = "issue_date DESC");
-    QList<QSqlRecord> getByCustomer(int customerId);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-    QList<QSqlRecord> getOverdue();
-
-    std::optional<QSqlRecord> findByInvoiceNumber(const QString& invoiceNumber);
-
-    // Status transitions
-    bool updateStatus(int id, const QString& newStatus);
-    bool cancel(int id);
-    bool markPaid(int id);
-    
-    
-    // Number generation (daily format like orders)
-    static QString generateInvoiceNumber(const QString& prefix = "INV");
-
-protected:
-    bool beforeCreate(QVariantMap& params) override;
 };

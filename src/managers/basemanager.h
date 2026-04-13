@@ -63,15 +63,21 @@ protected:
     virtual bool beforeCreate(QVariantMap& params);
     virtual bool afterCreate(const QSqlRecord& record);
     virtual bool beforeUpdate(int id, QVariantMap& params);
-    virtual bool afterUpdate(int id, const QSqlRecord& record);
+    virtual bool afterUpdate(int id, const QSqlRecord& recordBefore, const QSqlRecord& recordAfter);
     virtual bool beforeDelete(int id);
-    virtual bool afterDelete(int id);
+    virtual bool afterDelete(int id, const QSqlRecord& before);
 
     void resetErrorString();
     void setErrorString(const QString& err) { m_errorString = err; }
+
     // Helper methods
     QString getDeleteCondition() const;
-    
+    static QString generateCode(const QString& tableName,
+                     const QString& numberColumn,
+                     const QString& prefix,
+                     int padWidth = 5);
+    static QString dateToSql(const QDate& d = QDateTime::currentDateTimeUtc().date());
+    static QString dateTimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc());
 private:
     static QMap<QString, QStringList> s_columnCache;
     QVariant m_lastInsertId;
@@ -79,4 +85,3 @@ private:
     QString m_tableName;
     bool m_useSoftDelete;
 };
-

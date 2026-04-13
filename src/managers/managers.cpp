@@ -3,34 +3,6 @@
 #include <QJsonDocument>
 #include <QDate>
 
-// ============================================================================
-// Shared helpers (file-local)
-// ============================================================================
-namespace {
-
-// Generates a sequential number-based code: PREFIX-00001
-// Uses COUNT(*)+1 on the given table (fast enough for percetakan scale)
-QString generateCode(const QString& tableName,
-                     const QString& numberColumn,
-                     const QString& prefix,
-                     int padWidth = 5)
-{
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("SELECT COALESCE(MAX(%1), 0) + 1 AS next_val FROM %2")
-                  .arg(numberColumn, tableName));
-    if (q.exec() && q.next()) {
-        int next = q.value("next_val").toInt();
-        return QString("%1-%2").arg(prefix).arg(next, padWidth, 10, QChar('0'));
-    }
-    // Fallback: timestamp-based
-    return QString("%1-%2").arg(prefix)
-               .arg(QDateTime::currentMSecsSinceEpoch());
-}
-
-QString dateToSql(const QDate& d = QDateTime::currentDateTimeUtc().date()) { return d.toString("yyyy-MM-dd"); }
-QString datetimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc()) { return d.toString("yyyy-MM-dd HH:mm:ss"); }
-
-} // anonymous namespace
 
 // ============================================================================
 // ProductCategoryManager
@@ -89,7 +61,7 @@ bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
     q.prepare(QString("UPDATE %1 SET stock = stock + :delta, updated_at = :updated_at WHERE id = :id")
                   .arg(tableName()));
     q.bindValue(":delta", delta);
-    q.bindValue(":updated_at", datetimeToSql());
+    q.bindValue(":updated_at", dateTimeToSql());
     q.bindValue(":id", id);
     if (!q.exec()) {
         qDebug() << "ProductManager::adjustStock error:" << q.lastError().text();
@@ -134,8 +106,8 @@ bool ProductPriceManager::upsert(int productId, int priceLevelId, int price)
     q.bindValue(":pid",        productId);
     q.bindValue(":plid",       priceLevelId);
     q.bindValue(":price",      price);
-    q.bindValue(":created_at", datetimeToSql());
-    q.bindValue(":updated_at", datetimeToSql());
+    q.bindValue(":created_at", dateTimeToSql());
+    q.bindValue(":updated_at", dateTimeToSql());
     if (!q.exec()) {
         qDebug() << "ProductPriceManager::upsert error:" << q.lastError().text();
         return false;
@@ -233,8 +205,8 @@ QList<QSqlRecord> OrderManager::getPending()
 QList<QSqlRecord> OrderManager::getOverdue()
 {
     return getWhere(
-        "deadline_date < :now AND status NOT IN ('completed','cancelled')",
-        {{"now", datetimeToSql()}},
+        "deadline_date < :now AND staging_status NOT IN ('completed','cancelled')",
+        {{"now", dateTimeToSql()}},
         "deadline_date ASC");
 }
 
@@ -250,7 +222,7 @@ bool OrderManager::updateStagingStatus(int id, const QString& newStatus)
     QVariantMap p;
     p["staging_status"] = newStatus;
     if (newStatus == "completed")
-        p["completion_date"] = datetimeToSql();
+        p["completion_date"] = dateTimeToSql();
     return update(id, p);
 }
 
@@ -273,8 +245,50 @@ bool OrderManager::beforeCreate(QVariantMap& params)
     if (!params.contains("order_number") || params["order_number"].toString().isEmpty())
         params["order_number"] = generateOrderNumber();
     if (!params.contains("order_date"))
-        params["order_date"] = datetimeToSql();
+        params["order_date"] = dateTimeToSql();
     return true;
+}
+
+bool OrderManager::updateSubtotal(int order_id) {
+  OrderItemManager oim;
+  auto rList = oim.getByOrder(order_id);
+  qint64 sum = 0;
+  for(auto const& oi : rList) {
+    sum += oi.value("total").toLongLong();
+  }
+  return update(order_id, {{"subtotal", sum},{"updated_at", dateTimeToSql()}});
+}
+
+bool OrderManager::beforeUpdate(int id, QVariantMap& params) {
+  auto opt_od = getById(id);
+  if(!opt_od.has_value()) {
+    setErrorString("Order tidak ditemukan");
+    return false;
+  }
+  auto recOd = *opt_od;
+  if (!recOd.value("invoice_id").isNull() && params.contains("invoice_id")) {
+    setErrorString("Mengupdate id invoice dalam order tidak diizinkan");
+    return false;
+  }
+  return BaseManager::beforeUpdate(id, params);
+}
+
+bool OrderManager::afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b) {
+  qint64 ttl_a, ttl_b;
+  ttl_a = a.value("total_amount").toLongLong();
+  ttl_b = b.value("total_amount").toLongLong();
+  
+  
+  if (ttl_a != ttl_b) {
+    if (!b.value("invoice_id").isNull()) {
+      InvoiceManager im;
+      if (!im.updateInvoiceBalances(b.value("invoice_id").toInt())) {
+        setErrorString(im.errorString());
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 // ============================================================================
@@ -294,109 +308,32 @@ bool OrderItemManager::removeByOrder(int orderId)
     return q.exec();
 }
 
-// ============================================================================
-// OrderItemFinishingManager
-// ============================================================================
+bool OrderItemManager::updateItemFinishingTotal(int orderId) {
+  OrderItemFinishingManager oifm;
+  
+  auto rlist = oifm.getByOrderItem(orderId);
+  qint64 sum = 0;
+  for (auto const& r : rlist) {
+    sum += r.value("subtotal").toLongLong();
+  }
 
-QList<QSqlRecord> OrderItemFinishingManager::getByOrderItem(int orderItemId)
-{
-    return getWhere("order_item_id = :order_item_id", {{"order_item_id", orderItemId}});
+  return update(orderId, {{"finishing_total", sum}, {"updated_at", dateTimeToSql()}});
 }
 
-bool OrderItemFinishingManager::removeByOrderItem(int orderItemId)
-{
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("DELETE FROM %1 WHERE order_item_id = :order_item_id").arg(tableName()));
-    q.bindValue(":order_item_id", orderItemId);
-    return q.exec();
-}
 
-// ============================================================================
-// PaymentManager
-// ============================================================================
-
-QList<QSqlRecord> PaymentManager::getByOrder(int orderId)
-{
-    return getWhere("order_id = :order_id",
-                    {{"order_id", orderId}}, "payment_date DESC");
-}
-
-QList<QSqlRecord> PaymentManager::getByCustomer(int customerId)
-{
-    return getWhere("customer_id = :customer_id",
-                    {{"customer_id", customerId}}, "payment_date DESC");
-}
-
-QList<QSqlRecord> PaymentManager::getByStatus(const QString& status)
-{
-    return getWhere("payment_status = :payment_status",
-                    {{"payment_status", status}}, "payment_date DESC");
-}
-
-QList<QSqlRecord> PaymentManager::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "DATE(payment_date) BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "payment_date DESC");
-}
-
-std::optional<QSqlRecord> PaymentManager::findByPaymentNumber(const QString& paymentNumber)
-{
-    auto rows = getWhere("payment_number = :payment_number", {{"payment_number", paymentNumber}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-
-bool PaymentManager::verify(int id, int verifiedByAdminId)
-{
-    return update(id, {
-        {"verification_status", "verified"},
-        {"verified_by",    verifiedByAdminId},
-        {"verified_at",    datetimeToSql()}
-    });
-}
-
-bool PaymentManager::cancelPayment(int id)
-{
-    return update(id, {{"verification_status", "cancelled"}});
-}
-
-QString PaymentManager::generatePaymentNumber(const QString& prefix)
-{
-    auto q = baseQuery();
-    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
-                      "FROM payments WHERE date(payment_date, 'localtime') = date('now', 'localtime')")
-                  .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
-    if (q.exec() && q.next()) {
-        return q.value("next_val").toString();
-    }
-    return generateCode("payments", "id", prefix);
-}
-
-QVariantMap PaymentManager::validateParams(const QVariantMap& params)
-{
-    QVariantMap p = BaseManager::validateParams(params);
-    if(!p.contains("payment_number")) p["payment_number"] = generatePaymentNumber();
-    qDebug() << p;
-    return p;
-}
-
-bool PaymentManager::beforeCreate(QVariantMap& params)
-{
-    if (!params.contains("payment_number") || params["payment_number"].toString().isEmpty())
-        params["payment_number"] = generatePaymentNumber();
-    if (!params.contains("payment_date"))
-        params["payment_date"] = datetimeToSql();
-    return true;
-}
-
-bool PaymentManager::beforeUpdate(int id, QVariantMap& params) {
-  Q_UNUSED(id);
-  params.remove("id");
-  params.remove("payment_number");
+bool OrderItemManager::afterCreate(const QSqlRecord& c) {
   return true;
-};
+}
+
+bool OrderItemManager::afterUpdate(int, const QSqlRecord&, const QSqlRecord& c) {
+  return true;
+  
+}
+
+bool OrderItemManager::afterDelete(int, const QSqlRecord&) {
+  return true;
+  
+}
 
 // ============================================================================
 // KategoriTransaksiManager
@@ -427,86 +364,6 @@ std::optional<QSqlRecord> KategoriTransaksiManager::findByNama(const QString& na
     auto rows = getWhere("nama = :nama", {{"nama", nama}});
     if (!rows.isEmpty()) return rows.first();
     return std::nullopt;
-}
-
-// ============================================================================
-// TransaksiManager
-// ============================================================================
-
-QList<QSqlRecord> TransaksiManager::getByTipe(const QString& tipe)
-{
-    return getWhere("tipe = :tipe", {{"tipe", tipe}}, "tanggal DESC");
-}
-
-QList<QSqlRecord> TransaksiManager::getByAdmin(int adminId)
-{
-    return getWhere("admin_id = :admin_id", {{"admin_id", adminId}}, "tanggal DESC");
-}
-
-QList<QSqlRecord> TransaksiManager::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "tanggal BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "tanggal DESC");
-}
-
-QList<QSqlRecord> TransaksiManager::getByKategori(int kategoriId)
-{
-    return getWhere("kategori_id = :kategori_id", {{"kategori_id", kategoriId}}, "tanggal DESC");
-}
-
-QList<QSqlRecord> TransaksiManager::getByReference(const QString& referenceType, int referenceId)
-{
-    return getWhere(
-        "reference_type = :rt AND reference_id = :rid",
-        {{"rt", referenceType}, {"rid", referenceId}});
-}
-
-std::optional<QSqlRecord> TransaksiManager::lastTransaction() const {
-  QSqlQuery q("SELECT * FROM transaksi ORDER BY id DESC LIMIT 1", BaseManager::connection);
-  if(!q.next()) {
-    return std::nullopt;
-  }
-  return q.record();
-}
-
-qint64 TransaksiManager::sumByTipe(const QString& tipe, const QDate& from, const QDate& to)
-{
-    QSqlQuery q(BaseManager::connection);
-    QString sql = "SELECT COALESCE(SUM(jumlah), 0) AS total FROM transaksi WHERE tipe = :tipe";
-    if (from.isValid() && to.isValid())
-        sql += " AND tanggal BETWEEN :from AND :to";
-    q.prepare(sql);
-    q.bindValue(":tipe", tipe);
-    if (from.isValid() && to.isValid()) {
-        q.bindValue(":from", dateToSql(from));
-        q.bindValue(":to",   dateToSql(to));
-    }
-    if (q.exec() && q.next())
-        return q.value("total").toLongLong();
-    return 0;
-}
-
-QString TransaksiManager::generateTransactionNumber(const QString& prefix)
-{
-  auto q = baseQuery();
-  q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
-                    "FROM transaksi WHERE date(tanggal) = date('now')")
-                .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
-  if (q.exec() && q.next()) {
-    return q.value("next_val").toString();
-  }
-  return generateCode("transaksi", "id", prefix);
-}
-
-bool TransaksiManager::beforeCreate(QVariantMap& params)
-{
-    if (!params.contains("transaction_number") || params["transaction_number"].toString().isEmpty())
-        params["transaction_number"] = generateTransactionNumber();
-    if (!params.contains("tanggal"))
-        params["tanggal"] = QDate::currentDate().toString("yyyy-MM-dd");
-    return true;
 }
 
 // ============================================================================
@@ -553,7 +410,7 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(
     p["stock_before"]   = stockBefore;
     p["stock_after"]    = stockAfter;
     p["admin_id"]       = adminId;
-    p["movement_date"]  = datetimeToSql();
+    p["movement_date"]  = dateTimeToSql();
     if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
     if (referenceId > 0)          p["reference_id"]   = referenceId;
     if (!notes.isEmpty())         p["notes"]          = notes;
@@ -605,95 +462,4 @@ std::optional<QSqlRecord> ActivityLogManager::log(
     if (!ipAddress.isEmpty())   p["ip_address"] = ipAddress;
     if (!userAgent.isEmpty())   p["user_agent"] = userAgent;
     return create(p);
-}
-
-// ============================================================================
-// InvoiceManager
-// ============================================================================
-
-QList<QSqlRecord> InvoiceManager::getByStatus(const QString& status, const QString& orderBy)
-{
-    return getWhere("status = :status", {{"status", status}}, orderBy);
-}
-
-QList<QSqlRecord> InvoiceManager::getByCustomer(int customerId)
-{
-    return getWhere("customer_id = :customer_id",
-                    {{"customer_id", customerId}}, "issue_date DESC");
-}
-
-QList<QSqlRecord> InvoiceManager::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "DATE(issue_date) BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "issue_date DESC");
-}
-
-QList<QSqlRecord> InvoiceManager::getOverdue()
-{
-    return getWhere(
-        "due_date < :now AND status NOT IN ('paid','cancelled')",
-        {{"now", datetimeToSql()}},
-        "due_date ASC");
-}
-
-std::optional<QSqlRecord> InvoiceManager::findByInvoiceNumber(const QString& invoiceNumber)
-{
-    auto rows = getWhere("invoice_number = :invoice_number", {{"invoice_number", invoiceNumber}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-
-bool InvoiceManager::updateStatus(int id, const QString& newStatus)
-{
-    QVariantMap p{{"status", newStatus}};
-    return update(id, p);
-}
-
-bool InvoiceManager::cancel(int id)  { return updateStatus(id, "cancelled"); }
-bool InvoiceManager::markPaid(int id) { return updateStatus(id, "paid"); }
-
-QString InvoiceManager::generateInvoiceNumber(const QString& prefix)
-{
-    auto q = baseQuery();
-    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
-                      "FROM invoices WHERE date(issue_date) = date('now')")
-                  .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
-    if (q.exec() && q.next()) {
-        return q.value("next_val").toString();
-    }
-    return generateCode("invoices", "id", prefix);
-}
-
-bool InvoiceManager::beforeCreate(QVariantMap& params)
-{
-    if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty())
-        params["invoice_number"] = generateInvoiceNumber();
-    if (!params.contains("issue_date"))
-        params["issue_date"] = datetimeToSql();
-    if (!params.contains("staging_status"))
-        params["staging_status"] = "draft";
-    return true;
-}
-
-// ============================================================================
-// AkunTransaksiManager
-// ============================================================================
-
-QList<QSqlRecord> AkunTransaksiManager::getActive()
-{
-    return getWhere("is_active = 1", {}, "nama ASC");
-}
-
-std::optional<QSqlRecord> AkunTransaksiManager::findByKode(const QString& kode)
-{
-    auto rows = getWhere("kode = :kode", {{"kode", kode}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-
-bool AkunTransaksiManager::updateSaldo(int id, qint64 newSaldo)
-{
-    return update(id, {{"saldo", newSaldo}});
 }

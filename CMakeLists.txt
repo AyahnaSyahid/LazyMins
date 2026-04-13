@@ -45,6 +45,11 @@ set(PROJECT_SOURCES
     src/managers/konsumenmanager.cpp
     src/managers/appsettingsmanager.cpp
     src/managers/helpers.cpp
+    src/managers/transaksimanager.cpp
+    src/managers/akuntransaksimanager.cpp
+    src/managers/paymentmanager.cpp
+    src/managers/invoicemanager.cpp
+    src/managers/orderitemfinishingmanager.cpp
 
     # Models
     src/models/ordermodel.cpp

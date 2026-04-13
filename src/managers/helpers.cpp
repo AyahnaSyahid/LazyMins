@@ -24,8 +24,10 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   const QList<OrderItem> &items, 
   const QString& invoiceCode,
   const QVariantMap& paymentInfo )
-{
-  auto &con = BaseManager::connection;
+{ 
+  return { false, "" };
+  
+  /* auto &con = BaseManager::connection;
   if (!con.transaction()) {
     return { false, "Tidak dapat melakukan transaksi database"};
   }
@@ -60,7 +62,6 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   int createdInvoiceId = (*opt_invoice).value("id").toInt();
   
   OrderManager orderManager;
-  // Create Order
   
   QVariantMap orderParam {
     {"order_number", header.order_number},
@@ -78,14 +79,14 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   
   if(!opt_order.has_value()) {
     con.rollback();
-    auto err = invoiceManager.errorString();
+    auto err = orderManager.errorString();
     qWarning() << "createInstantOrderFailed while createOrder"
                << err;
     return {false, err};
   }
   
   int createdOrderId = (*opt_order).value("id").toInt();
-  
+
   OrderItemManager orderItemManager;
   OrderItemFinishingManager orderFinishingManager;
   ProductManager productManager;
@@ -248,7 +249,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     con.rollback();
     return { false, error };
   }
-  return { true, "" };
+  return { true, "" }; */
 }
 
 DBOperationHelper::OperationResult 
@@ -257,7 +258,8 @@ DBOperationHelper::OperationResult
                                   const QString& notes,
                                   int adminId )
 {
-  ProductManager productManager;
+  return { false, "" };
+  /* ProductManager productManager;
   StockMovementManager stockManager;
   
   if (item.id < 1) {
@@ -288,11 +290,14 @@ DBOperationHelper::OperationResult
       qWarning() << "stockUpdate Failed";
       return { false, "Unable to update product stock"};
   }
-  return { true, "" };
+  return { true, "" }; */
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int product_id, qreal _final, const QString& notes) {
-  ProductManager productManager;
+  
+  return { false, "" };
+  
+  /* ProductManager productManager;
   StockMovementManager stockManager;
   
   BaseManager::connection.transaction();
@@ -320,11 +325,14 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int pr
     return { false, err };
   }
   BaseManager::connection.commit();
-  return { true, "" };
+  return { true, "" }; */
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes) {
-  ProductManager productManager;
+  
+  return { false, "" };
+  
+  /* ProductManager productManager;
   StockMovementManager stockManager;
   
   BaseManager::connection.transaction();
@@ -346,12 +354,13 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int p
   if (!productUpdateOk) opr.error = productManager.errorString();
   if (!opt_movement.has_value()) opr.error = stockManager.errorString();
   BaseManager::connection.rollback();
-  return opr;
+  return opr; */
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(const QVariantMap& param, QList<int> oids)
 {
-    InvoiceManager invoiceManager;
+    return { false, "" };
+    /* InvoiceManager invoiceManager;
     QVariantMap copyParam(param);
     // Ini adalah mode create jadi kita bersihkan dulu parameter id jika ada
     copyParam.remove("id");
@@ -388,12 +397,13 @@ DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(cons
     resData["invoice_id"] = invoiceId;
     resData["invoice_number"] = invoiceNum;
     
-    return { true, "", resData };
+    return { true, "", resData }; */
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(const QVariantMap& param, QList<int> oids)
 {
-    if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
+  return {false, ""};
+    /* if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
 
     auto &db = BaseManager::connection;
     if (!db.transaction()) return { false, "Gagal memulai transaksi." };
@@ -406,12 +416,13 @@ DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(con
     }
 
     db.rollback();
-    return { false, result.error.isEmpty() ? db.lastError().text() : result.error };
+    return { false, result.error.isEmpty() ? db.lastError().text() : result.error }; */
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids)
 {
-    if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
+    return {false, ""};
+    /* if (oids.isEmpty()) return { false, "Daftar ID pesanan kosong." };
 
     auto &db = BaseManager::connection;
     if (!db.transaction()) return { false, "Gagal memulai transaksi." };
@@ -500,5 +511,5 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
     }
 
     db.rollback();
-    return { false, db.lastError().text() };
+    return { false, db.lastError().text() }; */
 }

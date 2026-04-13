@@ -9,7 +9,7 @@
 #include <QSqlRecord>
 #include <QString>
 
-#include "src/managers/basemanager.h"
+#include "src/managers/managers.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderHeader – mirrors the orders table (fields managed by the application)

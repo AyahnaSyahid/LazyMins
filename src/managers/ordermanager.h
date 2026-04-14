@@ -35,5 +35,5 @@ public:
 protected:
     bool beforeCreate(QVariantMap& params) override;
     bool beforeUpdate(int, QVariantMap& params) override;
-    bool afterUpdate(int id, const QSqlRecord&, const QSqlRecord&);
+    bool afterUpdate(int id, const QSqlRecord&, const QSqlRecord&) override;
 };

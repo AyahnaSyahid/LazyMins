@@ -115,19 +115,22 @@ bool OrderManager::beforeUpdate(int id, QVariantMap& params) {
 }
 
 bool OrderManager::afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b) {
-  qint64 ttl_a, ttl_b;
-  ttl_a = a.value("total_amount").toLongLong();
-  ttl_b = b.value("total_amount").toLongLong();
+  qDebug() << "[OrderManager::afterUpdate]";
+  QVariant iida = a.value("invoice_id"), iidb = b.value("invoice_id");
+  InvoiceManager invm;
   
-  
-  if (ttl_a != ttl_b) {
-    if (!b.value("invoice_id").isNull()) {
-      InvoiceManager im;
-      if (!im.updateInvoiceBalances(b.value("invoice_id").toInt())) {
-        setErrorString(im.errorString());
-        return false;
-      }
+  if ( !a.value("invoice_id").isNull() ) {
+    if ( !invm.updateInvoiceBalances(iida.toInt()) ) {
+      setErrorString(invm.errorString());
+      return false;
     }
   }
+  if ( !b.value("invoice_id").isNull() ) {
+    if ( !invm.updateInvoiceBalances(iidb.toInt()) ) {
+      setErrorString(invm.errorString());
+      return false;
+    }
+  }
+
   return true;
 }

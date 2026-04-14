@@ -21,7 +21,7 @@ public:
     bool cancel(int id);
     bool markPaid(int id);
     
-    bool updateInvoiceBalances(int invoiceId);
+    bool updateInvoiceData(int invoiceId);
     
     // Number generation (daily format like orders)
     static QString generateInvoiceNumber(const QString& prefix = "INV");

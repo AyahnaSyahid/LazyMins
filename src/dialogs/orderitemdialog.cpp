@@ -215,7 +215,7 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
     int suggestedPrice = 0;
     if (optprice.has_value()) {
-        suggestedPrice = *optprice;
+        suggestedPrice = optprice->value("price").toInt();
     } else {
         // Fallback to cost_price column (index 4 in the query)
         suggestedPrice = model->index(index, 4).data(Qt::EditRole).toInt();

@@ -1,72 +1,54 @@
 #include "orderitemfinishingmanager.h"
-#include "managers.h"
+#include "orderitemmanager.h"
 
-// ============================================================================
-// OrderItemFinishingManager
-// ============================================================================
+OrderItemFinishingManager::OrderItemFinishingManager()
+    : BaseManager("order_item_finishings", false)
+{
+}
 
 QList<QSqlRecord> OrderItemFinishingManager::getByOrderItem(int orderItemId)
 {
-    return getWhere("order_item_id = :order_item_id", {{"order_item_id", orderItemId}});
+    return getWhere("order_item_id = :order_item_id",
+                    {{ ":order_item_id", orderItemId }},
+                    "id");
 }
 
-bool OrderItemFinishingManager::removeByOrderItem(int orderItemId)
+bool OrderItemFinishingManager::afterCreate(const QSqlRecord& record)
 {
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("DELETE FROM %1 WHERE order_item_id = :order_item_id").arg(tableName()));
+    return recalculateFinishingTotal(record.value("order_item_id").toInt());
+}
+
+bool OrderItemFinishingManager::afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after)
+{
+    Q_UNUSED(id)
+    Q_UNUSED(before)
+    return recalculateFinishingTotal(after.value("order_item_id").toInt());
+}
+
+bool OrderItemFinishingManager::afterDelete(int id, const QSqlRecord& before)
+{
+    Q_UNUSED(id)
+    return recalculateFinishingTotal(before.value("order_item_id").toInt());
+}
+
+bool OrderItemFinishingManager::recalculateFinishingTotal(int orderItemId)
+{
+    if (orderItemId <= 0) return true;
+
+    // subtotal kolom pada order_item_finishings adalah VIRTUAL (quantity * finishing_price)
+    // kita SUM dari baris yang ada
+    QSqlQuery q = baseQuery();
+    q.prepare(
+        "SELECT COALESCE(SUM(subtotal), 0) AS finishing_sum "
+        "FROM order_item_finishings WHERE order_item_id = :order_item_id"
+    );
     q.bindValue(":order_item_id", orderItemId);
-    return q.exec();
-}
-
-bool OrderItemFinishingManager::afterCreate(const QSqlRecord& r) {
-  // update harga order terkait finishing ini
-  OrderItemManager oim;
-  if (!oim.updateItemFinishingTotal(r.value("id").toInt())) {
-    QString err = oim.errorString();
-    qWarning() << "[OrderItemFinishingManager::afterCreate] Error:"
-               << err;
-    setErrorString(err);
-    return false;
-  }
-  return true;
-}
-
-bool OrderItemFinishingManager::afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b) {
-  qint64 sub_a = a.value("subtotal").toLongLong();
-  qint64 sub_b = b.value("subtotal").toLongLong();
-  qint64 id_a = b.value("order_item_id").toLongLong();
-  qint64 id_b = b.value("order_item_id").toLongLong();
-  
-  if ((sub_a != sub_b) || (id_a != id_b)) {
-    OrderItemManager oim;
-    if (!oim.updateItemFinishingTotal(id_a)) {
-      QString err = oim.errorString();
-      qWarning() << "[OrderItemFinishingManager::afterUpdate] Error:"
-                 << err;
-      setErrorString(err);
-      return false;
-    }
-    if (id_a != id_b) {
-      if (!oim.updateItemFinishingTotal(id_b)) {
-        QString err = oim.errorString();
-        qWarning() << "[OrderItemFinishingManager::afterUpdate] Error:"
-                   << err;
-        setErrorString(err);
+    if (!q.exec() || !q.next()) {
+        setErrorString(q.lastError().text());
         return false;
-      }
     }
-  }
-  return true;
-}
 
-bool OrderItemFinishingManager::afterDelete(int id, const QSqlRecord& a, const QSqlRecord& b) {
-  OrderItemManager oim;
-  if (!oim.updateItemFinishingTotal(a.value("order_item_id").toInt())) {
-      QString err = oim.errorString();
-      qWarning() << "[OrderItemFinishingManager::afterDelete] Error:"
-                 << err;
-      setErrorString(err);
-      return false;
-  }
-  return true;
+    int newFinishingTotal = q.value("finishing_sum").toInt();
+    OrderItemManager oim;
+    return oim.updateFinishingTotal(orderItemId, newFinishingTotal);
 }

@@ -1,32 +1,38 @@
 #include "kategoritransaksimanager.h"
 
-// ============================================================================
-// KategoriTransaksiManager
-// ============================================================================
+KategoriTransaksiManager::KategoriTransaksiManager()
+    : BaseManager("kategori_transaksi", false)
+{
+}
+
+bool KategoriTransaksiManager::beforeCreate(QVariantMap& params)
+{
+    if (!params.contains("kode") || params["kode"].toString().isEmpty()) {
+        params["kode"] = generateCode("kategori_transaksi", "kode", "KAT-", 3);
+    }
+    return true;
+}
 
 QList<QSqlRecord> KategoriTransaksiManager::getByTipe(const QString& tipe)
 {
-    return getWhere("tipe = :tipe AND is_active = 1", {{"tipe", tipe}}, "nama");
+    return getWhere("tipe = :tipe COLLATE NOCASE AND is_active = 1",
+                    {{ ":tipe", tipe }},
+                    "nama");
 }
 
-QList<QSqlRecord> KategoriTransaksiManager::getActive()
+QList<QSqlRecord> KategoriTransaksiManager::getActive(const QString& orderBy, int limit)
 {
-    return getWhere("is_active = 1", {}, "nama");
-}
-
-QList<QSqlRecord> KategoriTransaksiManager::getRootCategories()
-{
-    return getWhere("parent_id IS NULL AND is_active = 1", {}, "nama");
+    return getWhere("is_active = 1", {}, orderBy, limit);
 }
 
 QList<QSqlRecord> KategoriTransaksiManager::getChildren(int parentId)
 {
-    return getWhere("parent_id = :parent_id", {{"parent_id", parentId}}, "nama");
+    return getWhere("parent_id = :parent_id AND is_active = 1",
+                    {{ ":parent_id", parentId }},
+                    "nama");
 }
 
-std::optional<QSqlRecord> KategoriTransaksiManager::findByNama(const QString& nama)
+bool KategoriTransaksiManager::deactivate(int id)
 {
-    auto rows = getWhere("nama = :nama", {{"nama", nama}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
+    return update(id, {{ "is_active", 0 }});
 }

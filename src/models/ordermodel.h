@@ -32,7 +32,6 @@ struct OrderHeader
     // int     tax_amount          = 0;
 
     // Status
-    QString status          = "pending";   // pending|processing|ready|completed|cancelled
     QString priority        = "normal";    // urgent|high|normal|low
     // QString payment_status  = "unpaid";    // unpaid|partial|paid
 

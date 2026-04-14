@@ -1,19 +1,16 @@
 #include "productcategorymanager.h"
 
-
-// ============================================================================
-// ProductCategoryManager
-// ============================================================================
-
-QList<QSqlRecord> ProductCategoryManager::getActive(const QString& orderBy)
+ProductCategoryManager::ProductCategoryManager()
+    : BaseManager("product_categories", false)
 {
-    return getWhere("is_active = 1", {}, orderBy);
 }
 
-std::optional<QSqlRecord> ProductCategoryManager::findByName(const QString& name)
+QList<QSqlRecord> ProductCategoryManager::getActive(const QString& orderBy, int limit)
 {
-    auto rows = getWhere("category_name = :category_name",
-                         {{"category_name", name}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
+    return getWhere("is_active = 1", {}, orderBy, limit);
+}
+
+bool ProductCategoryManager::deactivate(int id)
+{
+    return update(id, {{ "is_active", 0 }});
 }

@@ -1,30 +1,34 @@
 #pragma once
-
 #include "basemanager.h"
 
 class InvoiceManager : public BaseManager
 {
 public:
-    explicit InvoiceManager()
-        : BaseManager("invoices") {}
+    explicit InvoiceManager();
 
-    // Query helpers
-    QList<QSqlRecord> getByStatus(const QString& status, const QString& orderBy = "issue_date DESC");
-    QList<QSqlRecord> getByCustomer(int customerId);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
-    QList<QSqlRecord> getOverdue();
+    std::optional<QSqlRecord> getByNumber(const QString& invoiceNumber) const;
+    QList<QSqlRecord> getByCustomer(int customerId, const QString& orderBy = "created_at DESC");
+    QList<QSqlRecord> getByStagingStatus(const QString& status);
+    QList<QSqlRecord> getBySettlementStatus(const QString& status);
+    QList<QSqlRecord> getActive(const QString& orderBy = "created_at DESC", int limit = -1);
 
-    std::optional<QSqlRecord> findByInvoiceNumber(const QString& invoiceNumber);
+    bool updateStagingStatus(int id, const QString& status);
+    bool updateSettlementStatus(int id, const QString& status);
+    bool recalculateFinancials(int id);
 
-    // Status transitions
-    bool updateStatus(int id, const QString& newStatus);
-    bool cancel(int id);
-    bool markPaid(int id);
-    
-    bool updateInvoiceData(int invoiceId);
-    
-    // Number generation (daily format like orders)
-    static QString generateInvoiceNumber(const QString& prefix = "INV");
+    bool addOrder(int id, int oid);
+    bool addOrders(int id, QList<int> oids);
+    bool removeOrder(int id, int oid);
+    bool removeOrders(int id, QList<int> oids);
+
+    // Dipanggil oleh PaymentManager::afterCreate untuk update paid_amount
+    bool updatePaidAmount(int id, int paidAmount);
+
+    bool deactivate(int id);
+
+    // Generate nomor invoice berikutnya dengan format INV-YYYYMMDD-00001
+    // Aman dipanggil tanpa instansiasi objek, misal: InvoiceManager::nextNumber()
+    static QString nextNumber();
 
 protected:
     bool beforeCreate(QVariantMap& params) override;

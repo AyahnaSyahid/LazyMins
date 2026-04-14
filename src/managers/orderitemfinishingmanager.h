@@ -1,22 +1,19 @@
 #pragma once
-
 #include "basemanager.h"
-
-// ============================================================================
-// OrderItemFinishingManager — tabel: order_item_finishings
-// ============================================================================
 
 class OrderItemFinishingManager : public BaseManager
 {
 public:
-    explicit OrderItemFinishingManager()
-        : BaseManager("order_item_finishings") {}
+    explicit OrderItemFinishingManager();
 
     QList<QSqlRecord> getByOrderItem(int orderItemId);
-    bool removeByOrderItem(int orderItemId);
 
 protected:
-    bool afterCreate(const QSqlRecord&);
-    bool afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b);
-    bool afterDelete(int id, const QSqlRecord& a, const QSqlRecord& b);
+    // Setelah insert/update/delete finishing, recalculate finishing_total pada order_item induk
+    bool afterCreate(const QSqlRecord& record) override;
+    bool afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after) override;
+    bool afterDelete(int id, const QSqlRecord& before) override;
+
+private:
+    bool recalculateFinishingTotal(int orderItemId);
 };

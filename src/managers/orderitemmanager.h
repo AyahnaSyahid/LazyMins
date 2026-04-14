@@ -1,23 +1,20 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// OrderItemManager — tabel: order_items
-// ============================================================================
 class OrderItemManager : public BaseManager
 {
 public:
-    explicit OrderItemManager()
-        : BaseManager("order_items") {}
+    explicit OrderItemManager();
 
     QList<QSqlRecord> getByOrder(int orderId);
-    
-    bool removeByOrder(int orderId);
-    bool updateItemFinishingTotal(int orderId);
+    bool updateFinishingTotal(int id, int finishingTotal);
 
 protected:
-    bool afterCreate(const QSqlRecord& c) override;
-    bool afterUpdate(int, const QSqlRecord&, const QSqlRecord& c) override;
-    bool afterDelete(int, const QSqlRecord&) override;
+    // Setelah insert/update item, recalculate subtotal order induk
+    bool afterCreate(const QSqlRecord& record) override;
+    bool afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after) override;
+    bool afterDelete(int id, const QSqlRecord& before) override;
+
+private:
+    bool recalculateOrderSubtotal(int orderId);
 };

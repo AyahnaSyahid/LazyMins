@@ -1,99 +1,201 @@
 #include "invoicemanager.h"
 
-// ============================================================================
-// InvoiceManager
-// ============================================================================
-
-QList<QSqlRecord> InvoiceManager::getByStatus(const QString& status, const QString& orderBy)
+InvoiceManager::InvoiceManager()
+    : BaseManager("invoices", false)
 {
-    return getWhere("settlement_status = :status", {{"settlement_status", status}}, orderBy);
 }
 
-QList<QSqlRecord> InvoiceManager::getByCustomer(int customerId)
+QString InvoiceManager::nextNumber()
 {
-    return getWhere("customer_id = :customer_id",
-                    {{"customer_id", customerId}}, "issue_date DESC");
-}
-
-QList<QSqlRecord> InvoiceManager::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "DATE(issue_date) BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "issue_date DESC");
-}
-
-QList<QSqlRecord> InvoiceManager::getOverdue()
-{
-    return getWhere(
-        "due_date < :now AND settlement_status NOT IN ('paid','cancelled')",
-        {{"now", dateTimeToSql()}},
-        "due_date ASC");
-}
-
-std::optional<QSqlRecord> InvoiceManager::findByInvoiceNumber(const QString& invoiceNumber)
-{
-    auto rows = getWhere("invoice_number = :invoice_number", {{"invoice_number", invoiceNumber}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-
-bool InvoiceManager::updateStatus(int id, const QString& newStatus)
-{
-    QVariantMap p{{"settlement_status", newStatus}};
-    return update(id, p);
-}
-
-bool InvoiceManager::cancel(int id)  { return updateStatus(id, "cancelled"); }
-bool InvoiceManager::markPaid(int id) { return updateStatus(id, "paid"); }
-
-QString InvoiceManager::generateInvoiceNumber(const QString& prefix)
-{
-    auto q = baseQuery();
-    q.prepare(QString("SELECT '%1-' || '%2-' || printf('%05d',COALESCE(COUNT(*), 0) + 1) AS next_val "
-                      "FROM invoices WHERE date(issue_date) = date('now')")
-                  .arg(prefix, QDate::currentDate().toString("yyyyMMdd")));
-    if (q.exec() && q.next()) {
-        return q.value("next_val").toString();
-    }
-    return generateCode("invoices", "id", prefix);
+    return generateCode("invoices", "invoice_number", "INV-", 5, true);
 }
 
 bool InvoiceManager::beforeCreate(QVariantMap& params)
 {
-    if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty())
-        params["invoice_number"] = generateInvoiceNumber();
-    if (!params.contains("issue_date"))
-        params["issue_date"] = dateTimeToSql();
-    if (!params.contains("staging_status"))
-        params["staging_status"] = "draft";
+    if (!params.contains("invoice_number") || params["invoice_number"].toString().isEmpty()) {
+        params["invoice_number"] = nextNumber();
+    }
     return true;
 }
 
-bool InvoiceManager::updateInvoiceBalances(int invoiceId) {
-  // 1. Hitung total bayar dari tabel payments (hanya yang statusnya 'verified')
-    QSqlQuery q(BaseManager::connection);
-    q.prepare("SELECT COALESCE(SUM(amount), 0) FROM payments "
-              "WHERE invoice_id = :id AND verification_status = 'verified'");
-    q.bindValue(":id", invoiceId);
-    
-    if (!q.exec() || !q.next()) return false;
-    
-    qint64 totalPaid = q.value(0).toLongLong();
-    
-    // 2. Ambil total tagihan invoice
-    auto optInv = getById(invoiceId);
-    if (!optInv) return false;
-    qint64 total_amount = optInv->value("total_amount").toLongLong();
-    
-    // 3. Tentukan settlement_status
-    QString status = "unpaid";
-    if (totalPaid >= total_amount) status =  "paid";
-    else if (totalPaid > 0)      status = "partial";
-    
-    // 4. Update tabel invoices
-    return update(invoiceId, {
-        {"paid_amount", totalPaid},
-        {"settlement_status", status}
+std::optional<QSqlRecord> InvoiceManager::getByNumber(const QString& invoiceNumber) const
+{
+    auto results = const_cast<InvoiceManager*>(this)->getWhere(
+        "invoice_number = :invoice_number",
+        {{ ":invoice_number", invoiceNumber }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
+}
+
+QList<QSqlRecord> InvoiceManager::getByCustomer(int customerId, const QString& orderBy)
+{
+    return getWhere("customer_id = :cid AND is_active = 1",
+                    {{ ":cid", customerId }},
+                    orderBy);
+}
+
+QList<QSqlRecord> InvoiceManager::getByStagingStatus(const QString& status)
+{
+    return getWhere("staging_status = :status COLLATE NOCASE AND is_active = 1",
+                    {{ ":status", status }},
+                    "created_at DESC");
+}
+
+QList<QSqlRecord> InvoiceManager::getBySettlementStatus(const QString& status)
+{
+    return getWhere("settlement_status = :status COLLATE NOCASE AND is_active = 1",
+                    {{ ":status", status }},
+                    "due_date");
+}
+
+QList<QSqlRecord> InvoiceManager::getActive(const QString& orderBy, int limit)
+{
+    return getWhere("is_active = 1", {}, orderBy, limit);
+}
+
+bool InvoiceManager::updateStagingStatus(int id, const QString& status)
+{
+    return update(id, {{ "staging_status", status }});
+}
+
+bool InvoiceManager::updateSettlementStatus(int id, const QString& status)
+{
+    return update(id, {{ "settlement_status", status }});
+}
+
+bool InvoiceManager::updatePaidAmount(int id, int paidAmount)
+{
+    auto record = getById(id);
+    if (!record) {
+        setErrorString("Invoice tidak ditemukan");
+        return false;
+    }
+
+    int totalAmount = record->value("total_amount").toInt();
+
+    QString newSettlementStatus;
+    if (paidAmount <= 0)
+        newSettlementStatus = "unpaid";
+    else if (paidAmount >= totalAmount)
+        newSettlementStatus = "paid";
+    else
+        newSettlementStatus = "partial";
+
+    return update(id, {
+        { "paid_amount",        paidAmount },
+        { "settlement_status",  newSettlementStatus }
     });
+}
+
+bool InvoiceManager::deactivate(int id)
+{
+    return update(id, {{ "is_active", 0 }});
+}
+
+bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
+  if(oids.isEmpty()) {
+    setErrorString("List Order kosong");
+    return false;
+  }
+  auto opt_inv = getById(invoice_id);
+  
+  if (!opt_inv.has_value()) {
+    setErrorString(QString("Invoice dengan ID : %1 tidak ditemukan").arg(invoice_id));
+    return false;
+  }
+  
+  QStringList holders;
+  for(int i=0; i<oids.size(); ++i)
+    holders << QString(":bind_%1").arg(i, 2, 10, QChar('0'));
+  
+  QString sql(R"-(
+      UPDATE orders SET ( invoice_id, invoice_number, updated_at ) =
+        ( :iid, :inum, CURRENT_TIMESTAMP ) WHERE id IN (%1))-");
+  
+  QSqlQuery q(BaseManager::connection);
+  q.prepare(sql.arg(holders.join(", ")));
+  q.bindValue(":iid", opt_inv->value("id"));
+  q.bindValue(":inum", opt_inv->value("invoice_number"));
+  
+  int at = 0;
+  for(int i = 0; i < oids.size(); ++i) {
+        q.bindValue(holders[i], oids[i]); 
+  }
+  
+  if(!q.exec()) {
+    setErrorString("Gagal menambahkan order" + q.lastError().text());
+    return false;
+  }
+  return recalculateFinancials(invoice_id);
+}
+
+bool InvoiceManager::addOrder(int invoice_id, int oid) {
+  return addOrders(invoice_id, {oid});
+}
+
+bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids) {
+  if (oids.isEmpty()) return true;
+  
+  QStringList holders;
+  for(int i=0; i<oids.size(); ++i)
+    holders << QString(":bind_%1").arg(i, 2, 10, QChar('0'));
+  
+  QString sql(R"-(
+      UPDATE orders SET ( invoice_id, invoice_number, updated_at ) =
+        ( NULL, NULL, CURRENT_TIMESTAMP ) WHERE invoice_id = :iid AND id IN (%1))-");
+  
+  auto q = baseQuery();
+  
+  q.prepare(sql.arg(holders.join(", ")));
+  q.bindValue(":iid", invoice_id);
+  
+  for(int i = 0; i < oids.size(); ++i) {
+        q.bindValue(holders[i], oids[i]); 
+  }
+  
+  if (!q.exec()) {
+    setErrorString("Gagal memisahkan orders dari invoice" + q.lastError().text() );
+    return false;
+  }
+  return recalculateFinancials(invoice_id);
+}
+
+bool InvoiceManager::removeOrder(int invoice_id,int oid) {
+  return removeOrders( invoice_id, { oid } );
+}
+
+bool InvoiceManager::recalculateFinancials(int id) {
+  QSqlQuery q(BaseManager::connection);
+  q.prepare( R"-(
+UPDATE invoices SET 
+    (subtotal, discount_amount, paid_amount, settlement_status, updated_at) = (
+        SELECT 
+            total_sub,
+            total_disc,
+            total_paid,
+            CASE 
+                WHEN total_paid <= 0 THEN 'unpaid'
+                WHEN total_paid >= (total_sub - total_disc) THEN 'paid'
+                ELSE 'partial'
+            END,
+            CURRENT_TIMESTAMP
+        FROM (
+            SELECT 
+                COALESCE(SUM(o.subtotal), 0) as total_sub,
+                COALESCE(SUM(o.discount_amount), 0) as total_disc,
+                (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = :iid AND verification_status = 'verified') as total_paid
+            FROM orders o
+            WHERE o.invoice_id = :iid
+        )
+    )
+WHERE id = :iid
+)-");
+  
+  q.bindValue(":iid", id);
+  if (!q.exec()) {
+    setErrorString("Tidak dapat memperbarui data finansial invoice :\n" + q.lastError().text());
+    return false;
+  }
+  return true;
 }

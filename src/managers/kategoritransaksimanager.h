@@ -1,19 +1,16 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// KategoriTransaksiManager — tabel: kategori_transaksi
-// ============================================================================
 class KategoriTransaksiManager : public BaseManager
 {
 public:
-    explicit KategoriTransaksiManager()
-        : BaseManager("kategori_transaksi") {}
+    explicit KategoriTransaksiManager();
 
     QList<QSqlRecord> getByTipe(const QString& tipe); // 'pemasukan' | 'pengeluaran'
-    QList<QSqlRecord> getActive();
-    QList<QSqlRecord> getRootCategories();
+    QList<QSqlRecord> getActive(const QString& orderBy = "nama", int limit = -1);
     QList<QSqlRecord> getChildren(int parentId);
-    std::optional<QSqlRecord> findByNama(const QString& nama);
+    bool deactivate(int id);
+
+protected:
+    bool beforeCreate(QVariantMap& params) override;
 };

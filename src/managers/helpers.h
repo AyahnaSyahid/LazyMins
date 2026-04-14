@@ -1,9 +1,5 @@
 #pragma once
 
-#include "src/models/ordermodel.h"
-#include "src/managers/managers.h"
-#include "src/managers/orderitemfinishingmanager.h"
-
 namespace DBOperationHelper {
   struct OperationResult {
     bool ok; 
@@ -12,6 +8,7 @@ namespace DBOperationHelper {
     // neded if caller requires some value after database item creation
     QVariantMap data; // maybe empty
   };
+
   // digunakan di InstantOrderDialog
   // menggunakan transaction
   OperationResult createInstantOrder( const OrderHeader&, 

@@ -1,12 +1,16 @@
 #include "pricelevelmanager.h"
 
-// ============================================================================
-// PriceLevelManager
-// ============================================================================
-
-std::optional<QSqlRecord> PriceLevelManager::findByName(const QString& levelName)
+PriceLevelManager::PriceLevelManager()
+    : BaseManager("price_levels", false)
 {
-    auto rows = getWhere("level_name = :level_name", {{"level_name", levelName}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
+}
+
+std::optional<QSqlRecord> PriceLevelManager::getByName(const QString& levelName) const
+{
+    auto results = const_cast<PriceLevelManager*>(this)->getWhere(
+        "level_name = :level_name COLLATE NOCASE",
+        {{ ":level_name", levelName }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
 }

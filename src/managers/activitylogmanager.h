@@ -1,29 +1,26 @@
 #pragma once
-
 #include "basemanager.h"
-#include <QJsonObject>
 
-// ============================================================================
-// ActivityLogManager — tabel: activity_logs
-// ============================================================================
+// ActivityLogManager bersifat append-only.
+// update() dan remove() diblokir.
 class ActivityLogManager : public BaseManager
 {
 public:
-    explicit ActivityLogManager()
-        : BaseManager("activity_logs") {}
+    explicit ActivityLogManager();
 
-    QList<QSqlRecord> getByAdmin(int adminId, int limit = 100);
-    QList<QSqlRecord> getByAction(const QString& action);
-    QList<QSqlRecord> getByTable(const QString& tableName);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
+    // Helper: log aksi dengan format terstandar
+    bool log(int adminId,
+             const QString& action,
+             const QString& tableName  = QString(),
+             int recordId              = 0,
+             const QVariantMap& oldVal = {},
+             const QVariantMap& newVal = {});
 
-    // Convenience logger
-    std::optional<QSqlRecord> log(int adminId,
-                                  const QString& action,
-                                  const QString& tableName = "",
-                                  int recordId = -1,
-                                  const QJsonObject& oldValue = {},
-                                  const QJsonObject& newValue = {},
-                                  const QString& ipAddress = "",
-                                  const QString& userAgent = "");
+    QList<QSqlRecord> getByAdmin(int adminId, const QString& orderBy = "created_at DESC", int limit = 100);
+    QList<QSqlRecord> getByAction(const QString& action, int limit = 100);
+    QList<QSqlRecord> getByTable(const QString& tableName, int recordId = -1);
+
+    // DIBLOKIR — log bersifat immutable
+    bool update(int id, const QVariantMap& params) override;
+    bool remove(int id) override;
 };

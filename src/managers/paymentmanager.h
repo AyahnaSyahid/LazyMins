@@ -1,35 +1,21 @@
 #pragma once
-
-// ============================================================================
-// PaymentManager — tabel: payments
-// ============================================================================
-
 #include "basemanager.h"
-#include "managers.h"
 
 class PaymentManager : public BaseManager
 {
 public:
-    explicit PaymentManager()
-        : BaseManager("payments") {}
+    explicit PaymentManager();
 
-    QList<QSqlRecord> getByOrder(int orderId);
-    QList<QSqlRecord> getByCustomer(int customerId);
-    QList<QSqlRecord> getByStatus(const QString& status);
-    QList<QSqlRecord> getByDateRange(const QDate& from, const QDate& to);
     QList<QSqlRecord> getByInvoice(int invoiceId);
-    
-    std::optional<QSqlRecord> findByPaymentNumber(const QString& paymentNumber);
-
+    QList<QSqlRecord> getByStatus(const QString& verificationStatus);
     bool verify(int id, int verifiedByAdminId);
-    bool cancelPayment(int id);
-
-    static QString generatePaymentNumber(const QString& prefix = "PYM");
+    bool cancel(int id);
+    static QString nextNumber();
 
 protected:
+
+    // Hook utama: setelah payment dibuat,
+    // catat transaksi kas hanya jika verification_status = 'verified'
     bool beforeCreate(QVariantMap& params) override;
-    bool beforeUpdate(int id, QVariantMap& params) override;
-    // bool afterUpdate(int, const QSqlRecord& rc);
-    bool afterCreate(const QSqlRecord&) override;
-    bool afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after) override;
+    bool afterCreate(const QSqlRecord& record) override;
 };

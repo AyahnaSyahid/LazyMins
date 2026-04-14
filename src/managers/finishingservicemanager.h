@@ -1,16 +1,15 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// FinishingServiceManager — tabel: finishing_services
-// ============================================================================
 class FinishingServiceManager : public BaseManager
 {
 public:
-    explicit FinishingServiceManager()
-        : BaseManager("finishing_services") {}
+    explicit FinishingServiceManager();
 
-    QList<QSqlRecord> getActive(const QString& orderBy = "name");
-    std::optional<QSqlRecord> findByCode(const QString& code);
+    std::optional<QSqlRecord> getByCode(const QString& code) const;
+    QList<QSqlRecord> getActive(const QString& orderBy = "name", int limit = -1);
+    bool deactivate(int id);
+
+protected:
+    bool beforeCreate(QVariantMap& params) override;
 };

@@ -1,22 +1,31 @@
-// ============================================================================
-// AkunTransaksiManager
-// ============================================================================
-
 #include "akuntransaksimanager.h"
 
-QList<QSqlRecord> AkunTransaksiManager::getActive()
+AkunTransaksiManager::AkunTransaksiManager()
+    : BaseManager("akun_transaksi", false)
 {
-    return getWhere("is_active = 1", {}, "nama ASC");
 }
 
-std::optional<QSqlRecord> AkunTransaksiManager::findByKode(const QString& kode)
+std::optional<QSqlRecord> AkunTransaksiManager::getByKode(const QString& kode) const
 {
-    auto rows = getWhere("kode = :kode", {{"kode", kode}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
+    auto results = const_cast<AkunTransaksiManager*>(this)->getWhere(
+        "kode = :kode COLLATE NOCASE",
+        {{ ":kode", kode }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
 }
 
-bool AkunTransaksiManager::updateSaldo(int id, qint64 newSaldo, int adminId)
+QList<QSqlRecord> AkunTransaksiManager::getActive(const QString& orderBy, int limit)
 {
-    return update(id, {{"saldo", newSaldo}, {"admin_id", adminId} });
+    return getWhere("is_active = 1", {}, orderBy, limit);
+}
+
+bool AkunTransaksiManager::deactivate(int id)
+{
+    return update(id, {{ "is_active", 0 }});
+}
+
+bool AkunTransaksiManager::updateSaldo(int id, int newSaldo)
+{
+    return update(id, {{ "saldo", newSaldo }});
 }

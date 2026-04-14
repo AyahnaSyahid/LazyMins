@@ -72,13 +72,13 @@ void ProductEditorDialog::on_simpanButton_clicked() {
     // 2. Validasi Unik (Nama & SKU)
     ProductManager pm;
     // Cek Nama
-    auto existName = pm.findByName(name);
+    auto existName = pm.getByName(name);
     if(existName.has_value() && existName->value("id").toInt() != m_productId) {
         QMessageBox::warning(this, "Kesalahan", "Nama produk sudah digunakan.");
         return;
     }
     // Cek SKU
-    auto existSku = pm.findBySku(sku); // Asumsi ada fungsi findBySku
+    auto existSku = pm.getBySku(sku); // Asumsi ada fungsi findBySku
     if(existSku.has_value() && existSku->value("id").toInt() != m_productId) {
         QMessageBox::warning(this, "Kesalahan", "SKU sudah digunakan.");
         return;

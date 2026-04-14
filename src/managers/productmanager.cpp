@@ -1,18 +1,49 @@
 #include "productmanager.h"
 
-// ============================================================================
-// ProductManager
-// ============================================================================
-
-QList<QSqlRecord> ProductManager::getActive(const QString& orderBy)
+ProductManager::ProductManager()
+    : BaseManager("products", false)
 {
-    return getWhere("is_active = 1", {}, orderBy);
+}
+
+bool ProductManager::beforeCreate(QVariantMap& params)
+{
+    // Auto-generate SKU jika belum diisi
+    if (!params.contains("sku") || params["sku"].toString().isEmpty()) {
+        params["sku"] = generateCode("products", "sku", "PRD-", 5);
+    }
+    return true;
+}
+
+std::optional<QSqlRecord> ProductManager::getBySku(const QString& sku) const
+{
+    auto results = const_cast<ProductManager*>(this)->getWhere(
+        "sku = :sku COLLATE NOCASE",
+        {{ ":sku", sku }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
+}
+
+std::optional<QSqlRecord> ProductManager::getByName(const QString& name) const
+{
+    auto results = const_cast<ProductManager*>(this)->getWhere(
+        "name = :name COLLATE NOCASE",
+        {{ ":name", name }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
 }
 
 QList<QSqlRecord> ProductManager::getByCategory(int categoryId)
 {
-    return getWhere("category_id = :category_id AND is_active = 1",
-                    {{"category_id", categoryId}}, "name");
+    return getWhere("category_id = :cat_id AND is_active = 1",
+                    {{ ":cat_id", categoryId }},
+                    "name");
+}
+
+QList<QSqlRecord> ProductManager::getActive(const QString& orderBy, int limit)
+{
+    return getWhere("is_active = 1", {}, orderBy, limit);
 }
 
 QList<QSqlRecord> ProductManager::getLowStock()
@@ -20,31 +51,18 @@ QList<QSqlRecord> ProductManager::getLowStock()
     return getWhere("is_active = 1 AND stock <= min_stock", {}, "name");
 }
 
-std::optional<QSqlRecord> ProductManager::findBySku(const QString& sku)
+bool ProductManager::deactivate(int id)
 {
-    auto rows = getWhere("sku = :sku COLLATE NOCASE", {{"sku", sku}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
-}
-std::optional<QSqlRecord> ProductManager::findByName(const QString& name)
-{
-    auto rows = getWhere("name = :name COLLATE NOCASE", {{"name", name}});
-    if (!rows.isEmpty()) return rows.first();
-    return std::nullopt;
+    return update(id, {{ "is_active", 0 }});
 }
 
-bool ProductManager::adjustStock(int id, qreal delta, const QString& notes)
+bool ProductManager::adjustStock(int id, double delta)
 {
-    Q_UNUSED(notes) // caller should record a StockMovement separately
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("UPDATE %1 SET stock = stock + :delta, updated_at = :updated_at WHERE id = :id")
-                  .arg(tableName()));
-    q.bindValue(":delta", delta);
-    q.bindValue(":updated_at", dateTimeToSql());
-    q.bindValue(":id", id);
-    if (!q.exec()) {
-        qDebug() << "ProductManager::adjustStock error:" << q.lastError().text();
+    auto record = getById(id);
+    if (!record) {
+        setErrorString("Product tidak ditemukan");
         return false;
     }
-    return q.numRowsAffected() > 0;
+    double currentStock = record->value("stock").toDouble();
+    return update(id, {{ "stock", currentStock + delta }});
 }

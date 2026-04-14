@@ -1,25 +1,16 @@
 #pragma once
-
-// ============================================================================
-// AkunTransaksiManager — tabel: akun_transaksi
-// ============================================================================
-
 #include "basemanager.h"
 
 class AkunTransaksiManager : public BaseManager
 {
 public:
-    explicit AkunTransaksiManager()
-        : BaseManager("akun_transaksi") {}
+    explicit AkunTransaksiManager();
 
-    // Mengambil semua akun yang masih aktif
-    QList<QSqlRecord> getActive();
-    
-    // Mengambil akun berdasarkan kode unik (misal: 'CASH', 'BCA')
-    std::optional<QSqlRecord> findByKode(const QString& kode);
+    std::optional<QSqlRecord> getByKode(const QString& kode) const;
+    QList<QSqlRecord> getActive(const QString& orderBy = "nama", int limit = -1);
+    bool deactivate(int id);
 
-    // Fungsi manual untuk update saldo (jika diperlukan di luar trigger)
-    // newSaldo = Saldo saat ini, tidak melakukan operasi matematika
-    bool updateSaldo(int id, qint64 newSaldo, int adminId);
+    // Dipanggil oleh PaymentManager::afterCreate
+    // Saldo hanya boleh diubah melalui method ini, bukan update() langsung
+    bool updateSaldo(int id, int newSaldo);
 };
-

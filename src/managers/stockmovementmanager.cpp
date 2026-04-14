@@ -1,52 +1,122 @@
 #include "stockmovementmanager.h"
+#include "productmanager.h"
 
-// ============================================================================
-// StockMovementManager
-// ============================================================================
+StockMovementManager::StockMovementManager()
+    : BaseManager("stock_movements", false)
+{
+}
 
-QList<QSqlRecord> StockMovementManager::getByProduct(int productId, int limit)
+bool StockMovementManager::beforeCreate(QVariantMap& params)
+{
+    int productId = params.value("product_id").toInt();
+    if (productId <= 0) {
+        setErrorString("product_id wajib diisi");
+        return false;
+    }
+
+    // Hanya hitung otomatis jika stock_before/after belum diisi oleh caller
+    if (!params.contains("stock_before") || !params.contains("stock_after")) {
+        ProductManager pm;
+        auto productRecord = pm.getById(productId);
+        if (!productRecord) {
+            setErrorString("Product tidak ditemukan");
+            return false;
+        }
+        double stockBefore = productRecord->value("stock").toDouble();
+        double quantity    = params.value("quantity").toDouble();
+        params["stock_before"] = stockBefore;
+        params["stock_after"]  = stockBefore + quantity;
+    }
+
+    if (!params.contains("movement_date"))
+        params["movement_date"] = dateTimeToSql();
+
+    return true;
+}
+
+bool StockMovementManager::afterCreate(const QSqlRecord& record)
+{
+    int    productId  = record.value("product_id").toInt();
+    double stockAfter = record.value("stock_after").toDouble();
+
+    ProductManager pm;
+    if (!pm.update(productId, {{ "stock", stockAfter }})) {
+        setErrorString("Gagal update stok produk: " + pm.errorString());
+        return false;
+    }
+    return true;
+}
+
+// DIBLOKIR
+bool StockMovementManager::update(int id, const QVariantMap& params)
+{
+    Q_UNUSED(id)
+    Q_UNUSED(params)
+    setErrorString("Stock movement bersifat immutable dan tidak dapat diubah.");
+    return false;
+}
+
+// DIBLOKIR
+bool StockMovementManager::remove(int id)
+{
+    Q_UNUSED(id)
+    setErrorString("Stock movement bersifat immutable dan tidak dapat dihapus.");
+    return false;
+}
+
+QList<QSqlRecord> StockMovementManager::getByProduct(int productId, const QString& orderBy)
 {
     return getWhere("product_id = :product_id",
-                    {{"product_id", productId}},
-                    "movement_date DESC", limit);
-}
-
-QList<QSqlRecord> StockMovementManager::getByType(const QString& movementType)
-{
-    return getWhere("movement_type = :movement_type",
-                    {{"movement_type", movementType}}, "movement_date DESC");
-}
-
-QList<QSqlRecord> StockMovementManager::getByDateRange(const QDate& from, const QDate& to)
-{
-    return getWhere(
-        "DATE(movement_date) BETWEEN :from AND :to",
-        {{"from", dateToSql(from)}, {"to", dateToSql(to)}},
-        "movement_date DESC");
+                    {{ ":product_id", productId }},
+                    orderBy);
 }
 
 QList<QSqlRecord> StockMovementManager::getByReference(const QString& referenceType, int referenceId)
 {
     return getWhere(
-        "reference_type = :rt AND reference_id = :rid",
-        {{"rt", referenceType}, {"rid", referenceId}});
+        "reference_type = :ref_type AND reference_id = :ref_id",
+        {{ ":ref_type", referenceType }, { ":ref_id", referenceId }},
+        "movement_date DESC"
+    );
 }
 
-std::optional<QSqlRecord> StockMovementManager::recordMovement(
-    int productId, const QString& type, qreal quantity,
-    qreal stockBefore, qreal stockAfter, int adminId,
-    const QString& referenceType, int referenceId, const QString& notes)
+QList<QSqlRecord> StockMovementManager::getByDateRange(const QDate& from, const QDate& to, int productId)
 {
-    QVariantMap p;
-    p["product_id"]     = productId;
-    p["movement_type"]  = type;
-    p["quantity"]       = quantity;
-    p["stock_before"]   = stockBefore;
-    p["stock_after"]    = stockAfter;
-    p["admin_id"]       = adminId;
-    p["movement_date"]  = dateTimeToSql();
-    if (!referenceType.isEmpty()) p["reference_type"] = referenceType;
-    if (referenceId > 0)          p["reference_id"]   = referenceId;
-    if (!notes.isEmpty())         p["notes"]          = notes;
-    return create(p);
+    QString condition = "movement_date >= :from AND movement_date <= :to";
+    QVariantMap bindings = {
+        { ":from", from.toString(Qt::ISODate) },
+        { ":to",   to.toString(Qt::ISODate) }
+    };
+    if (productId > 0) {
+        condition += " AND product_id = :product_id";
+        bindings[":product_id"] = productId;
+    }
+    return getWhere(condition, bindings, "movement_date DESC");
+}
+
+std::optional<QSqlRecord> StockMovementManager::recordMovement(int productId,
+                                                                 const QString& movementType,
+                                                                 double quantity,
+                                                                 double stockBefore,
+                                                                 double stockAfter,
+                                                                 int adminId,
+                                                                 const QString& referenceType,
+                                                                 int referenceId,
+                                                                 const QString& notes)
+{
+    QVariantMap params;
+    params["product_id"]     = productId;
+    params["movement_type"]  = movementType;
+    params["quantity"]       = quantity;
+    params["stock_before"]   = stockBefore;
+    params["stock_after"]    = stockAfter;
+    params["admin_id"]       = adminId;
+    params["reference_type"] = referenceType.isEmpty() ? QVariant() : QVariant(referenceType);
+    params["reference_id"]   = referenceId > 0         ? QVariant(referenceId) : QVariant();
+    params["notes"]          = notes.isEmpty()          ? QVariant() : QVariant(notes);
+
+    // beforeCreate dan afterCreate (update products.stock) sudah diblokir
+    // untuk tidak override stock_before/after yang kita set manual di sini.
+    // Karena itu kita bypass beforeCreate dengan set stock_before/after eksplisit.
+    return create(params);
 }

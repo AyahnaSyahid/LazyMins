@@ -17,7 +17,7 @@ InstantOrderDialog::InstantOrderDialog(QWidget *p):
   QDialog(p)
 {
   ui->setupUi(this);
-  ui->labelInvoiceCode->setText(m_invm.generateInvoiceNumber());
+  ui->labelInvoiceCode->setText(m_invm.nextNumber());
   ui->orderListView->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->orderListView->setModel(&omod);
   ui->orderListView->setItemDelegate(new OrderItemDelegate(this));
@@ -144,8 +144,10 @@ bool InstantOrderDialog::checkInput() {
 void InstantOrderDialog::on_bayarButton_clicked() {
   if(!checkInput()) return;
   auto inv_code = ui->labelInvoiceCode->text();
+
   OrderHeader oh;
-  oh.order_number = oman.generateOrderNumber();
+  oh.order_number = oman.nextNumber();
+  
   // oh.admin_id = 1;// current admin id set by helper
   oh.customer_name = ui->nameLineEdit->text();
   oh.customer_phone = ui->phoneLineEdit->text();

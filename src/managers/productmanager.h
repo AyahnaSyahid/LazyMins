@@ -1,21 +1,19 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// ProductManager — tabel: products
-// ============================================================================
 class ProductManager : public BaseManager
 {
 public:
-    explicit ProductManager()
-        : BaseManager("products") {}
+    explicit ProductManager();
 
-    // Query helpers
-    QList<QSqlRecord> getActive(const QString& orderBy = "name");
+    std::optional<QSqlRecord> getBySku(const QString& sku) const;
+    std::optional<QSqlRecord> getByName(const QString& name) const;
     QList<QSqlRecord> getByCategory(int categoryId);
+    QList<QSqlRecord> getActive(const QString& orderBy = "name", int limit = -1);
     QList<QSqlRecord> getLowStock();
-    std::optional<QSqlRecord> findBySku(const QString& sku);
-    std::optional<QSqlRecord> findByName(const QString& name);
-    bool adjustStock(int id, qreal delta, const QString& notes = "");
+    bool deactivate(int id);
+    bool adjustStock(int id, double delta);
+
+protected:
+    bool beforeCreate(QVariantMap& params) override;
 };

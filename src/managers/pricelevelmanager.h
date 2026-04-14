@@ -1,15 +1,10 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// PriceLevelManager — tabel: price_levels
-// ============================================================================
 class PriceLevelManager : public BaseManager
 {
 public:
-    explicit PriceLevelManager()
-        : BaseManager("price_levels") {}
+    explicit PriceLevelManager();
 
-    std::optional<QSqlRecord> findByName(const QString& levelName);
+    std::optional<QSqlRecord> getByName(const QString& levelName) const;
 };

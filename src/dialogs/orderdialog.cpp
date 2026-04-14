@@ -129,7 +129,7 @@ OrderDialog::OrderDialog(QWidget *p) :
   ui->setupUi(this);
   ui->orderItemList->setModel(m_model);
   ui->orderItemList->setItemDelegate(new OrderItemDelegate(this));
-  ui->orderNumberLineEdit->setText(oman.generateOrderNumber());
+  ui->orderNumberLineEdit->setText(oman.nextNumber());
   auto crDate = QDateTime::currentDateTime();
   ui->tOrderDateTimeEdit->setDateTime(crDate);
   ui->dLineDateTimeEdit->setDateTime(crDate.addDays(5));

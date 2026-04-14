@@ -1,46 +1,58 @@
 #include "orderitemmanager.h"
-#include "orderitemfinishingmanager.h"
+#include "ordermanager.h"
 
-// ============================================================================
-// OrderItemManager
-// ============================================================================
+OrderItemManager::OrderItemManager()
+    : BaseManager("order_items", false)
+{
+}
 
 QList<QSqlRecord> OrderItemManager::getByOrder(int orderId)
 {
-    return getWhere("order_id = :order_id", {{"order_id", orderId}});
+    return getWhere("order_id = :order_id",
+                    {{ ":order_id", orderId }},
+                    "id");
 }
 
-bool OrderItemManager::removeByOrder(int orderId)
+bool OrderItemManager::updateFinishingTotal(int id, int finishingTotal)
 {
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("DELETE FROM %1 WHERE order_id = :order_id").arg(tableName()));
+    return update(id, {{ "finishing_total", finishingTotal }});
+}
+
+bool OrderItemManager::afterCreate(const QSqlRecord& record)
+{
+    return recalculateOrderSubtotal(record.value("order_id").toInt());
+}
+
+bool OrderItemManager::afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after)
+{
+    Q_UNUSED(id)
+    Q_UNUSED(before)
+    return recalculateOrderSubtotal(after.value("order_id").toInt());
+}
+
+bool OrderItemManager::afterDelete(int id, const QSqlRecord& before)
+{
+    Q_UNUSED(id)
+    return recalculateOrderSubtotal(before.value("order_id").toInt());
+}
+
+bool OrderItemManager::recalculateOrderSubtotal(int orderId)
+{
+    if (orderId <= 0) return true;
+
+    // Hitung ulang subtotal dari semua items (kolom total adalah VIRTUAL di DB)
+    QSqlQuery q = baseQuery();
+    q.prepare(
+        "SELECT COALESCE(SUM(total), 0) AS total_sum "
+        "FROM order_items WHERE order_id = :order_id"
+    );
     q.bindValue(":order_id", orderId);
-    return q.exec();
-}
+    if (!q.exec() || !q.next()) {
+        setErrorString(q.lastError().text());
+        return false;
+    }
 
-bool OrderItemManager::updateItemFinishingTotal(int orderId) {
-  OrderItemFinishingManager oifm;
-  
-  auto rlist = oifm.getByOrderItem(orderId);
-  qint64 sum = 0;
-  for (auto const& r : rlist) {
-    sum += r.value("subtotal").toLongLong();
-  }
-
-  return update(orderId, {{"finishing_total", sum}, {"updated_at", dateTimeToSql()}});
-}
-
-
-bool OrderItemManager::afterCreate(const QSqlRecord& c) {
-  return true;
-}
-
-bool OrderItemManager::afterUpdate(int, const QSqlRecord&, const QSqlRecord& c) {
-  return true;
-  
-}
-
-bool OrderItemManager::afterDelete(int, const QSqlRecord&) {
-  return true;
-  
+    int newSubtotal = q.value("total_sum").toInt();
+    OrderManager om;
+    return om.updateSubtotal(orderId, newSubtotal);
 }

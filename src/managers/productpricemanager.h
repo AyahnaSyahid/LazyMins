@@ -1,30 +1,26 @@
 #pragma once
-
 #include "basemanager.h"
 
-// ============================================================================
-// ProductPriceManager — tabel: product_prices  (composite PK: product_id + price_level_id)
-// ============================================================================
+// Tabel product_prices memiliki PK composite (product_id, price_level_id)
+// sehingga beberapa method BaseManager di-override untuk menyesuaikan.
 class ProductPriceManager : public BaseManager
 {
 public:
-    explicit ProductPriceManager()
-        : BaseManager("product_prices") {}
+    explicit ProductPriceManager();
 
-    // Composite-key operations (override single-id methods)
-    std::optional<QSqlRecord> getByCompositeKey(int productId, int priceLevelId) const;
+    // Upsert: INSERT or REPLACE berdasarkan (product_id, price_level_id)
     bool upsert(int productId, int priceLevelId, int price);
-    bool removeByCompositeKey(int productId, int priceLevelId);
 
-    // Convenience
+    // Ambil semua harga untuk satu produk
     QList<QSqlRecord> getByProduct(int productId);
-    QList<QSqlRecord> getByPriceLevel(int priceLevelId);
-    std::optional<int>  getPrice(int productId, int priceLevelId) const;
 
-private:
-    // Disable id-based inherited methods — product_prices has no single 'id' PK
-    using BaseManager::getById;
-    using BaseManager::update;
-    using BaseManager::remove;
-    using BaseManager::exists;
+    // Ambil harga spesifik
+    std::optional<QSqlRecord> getPrice(int productId, int priceLevelId);
+
+    // Hapus berdasarkan composite key
+    bool removePrice(int productId, int priceLevelId);
+
+    // --- Override: tidak relevan untuk tabel composite key ---
+    std::optional<QSqlRecord> getById(int id) const override;
+    bool remove(int id) override;
 };

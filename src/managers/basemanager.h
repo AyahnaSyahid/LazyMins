@@ -73,9 +73,10 @@ protected:
     // Helper methods
     QString getDeleteCondition() const;
     static QString generateCode(const QString& tableName,
-                     const QString& numberColumn,
-                     const QString& prefix,
-                     int padWidth = 5);
+                             const QString& numberColumn,
+                             const QString& prefix,
+                             int padWidth = 5,
+                             bool useDate = false);
     static QString dateToSql(const QDate& d = QDateTime::currentDateTimeUtc().date());
     static QString dateTimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc());
 private:

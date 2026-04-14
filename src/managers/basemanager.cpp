@@ -573,20 +573,30 @@ QSqlRecord BaseManager::empty() const {
 }
 
 QString BaseManager::generateCode(const QString& tableName,
-                     const QString& numberColumn,
-                     const QString& prefix,
-                     int padWidth)
+                                   const QString& numberColumn,
+                                   const QString& prefix,
+                                   int padWidth,
+                                   bool useDate)
 {
+    QString fullPrefix = prefix;
+    if (useDate) {
+        fullPrefix += QDateTime::currentDateTimeUtc().toString("yyyyMMdd") + "-";
+    }
+
     QSqlQuery q(BaseManager::connection);
-    q.prepare(QString("SELECT COALESCE(MAX(%1), 0) + 1 AS next_val FROM %2")
-                  .arg(numberColumn, tableName));
+    q.prepare(QString(
+        "SELECT COALESCE(MAX(CAST(SUBSTR(%1, :offset) AS INTEGER)), 0) + 1 AS next_val "
+        "FROM %2 WHERE %1 LIKE :prefix"
+    ).arg(numberColumn, tableName));
+    q.bindValue(":offset", fullPrefix.length() + 1);
+    q.bindValue(":prefix", fullPrefix + "%");
+
     if (q.exec() && q.next()) {
         int next = q.value("next_val").toInt();
-        return QString("%1-%2").arg(prefix).arg(next, padWidth, 10, QChar('0'));
+        return QString("%1%2").arg(fullPrefix).arg(next, padWidth, 10, QChar('0'));
     }
-    // Fallback: timestamp-based
-    return QString("%1-%2").arg(prefix)
-               .arg(QDateTime::currentMSecsSinceEpoch());
+
+    return QString("%1%2").arg(fullPrefix).arg(QDateTime::currentMSecsSinceEpoch());
 }
 
 QString BaseManager::dateToSql(const QDate& d) { return d.toString("yyyy-MM-dd"); }

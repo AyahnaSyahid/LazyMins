@@ -447,7 +447,7 @@ bool OrderModel::commit(QSqlDatabase &db)
                                                                          r_item.value("size_height").toDouble()
                                                                        : r_item.value("quantity").toDouble();
       bool stock_update = prm.adjustStock(r_pro.value("id").toInt(), 
-                                          calcqty, "");
+                                          calcqty);
       if(!stock_update) {
         qWarning() << "OrderModel::commit – DELETE order_item:"
                    << "update stock failed";
@@ -492,45 +492,55 @@ bool OrderModel::commit(QSqlDatabase &db)
     StockMovementManager stockManager;
     ProductManager productManager;
     for (int row : m_dirtyRows) {
-      OrderItem &item = m_items[row];
-      item.order_id = m_orderId;
+        OrderItem &item = m_items[row];
+        item.order_id = m_orderId;
 
-      if (!item.save(db)) {
-          db.rollback();
-          return false;
-      }
-      
-      auto opt_pro = productManager.getById(item.product_id);
-      if(!opt_pro.has_value()) {
-        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
-                   << "unable to get product data";
-        db.rollback();
-        return false;
-      }
-      auto r_pro = * opt_pro;
-      qreal qty = r_pro.value("use_area").toBool() ?
-                      item.size_width * item.size_height * item.quantity :
-                      item.quantity;
-                      
-      auto adjust_ok = productManager.adjustStock(r_pro.value("id").toInt(), -qty, "");
-      if (!adjust_ok) {
-        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
-                   << "unable adjust product stock";
-        db.rollback();
-        return false;  
-      }
-      
-      auto opt_mvt = stockManager.recordMovement(item.product_id, "out",
-                                    qty, r_pro.value("stock").toDouble(),
-                                    r_pro.value("stock").toDouble() - qty,
-                                    m_header.admin_id, "orders", m_orderId,
-                                    "Penjualan Produk" );
-      if (!opt_mvt.has_value()) {
-        qWarning() << "OrderModel::commit – INSERT / UPDATE item failed:"
-                   << "unable to log stock movement";
-        db.rollback();
-        return false;  
-      }
+        bool isNew = (item.id == -1); // simpan sebelum save() mengisi id
+        double qtyBefore = 0.0;
+
+        if (!isNew) {
+            // Ambil qty lama dari DB sebelum di-overwrite
+            auto opt_old = oim.getById(item.id);
+            if (opt_old.has_value()) {
+                auto old = *opt_old;
+                bool useArea = old.value("use_area").toBool();
+                qtyBefore = useArea ? old.value("quantity").toDouble()
+                                        * old.value("size_width").toDouble()
+                                        * old.value("size_height").toDouble()
+                                    : old.value("quantity").toDouble();
+            }
+        }
+
+        if (!item.save(db)) {
+            db.rollback();
+            return false;
+        }
+
+        auto opt_pro = productManager.getById(item.product_id);
+        if (!opt_pro.has_value()) { db.rollback(); return false; }
+        auto r_pro = *opt_pro;
+
+        qreal qtyAfter = r_pro.value("use_area").toBool()
+                             ? item.size_width * item.size_height * item.quantity
+                             : item.quantity;
+
+        double delta = -(qtyAfter - qtyBefore); // negatif = pengurangan stok
+
+        if (qAbs(delta) > 0.0001) { // hanya jika ada perubahan qty
+            if (!productManager.adjustStock(r_pro.value("id").toInt(), delta)) {
+                db.rollback();
+                return false;
+            }
+
+            stockManager.recordMovement(item.product_id,
+                                         isNew ? "out" : "adjustment",
+                                         delta,
+                                         r_pro.value("stock").toDouble(),
+                                         r_pro.value("stock").toDouble() + delta,
+                                         m_header.admin_id,
+                                         "orders", m_orderId,
+                                         isNew ? "Penjualan Produk" : "Update Item Order");
+        }
     }
 
     // ── Step 5: Commit the transaction ───────────────────────────────────────

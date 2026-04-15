@@ -13,6 +13,7 @@ public:
     bool updateSubtotal(int id, int subtotal);
     static QString nextNumber();
     bool recalculate(int oid);
+
 protected:
     bool beforeCreate(QVariantMap& params) override;
     bool afterCreate(const QSqlRecord& record) override;

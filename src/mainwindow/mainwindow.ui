@@ -193,10 +193,10 @@
      <normaloff>:/svg/svg/cash-flow.svg</normaloff>:/svg/svg/cash-flow.svg</iconset>
    </property>
    <property name="text">
-    <string>Cash</string>
+    <string>Instant Order</string>
    </property>
    <property name="toolTip">
-    <string>Cash-Flow</string>
+    <string>Catat order cash</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

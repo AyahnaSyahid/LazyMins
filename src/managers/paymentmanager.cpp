@@ -2,6 +2,7 @@
 #include "invoicemanager.h"
 #include "transaksimanager.h"
 #include "akuntransaksimanager.h"
+#include "kategoritransaksimanager.h"
 
 QString PaymentManager::nextNumber() {
   return generateCode("payments", "payment_number", "PYM-", 5, true);
@@ -27,7 +28,7 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
     int akunId          = record.value("akun_transaksi_id").toInt();
     int adminId         = record.value("admin_id").toInt();
     int paymentId       = record.value("id").toInt();
-
+    
     // 1. Hitung total paid dari semua payment verified/pending pada invoice ini
     QSqlQuery q = baseQuery();
     
@@ -50,13 +51,22 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
         setErrorString("Gagal update saldo akun: " + atm.errorString());
         return false;
     }
-
+    
+    // Set Kategori Pemasukan
+    KategoriTransaksiManager katman;
+    auto opt_kat = katman.getById(1);
+    if (!opt_kat) {
+      setErrorString("Data Corrupt : \nKategori penjualan produk tidak ditemukan dalam database");
+      return false;
+    }
+    
     // Catat di buku besar transaksi
     TransaksiManager tm;
     QVariantMap trxParams;
     trxParams["akun_id"]        = akunId;
     trxParams["admin_id"]       = adminId;
-    trxParams["tipe"]           = "pemasukan";
+    trxParams["kategori_id"]    = opt_kat->value("id");
+    trxParams["tipe"]           = opt_kat->value("tipe");
     trxParams["deskripsi"]      = QString("Pembayaran invoice #%1").arg(invoiceId);
     trxParams["amount_before"]  = saldoBefore;
     trxParams["amount"]         = amount;
@@ -75,7 +85,6 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
       setErrorString("Gagal update data invoice: " + iman.errorString());
       return false;
     }
-    
     return true;
 }
 

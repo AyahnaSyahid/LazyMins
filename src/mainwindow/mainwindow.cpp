@@ -145,8 +145,10 @@ ui(new Ui::MainWindow), QMainWindow(p) {
 
   // Various actions
   auto actionGroup = new ActionGroup(this);
+  actionGroup->setRootWidget(this);
   ui->menuTambah->addSeparator();
   ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
+  ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
 
   // UserSession
   auto &sm = SessionManager::instance();

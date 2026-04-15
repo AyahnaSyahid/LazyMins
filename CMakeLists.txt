@@ -93,6 +93,9 @@ set(PROJECT_SOURCES
     src/dialogs/invoicecomposerdialog.cpp
     src/dialogs/akuntransaksidialog.cpp
     src/dialogs/paymentdialog.cpp
+    src/dialogs/productpickerdialog.cpp
+    src/dialogs/basepickerdialog.cpp
+    src/dialogs/expensedialog.cpp
 
     # Display / Viewers
     src/display/dataviewer.cpp

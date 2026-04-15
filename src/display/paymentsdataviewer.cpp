@@ -82,6 +82,7 @@ PaymentsDataViewer::PaymentsDataViewer(QWidget *parent) : DataViewer(parent)
           JOIN invoices i        ON p.invoice_id = i.id
           JOIN akun_transaksi at ON p.akun_transaksi_id = at.id
           JOIN admins a          ON p.admin_id = a.id
+         WHERE p.verification_status = 'pending'
     )--");
 
     setFilterColumnNames({"payment_number", "invoice_number"});

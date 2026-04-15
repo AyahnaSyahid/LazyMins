@@ -571,21 +571,23 @@ GROUP BY DATE(o.order_date);
 
 -- View: Top Selling Products
 CREATE VIEW v_top_products AS
-SELECT 
-    p.id,
-    p.sku,
-    p.name,
-    pc.category_name,
-    COUNT(oi.id) AS order_count,
-    SUM(oi.quantity) AS total_sold,
-    SUM(oi.subtotal) AS total_revenue
-FROM products p
-LEFT JOIN product_categories pc ON p.category_id = pc.id
-LEFT JOIN order_items oi ON p.id = oi.product_id
-LEFT JOIN orders o ON oi.order_id = o.id
-WHERE o.staging_status != 'cancelled'
-GROUP BY p.id
-ORDER BY total_revenue DESC;
+SELECT p.id,
+       p.sku,
+       p.name,
+       pc.category_name,
+       COUNT(oi.id) AS order_count,
+       CASE WHEN p.use_area = 0 THEN SUM(oi.quantity) ELSE SUM(oi.quantity * oi.size_width * oi.size_height) END AS total_sold,
+       SUM(oi.subtotal) AS total_revenue
+  FROM products p
+       LEFT JOIN
+       product_categories pc ON p.category_id = pc.id
+       LEFT JOIN
+       order_items oi ON p.id = oi.product_id
+       LEFT JOIN
+       orders o ON oi.order_id = o.id
+ WHERE o.staging_status != 'cancelled'
+ GROUP BY p.id
+ ORDER BY total_revenue DESC;
 
 -- View: Customer Loyalty (Top Customers)
 CREATE VIEW v_top_customers AS

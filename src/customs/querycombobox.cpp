@@ -99,3 +99,11 @@ void QueryComboBox::showColumn(int column, bool show)
 {
     boxView->setColumnHidden(column, !show);
 }
+
+int  QueryComboBox::findIndex(const QVariant& val, int column) const {
+  auto l = qmodel->match(qmodel->index(0, column), Qt::DisplayRole, val, 1, Qt::MatchExactly);
+  if(l.isEmpty()) {
+    return -1;
+  }
+  return l.first().row();
+}

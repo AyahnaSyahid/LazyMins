@@ -136,6 +136,9 @@ void PaymentDialog::on_jumlahUangSpinBox_valueChanged(int va)
   }
   
   ui->dibayarkanSpinBox->setMaximum(rem);
+  ui->dibayarkanSpinBox->blockSignals(true);
+  ui->dibayarkanSpinBox->setValue(rem);
+  ui->dibayarkanSpinBox->blockSignals(false);
   auto willpaid = ui->dibayarkanSpinBox->value();
   
   ui->kembalianSpinBox->setValue(va - willpaid);

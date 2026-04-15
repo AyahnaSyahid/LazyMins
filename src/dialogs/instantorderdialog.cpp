@@ -147,7 +147,6 @@ void InstantOrderDialog::on_bayarButton_clicked() {
 
   OrderHeader oh;
   oh.order_number = oman.nextNumber();
-  
   // oh.admin_id = 1;// current admin id set by helper
   oh.customer_name = ui->nameLineEdit->text();
   oh.customer_phone = ui->phoneLineEdit->text();

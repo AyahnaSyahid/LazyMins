@@ -37,6 +37,7 @@ public slots:
 private slots:
     void on_produkComboBox_currentIndexChanged(int index);
     void on_simpanButton_clicked();
+    void on_pilihButton_clicked();
 
     void on_hargaSpinBox_valueChanged(int arg1);
     void on_qtySpinBox_valueChanged(int arg1);
@@ -45,6 +46,7 @@ private slots:
     void on_widthBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void on_heightBox_valueChanged(double arg1) { recalculateSubtotal(); }
     void recalculateSubtotal();
+    void setCurrentProduct(int);
     
     void on_tambahButton_clicked();
 

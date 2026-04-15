@@ -5,6 +5,7 @@
 #include "src/models/finishinglistmodel.h"
 #include "src/customs/finishingitemdelegate.h"
 #include "src/models/ordermodel.h"
+#include "src/dialogs/productpickerdialog.h"
 #include <QMessageBox>
 #include <QMenu>
 #include <QStyledItemDelegate>
@@ -337,4 +338,23 @@ void OrderItemDialog::on_finishingView_customContextMenuRequested(const QPoint& 
   } else if (chosen == delAct) {
       m_finishingListModel.removeItem(row);
   }
+}
+
+void OrderItemDialog::on_pilihButton_clicked() {
+  ProductPickerDialog ppd(this);
+  // ppd.setWindowFlag(Qt::FramelessWindowHint, true);
+  connect(&ppd, &ProductPickerDialog::productPicked, this, &OrderItemDialog::setCurrentProduct);
+  connect(&ppd, &ProductPickerDialog::productPicked, &ppd, &QDialog::accept);
+  auto tr = ui->pilihButton->geometry().topRight();
+  ppd.move(mapToGlobal(tr));
+  ppd.exec();
+}
+
+void OrderItemDialog::setCurrentProduct(int p) {
+  int prix = ui->produkComboBox->findIndex(p, 0);
+  if (prix < 0) {
+    QMessageBox::warning(this, "Kesalahan Internal", "Tidak dapat menyetel produk");
+    return ;
+  }
+  ui->produkComboBox->setCurrentIndex(prix);
 }

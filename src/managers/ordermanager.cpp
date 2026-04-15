@@ -59,10 +59,28 @@ bool OrderManager::updateSubtotal(int id, int subtotal)
     return update(id, {{ "subtotal", subtotal }});
 }
 
-bool OrderManager::linkInvoice(int orderId, int invoiceId, const QString& invoiceNumber)
-{
-    return update(orderId, {
-        { "invoice_id",     invoiceId },
-        { "invoice_number", invoiceNumber }
-    });
+bool OrderManager::recalculate(int oid) {
+  QSqlQuery q(BaseManager::connection);
+  q.prepare(R"-(
+      UPDATE orders
+         SET subtotal = cte.new_sub,
+             updated_at = CURRENT_TIMESTAMP
+        FROM (
+                 SELECT COALESCE(SUM(total), 0) AS new_sub
+                   FROM order_items
+                  WHERE order_id = :oid
+             )
+             AS cte
+       WHERE orders.id = :oid AND
+             orders.subtotal <> cte.new_sub AND
+             orders.staging_status <> 'canceled'
+  )-");
+  
+  q.bindValue(":oid", oid);
+  
+  if (!q.exec()) {
+    setErrorString(q.lastError().text());
+    return false;
+  }
+  return true;
 }

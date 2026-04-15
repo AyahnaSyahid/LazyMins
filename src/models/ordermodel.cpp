@@ -174,7 +174,7 @@ bool OrderModel::loadOrder(int orderId, QSqlDatabase &db)
     m_header.discount_amount    = hq.value("discount_amount").toInt();
     m_header.discount_percentage= hq.value("discount_percentage").toInt();
     // m_header.tax_amount         = hq.value("tax_amount").toInt();
-    m_header.status             = hq.value("status").toString();
+    // m_header.status             = hq.value("status").toString();
     m_header.priority           = hq.value("priority").toString();
     // m_header.payment_status     = hq.value("payment_status").toString();
     m_header.order_date         = hq.value("order_date").toDateTime();
@@ -364,7 +364,7 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
           // {"tax_amount",         m_header.tax_amount},
-          {"status",             m_header.status},
+          // {"status",             m_header.status},
           {"priority",           m_header.priority},
           // {"payment_status",     m_header.payment_status},
           {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
@@ -396,7 +396,7 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
           // {"tax_amount",         m_header.tax_amount},
-          {"status",             m_header.status},
+          // {"status",             m_header.status},
           {"priority",           m_header.priority},
           // {"payment_status",     m_header.payment_status},
           {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},

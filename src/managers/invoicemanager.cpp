@@ -127,7 +127,7 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
     setErrorString("Gagal menambahkan order" + q.lastError().text());
     return false;
   }
-  return recalculateFinancials(invoice_id);
+  return recalculate(invoice_id);
 }
 
 bool InvoiceManager::addOrder(int invoice_id, int oid) {
@@ -158,14 +158,14 @@ bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids) {
     setErrorString("Gagal memisahkan orders dari invoice" + q.lastError().text() );
     return false;
   }
-  return recalculateFinancials(invoice_id);
+  return recalculate(invoice_id);
 }
 
 bool InvoiceManager::removeOrder(int invoice_id,int oid) {
   return removeOrders( invoice_id, { oid } );
 }
 
-bool InvoiceManager::recalculateFinancials(int id) {
+bool InvoiceManager::recalculate(int id) {
   QSqlQuery q(BaseManager::connection);
   q.prepare( R"-(
 UPDATE invoices SET 

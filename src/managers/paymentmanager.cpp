@@ -71,7 +71,7 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
     }
     
     InvoiceManager iman;
-    if ( !iman.recalculateFinancials(invoiceId) ) {
+    if ( !iman.recalculate(invoiceId) ) {
       setErrorString("Gagal update data invoice: " + iman.errorString());
       return false;
     }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "src/models/ordermodel.h"
+
 namespace DBOperationHelper {
   struct OperationResult {
     bool ok; 

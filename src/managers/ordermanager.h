@@ -11,9 +11,8 @@ public:
     QList<QSqlRecord> getByInvoice(int invoiceId);
     bool updateStatus(int id, const QString& status);
     bool updateSubtotal(int id, int subtotal);
-    bool linkInvoice(int orderId, int invoiceId, const QString& invoiceNumber);
     static QString nextNumber();
-
+    bool recalculate(int oid);
 protected:
     bool beforeCreate(QVariantMap& params) override;
     bool afterCreate(const QSqlRecord& record) override;

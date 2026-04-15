@@ -314,7 +314,7 @@ void OrderDialog::on_simpanButton_clicked()
   // header.tax_amount         = ui->pajakRpSpinBox->value();
   header.order_date         = ui->tOrderDateTimeEdit->dateTime();
   header.deadline_date      = ui->dLineDateTimeEdit->dateTime();
-  header.status             = "pending";
+  // header.status             = "pending";
   header.priority           = "normal";
   // header.payment_status     = "unpaid";
   header.notes              = ui->catatan1TextEdit->toPlainText();

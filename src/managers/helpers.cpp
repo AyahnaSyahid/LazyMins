@@ -18,11 +18,11 @@ namespace {
     return cu.has_value() ? (*cu).value("id").toInt() : 1;
   }
   
-  qreal roundedValue(double v) {
-    return std::round(v * 10000.0) / 10000.0;
+  qreal roundUpValue(double v, double prec = 100.0) {
+    return qCeil(v * prec) / prec;
   }
-
 }
+const DBOperationHelper::OperationResult failResult { false, "" };
 
 int DBOperationHelper::currentAdminId() { return getAdminId(); }
 
@@ -37,22 +37,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     return { false, "Gagal membuat transaksi Database :" + BaseManager::connection.lastError().text() };
   }
   
-  InvoiceManager im;
-  auto opt_inv = im.create({
-    {"invoice_number", invoiceCode},
-    {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<qint64>()) : header.customer_id},
-    {"customer_name", header.customer_name},
-    {"customer_phone", header.customer_name},
-    {"admin_id", getAdminId()},
-    {"tax_amount", paymentInfo["tax_amount"]}
-  });
-  
-  if (!opt_inv) {
-    return { false, "Gagal membuat invoice : " + im.errorString() };
-  }
-  
-  int created_invoice_id = opt_inv->value("invoice_id").toInt();
-  
+  int _admin_id = currentAdminId();
   OrderItemFinishingManager fm;
   OrderItemManager oim;
   OrderManager om;
@@ -62,10 +47,8 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   
   // create order first
   auto opt_ord = om.create( {
-    {"admin_id", getAdminId()},
+    {"admin_id", _admin_id},
     {"order_number", header.order_number},
-    {"invoice_id", created_invoice_id},
-    {"invoice_number", opt_inv->value("invoice_number")},
     {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<int>()) : header.customer_id},
     {"customer_name", header.customer_name},
     {"discount_amount", header.discount_amount},
@@ -114,7 +97,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     qreal pr_stock = opt_prod->value("stock").toDouble();
     qreal c_qty = order_item.quantity;
     if (order_item.use_area) {
-      c_qty = qCeil( (c_qty * order_item.size_width * order_item.size_height) * 100.0 ) / 100.0;
+      c_qty = roundUpValue(c_qty * order_item.size_width * order_item.size_height);
     }
     
     auto opt_sm = smm.recordMovement( 
@@ -122,7 +105,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
           "out",
           -c_qty,
           pr_stock,
-          qCeil((c_qty - order_item.quantity) * 100.0 ) / 100.0,
+          roundUpValue(c_qty - order_item.quantity),
           getAdminId(),
           "order_items",
           opt_oitem->value("id").toInt(),
@@ -164,9 +147,23 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     }
   }
   
-  if ( !om.recalculate(created_order_id) ) {
-    return { false, om.errorString() };
+  // Register invoice and order
+  QVariantMap inv_par ( {
+    {"invoice_number", invoiceCode},
+    {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<qint64>()) : header.customer_id},
+    {"customer_name", header.customer_name},
+    {"customer_phone", header.customer_name},
+    {"admin_id", getAdminId()},
+    {"tax_amount", paymentInfo["tax_amount"]}
+  });
+
+  auto operation_2 = internalCreateInvoice(inv_par, createdItems);
+  
+  if (!operation_2.ok) {
+    return operation_2;
   }
+  
+  int created_invoice_id = operation_2.data["invoice_id"].toInt();
   
   AkunTransaksiManager atm;
   auto opt_acc = atm.getByKode("CASH");
@@ -180,6 +177,8 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"cash_received", paymentInfo["cash_received"]},
     {"cash_change", paymentInfo["cash_change"]},
     {"verification_status", "verified"},
+    {"verified_by", getAdminId()},
+    {"verified_at", QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss")},
     {"notes", "Pembayaran Instant Order"},
     {"admin_id", getAdminId()},
     {"akun_transaksi_id", opt_acc->value("id")}
@@ -189,15 +188,12 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     return { false, "Gagal membuat pembayaran : " + pym.errorString() };
   }
   
-  if ( !im.recalculate(created_invoice_id) ) {
-    return { false, "Gagal memperbarui invoice : " + im.errorString() };
-  }
-  
   if (!tr.commit()) {
     QString err = BaseManager::connection.lastError().text();
     return { false, "Tidak dapat melakukan commit : " + err };
   }
 
+  tr.commit();
   return { true, "", {{"invoice_id", created_invoice_id}, {"payment_id", opt_pay->value("id")}} };
 }
 
@@ -211,13 +207,65 @@ DBOperationHelper::OperationResult
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int product_id, qreal _final, const QString& notes) {
+  SqlTransaction tr;
+  if(!tr.started()) {
+    return { false, "Gagal membuat transaksi Database :" + BaseManager::connection.lastError().text() };
+  }
   
-  return { false, "" };
+  ProductManager pm;
+  StockMovementManager smm;
+  
+  auto opt_pro = pm.getById(product_id);
+  if (!opt_pro) {
+    return { false, "Tidak dapat menemukan data Produk" };
+  }
+  
+  auto current_stock = opt_pro->value("stock").toDouble();
+  qreal delta = roundUpValue(_final - current_stock);
+  
+  
+  auto opt_sm = smm.recordMovement( 
+        product_id, "adjustment", 
+        delta, current_stock, _final,
+        currentAdminId(), "", 0, notes);
+  
+  if (!opt_sm) {
+    return { false, smm.errorString() };
+  }
+
+  tr.commit();
+  return { true, "" };
 }
 
-DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes) {
+DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int productId, qreal stockIn, 
+                                                                           const QString& supplier, 
+                                                                           const QString& notes) {
+  SqlTransaction tr;
+  if(!tr.started()) {
+    return { false, "Gagal membuat transaksi Database :" + BaseManager::connection.lastError().text() };
+  }
   
-  return { false, "" };
+  ProductManager pm;
+  StockMovementManager smm;
+  
+  auto opt_pro = pm.getById(productId);
+  if(!opt_pro) {
+    return { false, "Tidak dapat menemukan data Produk" };
+  }
+  
+  qreal current_stock = opt_pro->value("stock").toDouble();
+  
+  auto opt_sm = smm.recordMovement( 
+    productId, "in", stockIn, current_stock,
+    roundUpValue(stockIn + current_stock),
+    currentAdminId(), "", 0, "Supplier : " + supplier + "\n" + notes);
+  
+  if (!opt_sm) {
+    return { false, smm.errorString() };
+  }
+  
+  tr.commit();
+  return { true, "", {{"stock_movement_id", opt_sm->value("id")}} };
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(const QVariantMap& param, QList<int> oids)
@@ -232,6 +280,10 @@ DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(cons
   }
   
   if(!iman.addOrders(opt_inv->value("id").toInt(), oids)) {
+    return { false, iman.errorString() };
+  }
+  
+  if (!iman.recalculate(opt_inv->value("id").toInt())) {
     return { false, iman.errorString() };
   }
 
@@ -269,6 +321,9 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
   PaymentManager payman;
   QVariantMap copyPay(pay);
   copyPay["invoice_id"] = invoice_id;
+  copyPay["admin_id"] = currentAdminId();
+  if (copyPay.contains("verified_at") && (!copyPay["verified_at"].isNull()))
+    copyPay["verified_by"] = copyPay["admin_id"];
   
   auto opt_pay = payman.create(copyPay);
   if (!opt_pay) {

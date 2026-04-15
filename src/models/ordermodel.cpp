@@ -395,10 +395,7 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"subtotal",           subtotal},
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
-          // {"tax_amount",         m_header.tax_amount},
-          // {"status",             m_header.status},
           {"priority",           m_header.priority},
-          // {"payment_status",     m_header.payment_status},
           {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
           {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
           {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
@@ -457,7 +454,7 @@ bool OrderModel::commit(QSqlDatabase &db)
       
       auto opt_mvt = smm.recordMovement(r_pro.value("id").toInt(), "adjustment",
                                          calcqty, r_pro.value("stock").toDouble(),
-                                         calcqty + r_pro.value("stock").toDouble(),
+                                         qCeil((calcqty + r_pro.value("stock").toDouble()) * 100) / 100.0,
                                          m_header.admin_id, "Item Removal", -1, "");
       
       if(!opt_mvt) {
@@ -536,7 +533,7 @@ bool OrderModel::commit(QSqlDatabase &db)
                                          isNew ? "out" : "adjustment",
                                          delta,
                                          r_pro.value("stock").toDouble(),
-                                         r_pro.value("stock").toDouble() + delta,
+                                         qCeil((r_pro.value("stock").toDouble() + delta) * 100.0) / 100.0,
                                          m_header.admin_id,
                                          "orders", m_orderId,
                                          isNew ? "Penjualan Produk" : "Update Item Order");

@@ -18,6 +18,8 @@ find_package(Qt6 REQUIRED COMPONENTS
     Sql 
     Test 
     Network
+    PrintSupport
+    SerialPort
 )
 
 qt_standard_project_setup()
@@ -33,6 +35,8 @@ set(PROJECT_SOURCES
     src/utils/authmanager.cpp
     src/utils/sessionmanager.cpp
     src/utils/sqltransaction.cpp
+    src/utils/posprinter.cpp
+    src/utils/escpos.cpp
 
     # Database
     src/database/databasemanager.cpp
@@ -145,6 +149,8 @@ target_link_libraries(LazyMins PRIVATE
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network
+    Qt6::PrintSupport
+    Qt6::SerialPort
 )
 
 # ==================== Build Information ====================

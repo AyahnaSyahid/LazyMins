@@ -1,22 +1,185 @@
-#ifndef ESC_POS_H
-#define ESC_POS_H
+// src/utils/escpos.h
+#pragma once
+
+#include <QString>
+#include <QByteArray>
+#include <QList>
+#include <QSerialPort>
+
+// ==================== ESC/POS Constants ====================
+
+namespace EscPos {
+    // Control characters
+    static constexpr const char* ESC = "\x1B";
+    static constexpr const char* GS = "\x1D";
+    static constexpr const char* CR = "\x0D";
+    static constexpr const char* LF = "\x0A";
+    
+    // Alignment
+    enum class Alignment {
+        Left = 0x00,
+        Center = 0x01,
+        Right = 0x02
+    };
+    
+    // Font size
+    enum class FontSize {
+        Normal = 0x00,
+        Double = 0x11,
+        Large = 0x21,
+        VeryLarge = 0x31
+    };
+    
+    // Text style
+    struct TextStyle {
+        bool bold = false;
+        bool underline = false;
+        bool italic = false;
+        bool doubleWidth = false;
+        bool doubleHeight = false;
+        FontSize fontSize = FontSize::Normal;
+    };
+    
+    // Barcode type
+    enum class BarcodeType {
+        UPC_A = 65,
+        UPC_E = 66,
+        EAN13 = 67,
+        EAN8 = 68,
+        CODE39 = 69,
+        ITF = 70,
+        CODABAR = 71,
+        CODE93 = 72,
+        CODE128 = 73
+    };
+    
+    // QR Code error correction
+    enum class QRErrorCorrection {
+        Low = 48,      // ~7% recovery
+        Medium = 49,   // ~15% recovery
+        High = 51      // ~30% recovery
+    };
+}
+
+// ==================== ESC/POS Command Builder ====================
 
 class EscPosBuilder {
 public:
-    void initializePrinter();
-    void setFontSize(int size);
-    void printText(const char* text);
-    void printBarcode(const char* barcodeData, const char* type);
-    void printQRCode(const char* data);
-    // Additional methods ...
+    EscPosBuilder();
+    
+    // Initialization
+    EscPosBuilder& reset();
+    EscPosBuilder& initialize();
+    
+    // Text output
+    EscPosBuilder& text(const QString& text);
+    EscPosBuilder& textStyled(const QString& text, const EscPos::TextStyle& style);
+    EscPosBuilder& newline(int count = 1);
+    EscPosBuilder& lineFeed(int count = 1);
+    
+    // Alignment
+    EscPosBuilder& align(EscPos::Alignment alignment);
+    EscPosBuilder& alignLeft();
+    EscPosBuilder& alignCenter();
+    EscPosBuilder& alignRight();
+    
+    // Text style
+    EscPosBuilder& bold(bool enable = true);
+    EscPosBuilder& underline(bool enable = true);
+    EscPosBuilder& italic(bool enable = true);
+    EscPosBuilder& doubleHeight(bool enable = true);
+    EscPosBuilder& doubleWidth(bool enable = true);
+    EscPosBuilder& fontSize(EscPos::FontSize size);
+    EscPosBuilder& resetStyle();
+    
+    // Lines & Separators
+    EscPosBuilder& horizontalLine(char character = '-', int width = 32);
+    EscPosBuilder& doubleLine(char character = '=', int width = 32);
+    
+    // Tables & Formatting
+    EscPosBuilder& column(const QString& left, const QString& right, int width = 32);
+    EscPosBuilder& tableRow(const QList<QString>& columns, const QList<int>& widths);
+    
+    // Barcode
+    EscPosBuilder& barcode(const QString& data, EscPos::BarcodeType type, 
+                           int width = 3, int height = 50);
+    
+    // QR Code
+    EscPosBuilder& qrCode(const QString& data, int moduleSize = 8,
+                         EscPos::QRErrorCorrection errorCorrection = EscPos::QRErrorCorrection::High);
+    
+    // Image (raster)
+    EscPosBuilder& image(const QByteArray& imageData, int width, int height);
+    
+    // Drawer & Cutting
+    EscPosBuilder& openDrawer(int pin = 0, int duration = 120);
+    EscPosBuilder& partialCut();
+    EscPosBuilder& fullCut();
+    EscPosBuilder& cutAndFeed(int feedLines = 3);
+    
+    // Buzzer
+    EscPosBuilder& buzz(int duration = 100);
+    
+    // Paper status
+    EscPosBuilder& queryPaperStatus();
+    
+    // Get final command
+    QByteArray build() const;
+    QString buildAsString() const;
+    
+    // Clear builder
+    void clear();
+    
+private:
+    QByteArray m_commands;
+    EscPos::TextStyle m_currentStyle;
+    EscPos::Alignment m_currentAlignment;
+    
+    // Helper methods
+    QByteArray encodeTextStyle(const EscPos::TextStyle& style) const;
+    QByteArray decodeTextStyle(const EscPos::TextStyle& style) const;
+    QString formatColumn(const QString& left, const QString& right, int width) const;
 };
+
+// ==================== ESC/POS Printer ====================
 
 class EscPosPrinter {
 public:
-    void openConnection(const char* port);
-    void closeConnection();
-    void sendCommand(const char* command);
-    // Additional communication methods ...
+    // Constructor & Destructor
+    explicit EscPosPrinter(const QString& portName = "");
+    ~EscPosPrinter();
+    
+    // Connection management
+    bool connect(const QString& portName, int baudRate = 19200);
+    bool disconnect();
+    bool isConnected() const;
+    
+    // Port management
+    QStringList availablePorts() const;
+    QString currentPort() const;
+    
+    // Send commands
+    bool sendCommand(const QByteArray& command);
+    bool sendCommand(const EscPosBuilder& builder);
+    bool sendRawCommand(const QString& command);
+    
+    // Printer status
+    bool checkStatus();
+    QString lastError() const;
+    void clearError();
+    
+    // Convenience methods
+    bool printText(const QString& text);
+    bool printLine(char character = '-', int width = 32);
+    bool printSeparator();
+    
+    // Test print
+    bool testPrint();
+    
+private:
+    QSerialPort* m_port;
+    QString m_lastError;
+    
+    // Helper methods
+    void setError(const QString& error);
 };
-
-#endif // ESC_POS_H

@@ -6,7 +6,7 @@ class AkunTransaksiManager : public BaseManager
 public:
     explicit AkunTransaksiManager();
 
-    std::optional<QSqlRecord> getByKode(const QString& kode) const;
+    std::optional<QSqlRecord> getByKode(const QString& kode);
     QList<QSqlRecord> getActive(const QString& orderBy = "nama", int limit = -1);
     bool deactivate(int id);
 

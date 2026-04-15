@@ -10,10 +10,8 @@ public:
 
 protected:
     // Setelah insert/update/delete finishing, recalculate finishing_total pada order_item induk
+    // UPDATE -- operasi hitung kini berada di OrderItemManager
     bool afterCreate(const QSqlRecord& record) override;
     bool afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after) override;
     bool afterDelete(int id, const QSqlRecord& before) override;
-
-private:
-    bool recalculateFinishingTotal(int orderItemId);
 };

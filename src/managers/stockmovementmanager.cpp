@@ -113,7 +113,7 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(int productId,
     params["admin_id"]       = adminId;
     params["reference_type"] = referenceType.isEmpty() ? QVariant() : QVariant(referenceType);
     params["reference_id"]   = referenceId > 0         ? QVariant(referenceId) : QVariant();
-    params["notes"]          = notes.isEmpty()          ? QVariant() : QVariant(notes);
+    params["notes"]          = notes.isEmpty()         ? QVariant() : QVariant(notes);
 
     // beforeCreate dan afterCreate (update products.stock) sudah diblokir
     // untuk tidak override stock_before/after yang kita set manual di sini.

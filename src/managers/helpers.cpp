@@ -4,7 +4,9 @@
 #include "src/managers/orderitemmanager.h"
 #include "src/managers/ordermanager.h"
 #include "src/managers/invoicemanager.h"
+#include "src/managers/stockmovementmanager.h"
 #include "src/utils/sessionmanager.h"
+#include "src/utils/sqltransaction.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -30,35 +32,58 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   const QString& invoiceCode,
   const QVariantMap& paymentInfo )
 { 
-  if(!BaseManager::connection.transaction()) {
+  SqlTransaction tr;
+  if(!tr.started()) {
     return { false, "Gagal membuat transaksi Database :" + BaseManager::connection.lastError().text() };
   }
+  
+  InvoiceManager im;
+  auto opt_inv = im.create({
+    {"invoice_number", invoiceCode},
+    {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<qint64>()) : header.customer_id},
+    {"customer_name", header.customer_name},
+    {"customer_phone", header.customer_name},
+    {"admin_id", getAdminId()},
+    {"tax_amount", paymentInfo["tax_amount"]}
+  });
+  
+  if (!opt_inv) {
+    return { false, "Gagal membuat invoice : " + im.errorString() };
+  }
+  
+  int created_invoice_id = opt_inv->value("invoice_id").toInt();
   
   OrderItemFinishingManager fm;
   OrderItemManager oim;
   OrderManager om;
+  PaymentManager pym;
+  ProductManager prm;
+  StockMovementManager smm;
   
   // create order first
-  QList<int> createdOrderIds;
   auto opt_ord = om.create( {
     {"admin_id", getAdminId()},
-    {"order_number", oh.order_number},
-    {"customer_id", oh.customer_id < 1 ? QVariant(QMetaType::from<int>()) : oh.customer_id},
-    {"customer_name", oh.customer_name},
-    {"discount_amount", oh.discount_amount},
-    {"price_level_id", oh.price_level_id},
-    {"priority", oh.priority},
-    {"notes", oh.notes},
-    {"internal_notes", oh.internal_notes}
+    {"order_number", header.order_number},
+    {"invoice_id", created_invoice_id},
+    {"invoice_number", opt_inv->value("invoice_number")},
+    {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<int>()) : header.customer_id},
+    {"customer_name", header.customer_name},
+    {"discount_amount", header.discount_amount},
+    {"price_level_id", header.price_level_id},
+    {"priority", header.priority},
+    {"notes", header.notes},
+    {"internal_notes", header.internal_notes}
   } );
   
   if (!opt_ord) {
-    return { false, "Gagal mendaftarkan order :" om.errorString() };
+    return { false, "Gagal mendaftarkan order : " + om.errorString() };
   }
   
-  createdOrderIds = opt_ord->value("id").toInt()
-
+  int created_order_id = opt_ord->value("id").toInt();
   QString lastError = "";
+  
+  QList<int> createdItems;
+  // Write Item to database
   for(auto const& order_item : items) {
     auto opt_oitem = oim.create({
       {"order_id", opt_ord->value("id")},
@@ -79,10 +104,42 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
       lastError = oim.errorString();
       break ;
     }
-
+    
+    auto opt_prod = prm.getById(order_item.product_id);
+    if (!opt_prod) {
+      lastError = prm.errorString();
+      break ;
+    }
+    
+    qreal pr_stock = opt_prod->value("stock").toDouble();
+    qreal c_qty = order_item.quantity;
+    if (order_item.use_area) {
+      c_qty = qCeil( (c_qty * order_item.size_width * order_item.size_height) * 100.0 ) / 100.0;
+    }
+    
+    auto opt_sm = smm.recordMovement( 
+          order_item.product_id,
+          "out",
+          -c_qty,
+          pr_stock,
+          qCeil((c_qty - order_item.quantity) * 100.0 ) / 100.0,
+          getAdminId(),
+          "order_items",
+          opt_oitem->value("id").toInt(),
+          "Penjualan Produk (Instant Order)"
+          );
+    
+    if (!opt_sm) {
+      lastError = smm.errorString();
+      break;
+    }
+    
+    int current_item_id = opt_oitem->value("id").toInt();
+    createdItems << current_item_id;
+    // Write each finishings Item
     for(auto const& finishing_item : order_item.finishings) {
       auto opt_finitem = fm.create({
-        {"order_item_id", finishing_item.order_item_id}, 
+        {"order_item_id", current_item_id}, 
         {"finishing_id", finishing_item.finishing_id}, 
         {"finishing_name", finishing_item.finishing_name}, 
         {"quantity", finishing_item.quantity}, 
@@ -101,8 +158,47 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     return { false, "Gagal menyimpan data" + lastError };
   }
   
+  for(auto const& citem : createdItems) {
+    if (!oim.recalculate(citem)) {
+      return { false, oim.errorString() };
+    }
+  }
   
+  if ( !om.recalculate(created_order_id) ) {
+    return { false, om.errorString() };
+  }
   
+  AkunTransaksiManager atm;
+  auto opt_acc = atm.getByKode("CASH");
+  if ( !opt_acc ) {
+    return { false, QString("Tidak dapat menemukan akun_transaksi_id dengan kode '%1'").arg("CASH")};
+  }
+  
+  auto opt_pay = pym.create({
+    {"invoice_id", created_invoice_id},
+    {"amount", paymentInfo["payment_amount"]},
+    {"cash_received", paymentInfo["cash_received"]},
+    {"cash_change", paymentInfo["cash_change"]},
+    {"verification_status", "verified"},
+    {"notes", "Pembayaran Instant Order"},
+    {"admin_id", getAdminId()},
+    {"akun_transaksi_id", opt_acc->value("id")}
+  });
+  
+  if ( !opt_pay.has_value() ) {
+    return { false, "Gagal membuat pembayaran : " + pym.errorString() };
+  }
+  
+  if ( !im.recalculate(created_invoice_id) ) {
+    return { false, "Gagal memperbarui invoice : " + im.errorString() };
+  }
+  
+  if (!tr.commit()) {
+    QString err = BaseManager::connection.lastError().text();
+    return { false, "Tidak dapat melakukan commit : " + err };
+  }
+
+  return { true, "", {{"invoice_id", created_invoice_id}, {"payment_id", opt_pay->value("id")}} };
 }
 
 DBOperationHelper::OperationResult 

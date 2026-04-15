@@ -32,6 +32,7 @@ set(PROJECT_SOURCES
     # Utils
     src/utils/authmanager.cpp
     src/utils/sessionmanager.cpp
+    src/utils/sqltransaction.cpp
 
     # Database
     src/database/databasemanager.cpp

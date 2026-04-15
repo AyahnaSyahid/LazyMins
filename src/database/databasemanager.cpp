@@ -15,6 +15,7 @@ DatabaseManager &DatabaseManager::instance() {
 
 void DatabaseManager::setDatabase(QSqlDatabase &db) {
   m_database = db;
+  QSqlQuery q("PRAGMA foreign_keys = ON;", db);
 }
 
 DatabaseManager::DatabaseManager() : m_databaseReady(false)

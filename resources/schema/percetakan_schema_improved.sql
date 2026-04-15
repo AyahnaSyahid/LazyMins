@@ -468,7 +468,7 @@ CREATE TABLE invoices (
     invoice_number   TEXT       UNIQUE NOT NULL,
     
     -- Relasi
-    customer_id      INTEGER    NOT NULL,
+    customer_id      INTEGER,   -- sengaja untuk konsumen yang tidak terdaftar
     customer_name    TEXT       NOT NULL,
     customer_phone   TEXT,
     price_level_id   INTEGER    DEFAULT 1,

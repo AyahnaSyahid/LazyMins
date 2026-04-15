@@ -5,11 +5,11 @@ AkunTransaksiManager::AkunTransaksiManager()
 {
 }
 
-std::optional<QSqlRecord> AkunTransaksiManager::getByKode(const QString& kode) const
+std::optional<QSqlRecord> AkunTransaksiManager::getByKode(const QString& kode)
 {
-    auto results = const_cast<AkunTransaksiManager*>(this)->getWhere(
+    auto results = getWhere(
         "kode = :kode COLLATE NOCASE",
-        {{ ":kode", kode }}
+        {{ "kode", kode }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();

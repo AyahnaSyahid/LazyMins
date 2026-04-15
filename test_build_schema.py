@@ -74,7 +74,16 @@ def initialize_schema_file(file_name: str, db_path: str) -> bool:
                 con.rollback()
                 con.close()
                 return False
-
+        
+        # insert root
+        con.execute("""
+        INSERT INTO admins VALUES 
+            ( 1, 1, 'root', 
+              'f1fd6123ff31d314269652592839d7a90040c3409ff4be05546fe512156454b0', 
+              '7v3wnEFUTiNfh2wlKQlUAyNF2WV9Uudg', '-', 'Aksarajata@AJ.com', '-',
+              1, '2026-04-09T13:22:28.000Z', '2026-04-09T11:00:20.678Z', 
+              '2026-04-09T11:00:20.678Z' )""")
+        
         con.commit()
         con.close()
         print("[INFO] Semua statement berhasil.")

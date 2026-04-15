@@ -14,7 +14,7 @@ public:
 
     bool updateStagingStatus(int id, const QString& status);
     bool updateSettlementStatus(int id, const QString& status);
-    bool recalculateFinancials(int id);
+    bool recalculate(int id);
 
     bool addOrder(int id, int oid);
     bool addOrders(int id, QList<int> oids);

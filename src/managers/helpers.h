@@ -44,4 +44,5 @@ namespace DBOperationHelper {
   
   // menggunakan transaction  
   OperationResult loadInvoiceData(int invoice_id, Receipt *rec);
+  OperationResult loadInvoiceDataFast(int invoice_id, Receipt *rec);
 }

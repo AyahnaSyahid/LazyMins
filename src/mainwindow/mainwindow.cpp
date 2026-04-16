@@ -85,6 +85,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ord1->refresh();
   ui->menuView->addAction(dsO->toggleViewAction());
   connect(ui->actionOrderCreate, &QAction::triggered, ord1, &OrderDataViewer::openCreateOrderDialog);
+  connect(ord1, &OrderDataViewer::orderCreated, dv1, &DataViewer::refresh);
 
   auto idv = new InvoiceDataViewer;
   auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);

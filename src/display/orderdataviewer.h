@@ -19,6 +19,9 @@ public slots:
 private slots:
   void on_dataView_customContextMenuRequested(const QPoint& p);
   
+signals:
+  void orderCreated(int id);
+  
 private:
   QAction *m_createOrderAction;
 };

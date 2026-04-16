@@ -37,6 +37,7 @@ set(PROJECT_SOURCES
     src/utils/sqltransaction.cpp
     src/utils/posprinter.cpp
     src/utils/escpos.cpp
+    src/utils/posprintertestdialog.cpp
 
     # Database
     src/database/databasemanager.cpp

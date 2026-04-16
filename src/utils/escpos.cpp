@@ -410,7 +410,7 @@ QStringList EscPosPrinter::availablePorts() const {
 }
 
 QString EscPosPrinter::currentPort() const {
-    return m_port ? m_port->portName() : "";
+    return m_port && isConnected() ? m_port->portName() : "";
 }
 
 bool EscPosPrinter::sendCommand(const QByteArray& command) {
@@ -506,8 +506,8 @@ bool EscPosPrinter::testPrint() {
     builder.horizontalLine('=', 32);
     builder.alignCenter();
     builder.text("Printer Berhasil Terhubung!").newline();
-    builder.lineFeed(3);
-    builder.fullCut();
+    builder.lineFeed(6);
+    builder.partialCut();
     
     return sendCommand(builder);
 }

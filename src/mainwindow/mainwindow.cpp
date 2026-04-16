@@ -24,6 +24,8 @@
 #include <QDockWidget>
 #include <QMessageBox>
 
+#include "src/utils/posprintertestdialog.h"
+
 namespace {
   void connectCreateActionToFormDialog(QAction *action, 
                                       const QString& formTitle, 
@@ -159,6 +161,12 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   // Window Title
   AppSettingsManager apm;
   setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");
+  
+  // Printer Test
+  connect(ui->actionPrinterTest, &QAction::triggered, [this](){
+    PosPrinterTestDialog *pp = new PosPrinterTestDialog(this);
+    pp->open();
+  });
 }
 
 MainWindow::~MainWindow() {delete ui;}

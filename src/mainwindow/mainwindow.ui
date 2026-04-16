@@ -34,6 +34,7 @@
      <addaction name="actionKeluar"/>
     </widget>
     <addaction name="menuAkun"/>
+    <addaction name="actionPrinterTest"/>
    </widget>
    <widget class="QMenu" name="menuToolbar">
     <property name="title">
@@ -205,6 +206,11 @@
   <action name="actionAddKatProduk">
    <property name="text">
     <string>Kategori Produk</string>
+   </property>
+  </action>
+  <action name="actionPrinterTest">
+   <property name="text">
+    <string>Printer Test</string>
    </property>
   </action>
  </widget>

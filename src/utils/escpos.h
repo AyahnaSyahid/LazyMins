@@ -156,7 +156,8 @@ public:
     
     // Port management
     QStringList availablePorts() const;
-    QString currentPort() const;
+    QString currentPort() const ;
+    qint32 currentBaud(QSerialPort::Directions directions = QSerialPort::AllDirections) const { return isConnected() ? m_port->baudRate(directions) : -1; };
     
     // Send commands
     bool sendCommand(const QByteArray& command);
@@ -175,6 +176,8 @@ public:
     
     // Test print
     bool testPrint();
+    
+    
     
 private:
     QSerialPort* m_port;

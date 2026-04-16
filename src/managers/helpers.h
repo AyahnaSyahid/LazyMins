@@ -2,6 +2,7 @@
 
 #include "src/models/ordermodel.h"
 
+struct Receipt;
 namespace DBOperationHelper {
   struct OperationResult {
     bool ok; 
@@ -40,4 +41,7 @@ namespace DBOperationHelper {
   OperationResult refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes);
   
   int currentAdminId();
+  
+  // menggunakan transaction  
+  OperationResult loadInvoiceData(int invoice_id, Receipt *rec);
 }

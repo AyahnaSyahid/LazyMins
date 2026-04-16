@@ -3,6 +3,7 @@
 #include "transaksimanager.h"
 #include "akuntransaksimanager.h"
 #include "kategoritransaksimanager.h"
+#include "src/utils/sqltransaction.h"
 
 QString PaymentManager::nextNumber() {
   return generateCode("payments", "payment_number", "PYM-", 5, true);
@@ -104,11 +105,18 @@ QList<QSqlRecord> PaymentManager::getByStatus(const QString& verificationStatus)
 
 bool PaymentManager::verify(int id, int verifiedByAdminId)
 {
-    return update(id, {
+    SqlTransaction tr;
+    if(!tr.started()) { 
+      setErrorString("Gagal melakukan transaksi database");
+      return false;
+    }
+    
+    bool ok = update(id, {
         { "verification_status", "verified" },
         { "verified_by",         verifiedByAdminId },
         { "verified_at",         dateTimeToSql() }
     });
+    if (ok) return tr.commit() ;
 }
 
 bool PaymentManager::cancel(int id)

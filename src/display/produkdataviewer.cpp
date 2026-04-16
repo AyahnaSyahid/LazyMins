@@ -29,11 +29,20 @@ namespace {
                         option->displayAlignment = Qt::AlignCenter;
                         break;
                     }
-                    case 6:
+                    case 6: {
+                        option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+                        int use_area = ix.siblingAtColumn(10).data().toInt();
+                        if(use_area == 1) {
+                          option->text = QString("%L1").arg(ix.data().toDouble(), 0, 'f', 2);
+                        } else {
+                          option->text = QString("%L1").arg(ix.data().toInt());                   
+                        }
+                        break;
+                    }
                     case 7:
                     case 8: {
                         option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-                        option->text = QLocale().toString(ix.data().toInt());
+                        option->text = QString("%L1").arg(ix.data().toInt());                   
                         break;
                     }
                     case 9:

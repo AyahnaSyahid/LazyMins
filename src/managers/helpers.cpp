@@ -344,6 +344,8 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(int invoic
     if (!rec) {
         return { false, "Pointer Receipt tidak valid" };
     }
+    SqlTransaction            tr;
+    
     auto c_user = SessionManager::instance().currentUser();
     if (!c_user)
         return { false, "Admin tidak dikenal" };
@@ -353,7 +355,6 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(int invoic
         adminName = c_user->value("username").toString();
     }
     
-    SqlTransaction            tr;
     InvoiceManager            invm;
     OrderManager              orm;
     OrderItemManager          oim;
@@ -433,6 +434,154 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(int invoic
 
     // 4. Looping Order dan Items
     for (auto const& order : order_list) {
+        auto items = oim.getByOrder(order.value("id").toInt());
+
+        for (auto const& item : items) {
+            ReceiptItem rItem;
+            rItem.description = item.value("product_name").toString();
+            rItem.quantity    = item.value("quantity").toDouble();
+            
+            auto price = item.value("sale_price").toInt();
+            if (item.value("use_area").toInt() == 1) {
+                price = roundUpValue(
+                    item.value("size_width").toDouble() *
+                    item.value("size_height").toDouble() * price
+                );
+            }
+            rItem.unitPrice  = price;
+            rItem.totalPrice = rItem.quantity * price;
+            rItem.unit       = item.value("unit").toString();
+
+            rec->items.append(rItem);
+
+            // 5. Finishings per item
+            auto finishings = oifm.getByOrderItem(item.value("id").toInt());
+            for (auto const& fin : finishings) {
+                ReceiptFinishing rFin;
+                rFin.name = fin.value("finishing_name").toString();
+                rFin.cost = fin.value("subtotal").toInt();
+                rec->finishings.append(rFin);
+            }
+        }
+    }
+
+    return { true, "Data berhasil dimuat" };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int invoice_id, Receipt *rec) {
+    if (!rec) {
+        return { false, "Pointer Receipt tidak valid" };
+    }
+    
+    SqlTransaction            tr;
+    if (!tr.started()) {
+      return { false, "Tidak dapat memulai transaksi database" };
+    }
+    
+    auto c_user = SessionManager::instance().currentUser();
+    if (!c_user)
+        return { false, "Admin tidak dikenal" };
+    
+    QString adminName = c_user->value("nama_lengkap").toString();
+    if (adminName.size() < 3) {
+        adminName = c_user->value("username").toString();
+    }
+    
+    QSqlQuery q(BaseManager::connection);
+    
+    auto executor = [](QSqlQuery& x) {
+      return x.exec() && x.next();
+    };
+    
+    // getting invoice record
+    q.prepare("SELECT * FROM invoices WHERE id = :id AND staging_status <> 'cancaled'");
+    q.bindValue(":id", invoice_id);
+    if (!executor(q)) return { false, "Data Invoice tidak ditemukan" };
+    
+    auto rec_invoice = q.record();
+    
+    rec->invoiceNo    = rec_invoice.value("invoice_number").toString();
+    rec->date         = rec_invoice.value("created_at").toDateTime().date().toString("dd/MM/yyyy");
+    rec->time         = rec_invoice.value("created_at").toDateTime().time().toString("HH:mm");
+    rec->cashierName  = adminName;
+    rec->customerName = rec_invoice.value("customer_name").toString();
+    rec->status       = rec_invoice.value("settlement_status").toString();
+
+    // Nilai finansial diambil dari invoices (sudah diagregat dengan benar)
+    rec->subtotal     = rec_invoice.value("subtotal").toDouble();
+    rec->discount     = rec_invoice.value("discount_amount").toDouble();
+    rec->tax          = rec_invoice.value("tax_amount").toDouble();
+    rec->grandTotal   = rec_invoice.value("total_amount").toDouble();
+    rec->paidAmount   = rec_invoice.value("paid_amount").toDouble();
+    // remaining_amount adalah VIRTUAL column: total_amount - paid_amount
+    rec->remaining    = rec_invoice.value("remaining_amount").toDouble();
+    
+    // getting the orders record
+    q.prepare("SELECT * FROM orders WHERE invoice_id = :iid AND staging_status <> 'canceled'");
+    q.bindValue(":iid", invoice_id);
+    if (!q.exec()) return { false, "Error: " + q.lastError().text() };
+    
+    QList<QSqlRecord> rec_orderList;
+    while(q.next()) { rec_orderList << q.record(); };
+    
+    // getting the payments record
+    q.prepare(R"-(
+        SELECT p.payment_number AS payment_number,
+               p.amount AS amount,
+               a.tipe AS tipe,
+               cash_received,
+               cash_change,
+               notes,
+               datetime(payment_date, 'localtime') AS payment_date
+          FROM payments p
+               INNER JOIN
+               akun_transaksi a
+         WHERE p.invoice_id = :iid AND p.verification_status = 'verified'
+    )-");
+    q.bindValue(":iid", invoice_id);
+    if (!q.exec()) return { false, "Error: " + q.lastError().text() };
+    
+    // 2. Ambil daftar payment untuk invoice ini
+    //    Satu invoice bisa punya BANYAK payment (cicilan/partial)
+    rec->payments.clear();
+    rec->change = 0;
+    while(q.next()) {
+      auto r(q.record());
+      
+      ReceiptPayment rPay;
+      rPay.paymentNumber = r.value("payment_number").toString();
+      rPay.amount        = r.value("amount").toDouble();
+      rPay.date          = r.value("payment_date").toDateTime().toString("dd/MM/yyyy HH:mm");
+      rPay.notes         = r.value("notes").toString();
+      
+      // cash_change hanya ada jika metode cash, bisa NULL untuk transfer/ewallet
+      // Gunakan isNull() untuk membedakan NULL vs 0
+      if (!r.value("cash_change").isNull()) {
+          rPay.cashReceived = r.value("cash_received").toDouble();
+          rPay.cashChange   = r.value("cash_change").toDouble();
+          // Kembalian struk = kembalian dari payment TERAKHIR yang punya cash_change
+          rec->change = rPay.cashChange;
+      } else {
+          rPay.cashReceived = 0;
+          rPay.cashChange   = 0;
+      }
+      rec->payments.append(rPay);
+    };
+
+    // Fallback: jika hanya 1 payment dan struct Receipt tidak support multi-payment
+    // (untuk kompatibilitas mundur jika rec->amountPaid masih dipakai di printer)
+    if (!rec->payments.isEmpty()) {
+        rec->amountPaid = rec->paidAmount; // dari invoices, sudah agregat
+    }
+
+    // 3. Bersihkan list sebelum diisi
+    rec->items.clear();
+    rec->finishings.clear();
+
+    // 4. Looping Order dan Items
+    OrderItemManager           oim;
+    OrderItemFinishingManager oifm;
+    for (auto const& order : rec_orderList) {
         auto items = oim.getByOrder(order.value("id").toInt());
 
         for (auto const& item : items) {

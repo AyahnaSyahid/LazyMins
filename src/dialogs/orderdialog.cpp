@@ -331,5 +331,7 @@ void OrderDialog::on_simpanButton_clicked()
     QMessageBox::critical(this, "Gagal", "Gagal menyimpan pesanan ke database.");
     return;
   }
+  
+  emit orderCreated(m_model->orderId());
   accept();
 }

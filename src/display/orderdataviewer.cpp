@@ -107,5 +107,6 @@ void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
 void OrderDataViewer::openCreateOrderDialog() {
   OrderDialog od;
   connect(&od, &QDialog::accepted, this, &DataViewer::refresh);
+  connect(&od, &OrderDialog::orderCreated, this, &OrderDataViewer::orderCreated);
   od.exec();
 }

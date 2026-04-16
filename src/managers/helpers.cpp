@@ -309,13 +309,10 @@ DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(con
 
 DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids)
 {
-  if (!BaseManager::connection.transaction())
-    return { false, "Gagal membuat transaksi Database" };
+  SqlTransaction tr;
+  if (!tr.started()) return { false, "Gagal membuat transaksi Database" };
   auto ires = internalCreateInvoice(inv, oids);
-  if (!ires.ok) {
-    BaseManager::connection.rollback();
-    return { false, BaseManager::connection.lastError().text() };
-  }
+  if (!ires.ok) return { false, BaseManager::connection.lastError().text() };
 
   int invoice_id = ires.data["invoice_id"].toInt();
   
@@ -327,15 +324,9 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
     copyPay["verified_by"] = copyPay["admin_id"];
   
   auto opt_pay = payman.create(copyPay);
-  if (!opt_pay) {
-    BaseManager::connection.rollback();
-    return { false, payman.errorString() };
-  }
+  if (!opt_pay) return { false, payman.errorString() };
   
-  if (!BaseManager::connection.commit()) {
-    BaseManager::connection.rollback();
-    return { false, BaseManager::connection.lastError().text() };
-  }
+  if (!tr.commit()) return { false, BaseManager::connection.lastError().text() };
   
   return { true, "", {{"invoice_id", invoice_id}, {"payment_id", opt_pay->value("id")}}};
 }

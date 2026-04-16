@@ -27,6 +27,9 @@ private slots:
   void on_diskonRpSpinBox_valueChanged(int arg1);
   void setCustomer(const QSqlRecord&);
 
+signals:
+  void orderCreated(int id);
+
 private:
   Ui::OrderDialog *ui;
   OrderModel *m_model;

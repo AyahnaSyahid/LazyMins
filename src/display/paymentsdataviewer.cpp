@@ -5,6 +5,7 @@
 #include "src/dialogs/paymentdialog.h"
 #include "src/managers/managers.h"
 #include "src/utils/sessionmanager.h"
+#include "src/utils/sqltransaction.h"
 
 #include <QMenu>
 #include <QAction>
@@ -163,13 +164,20 @@ void PaymentsDataViewer::openVerifyPaymentDialog(int paymentId)
                                                        "serta konfirmasi yang valid dari pemegang Akun Transaksi\n"
                                                        "Lanjutkan ?", QMessageBox::Yes | QMessageBox::No);
   if (ver == QMessageBox::No) return ;
-
-  if (!paymentManager.verify(paymentId, user.value("id").toInt())) {
-    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat mengubah status verifikasi");
+  
+  SqlTransaction tr;
+  if (!tr.started()) {
+    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat memulai transaksi database");
     return ;
   }
-  refresh();
-  emit paymentVerified(paymentId);
+  if (!paymentManager.verify(paymentId, user.value("id").toInt())) {
+    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat mengubah status verifikasi : \n" + paymentManager.errorString());
+    return ;
+  }
+  if ( tr.commit() ) {
+    refresh();
+    emit paymentVerified(paymentId);
+  }
 }
 
 void PaymentsDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)

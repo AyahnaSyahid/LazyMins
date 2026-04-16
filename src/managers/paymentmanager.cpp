@@ -36,7 +36,36 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
     // tidak perlu mencatat jika belum verified
     if (record.value("verification_status").toString() != "verified") return true; 
     
-    // 2. Catat transaksi kas melalui AkunTransaksiManager + TransaksiManager
+    if (!verify(paymentId, adminId)) return false;
+    return true;
+}
+
+QList<QSqlRecord> PaymentManager::getByInvoice(int invoiceId)
+{
+    return getWhere("invoice_id = :invoice_id",
+                    {{ ":invoice_id", invoiceId }},
+                    "payment_date DESC");
+}
+
+QList<QSqlRecord> PaymentManager::getByStatus(const QString& verificationStatus)
+{
+    return getWhere("verification_status = :status COLLATE NOCASE",
+                    {{ ":status", verificationStatus }},
+                    "payment_date DESC");
+}
+
+bool PaymentManager::verify(int id, int verifiedByAdminId)
+{
+    auto opt_pay = getById(id);
+    
+    if (!opt_pay) {
+      setErrorString("Data transaksi tidak ditemukan");
+      return false;
+    }
+    
+    int adminId = verifiedByAdminId < 1 ? opt_pay->value("admin_id").toInt() : verifiedByAdminId;
+    int akunId = opt_pay->value("akun_transaksi_id").toInt();
+    
     AkunTransaksiManager atm;
     auto akunRecord = atm.getById(akunId);
     if (!akunRecord) {
@@ -44,6 +73,7 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
         return false;
     }
 
+    int amount      = opt_pay->value("amount").toInt();
     int saldoBefore = akunRecord->value("saldo").toInt();
     int saldoAfter  = saldoBefore + amount;
 
@@ -68,12 +98,12 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
     trxParams["admin_id"]       = adminId;
     trxParams["kategori_id"]    = opt_kat->value("id");
     trxParams["tipe"]           = opt_kat->value("tipe");
-    trxParams["deskripsi"]      = QString("Pembayaran invoice #%1").arg(invoiceId);
+    trxParams["deskripsi"]      = QString("Pembayaran invoice #%1").arg(opt_pay->value("invoice_id").toInt());
     trxParams["amount_before"]  = saldoBefore;
     trxParams["amount"]         = amount;
     trxParams["amount_after"]   = saldoAfter;
     trxParams["reference_type"] = "payment";
-    trxParams["reference_id"]   = paymentId;
+    trxParams["reference_id"]   = id;
     trxParams["tanggal"]        = dateToSql();
 
     if (!tm.create(trxParams)) {
@@ -82,44 +112,19 @@ bool PaymentManager::afterCreate(const QSqlRecord& record)
     }
     
     InvoiceManager iman;
-    if ( !iman.recalculate(invoiceId) ) {
+    if ( !iman.recalculate(opt_pay->value("invoice_id").toInt()) ) {
       setErrorString("Gagal update data invoice: " + iman.errorString());
       return false;
-    }
-    return true;
-}
-
-QList<QSqlRecord> PaymentManager::getByInvoice(int invoiceId)
-{
-    return getWhere("invoice_id = :invoice_id",
-                    {{ ":invoice_id", invoiceId }},
-                    "payment_date DESC");
-}
-
-QList<QSqlRecord> PaymentManager::getByStatus(const QString& verificationStatus)
-{
-    return getWhere("verification_status = :status COLLATE NOCASE",
-                    {{ ":status", verificationStatus }},
-                    "payment_date DESC");
-}
-
-bool PaymentManager::verify(int id, int verifiedByAdminId)
-{
-    SqlTransaction tr;
-    if(!tr.started()) { 
-      setErrorString("Gagal melakukan transaksi database");
-      return false;
-    }
+    }   
     
-    bool ok = update(id, {
-        { "verification_status", "verified" },
-        { "verified_by",         verifiedByAdminId },
-        { "verified_at",         dateTimeToSql() }
-    });
-    if (ok) return tr.commit() ;
+    return update( id, {
+      { "verified_at", dateTimeToSql()},
+      { "verified_by", adminId },
+      { "verification_status", "verified" },
+    } );
 }
 
-bool PaymentManager::cancel(int id)
+bool PaymentManager::cancel(int id, int admin_id)
 {
-    return update(id, {{ "verification_status", "cancelled" }});
+    return update(id, {{ "verification_status", "cancelled" }, {"updated_at", dateTimeToSql()}, {"verified_by", admin_id}});
 }

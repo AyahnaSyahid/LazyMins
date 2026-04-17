@@ -1,6 +1,6 @@
 #pragma once
 
-#include "escpos.h"
+#include "escposprinter.h"
 #include "receipt.h"
 
 #include <QString>
@@ -9,6 +9,10 @@
 #include <QRect>
 #include <QPrinter>
 #include <QPainter>
+#include <QSerialPort>
+
+using EscPosQt::EscPosPrinter;
+
 // ==================== Printer Configuration ====================
 
 struct PrinterConfig {
@@ -60,7 +64,10 @@ inline PrinterConfig defaultTMU220DConfig() {
 
 // ==================== POS Printer Manager ====================
 
-class PosPrinter {
+class PosPrinter : public QObject
+{
+  Q_OBJECT
+
 public:
     // Singleton instance
     static PosPrinter& instance();
@@ -92,7 +99,7 @@ public:
     QStringList availableSerialPorts() const;
 
     // Kirim perintah ESC/POS langsung (untuk custom command dari luar)
-    bool sendRawEscPosCommand(const EscPosBuilder& builder);
+    // bool sendRawEscPosCommand(const EscPosBuilder& builder);
 
     // Cetak struk via serial ESC/POS
     // Format sama dengan printReceipt(), tapi output ke port serial
@@ -106,15 +113,17 @@ public:
     QString lastError() const;
     void clearError();
 
+private slots:
+    void serialPortErrorHandler(QSerialPort::SerialPortError error);
+
 private:
-    PosPrinter() = default;
+    PosPrinter(QObject* p = nullptr);
     ~PosPrinter();
     PosPrinter(const PosPrinter&) = delete;
     PosPrinter& operator=(const PosPrinter&) = delete;
 
-    // ESC/POS printer instance — lifecycle dikelola di sini
-    EscPosPrinter* m_escPosPrinter = nullptr;
-
+    QSerialPort m_serialPort;
+    
     // Internal helper: pastikan ESC/POS printer siap dipakai
     bool ensureEscPosReady();
 
@@ -129,12 +138,12 @@ private:
 
     // Internal ESC/POS builder methods
     // TODO: jika layout perlu diubah per-section, pisahkan ke method masing-masing
-    void buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width);
-    void buildEscPosCustomerInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
-    void buildEscPosItems(EscPosBuilder& builder, const Receipt& receipt, int width);
-    void buildEscPosTotals(EscPosBuilder& builder, const Receipt& receipt, int width);
-    void buildEscPosPaymentInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
-    void buildEscPosFooter(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosCustomerInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosItems(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosTotals(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosPaymentInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
+    // void buildEscPosFooter(EscPosBuilder& builder, const Receipt& receipt, int width);
 
     // Helper methods
     QString centerText(const QString& text, int width) const;

@@ -20,6 +20,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
     PrintSupport
     SerialPort
+    Core5Compat
 )
 
 qt_standard_project_setup()
@@ -141,6 +142,8 @@ set(PROJECT_RESOURCES
     resources/database_resources.qrc
 )
 
+add_subdirectory(escpos-qt)
+
 # ==================== Executable ====================
 qt_add_executable(LazyMins
     ${PROJECT_SOURCES}
@@ -155,6 +158,8 @@ target_link_libraries(LazyMins PRIVATE
     Qt6::Network
     Qt6::PrintSupport
     Qt6::SerialPort
+    Qt6::Core5Compat
+    EscPosQt
 )
 
 # ==================== Build Information ====================

@@ -35,10 +35,7 @@ set(PROJECT_SOURCES
     src/utils/authmanager.cpp
     src/utils/sessionmanager.cpp
     src/utils/sqltransaction.cpp
-    src/utils/posprinter.cpp
-    src/utils/escpos.cpp
-    src/utils/posprintertestdialog.cpp
-
+    
     # Database
     src/database/databasemanager.cpp
     src/database/initializeschema.cpp
@@ -125,6 +122,12 @@ set(PROJECT_SOURCES
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
+    
+    # Printer
+    src/printer/escpos.cpp
+    src/printer/posprinter.cpp
+    src/printer/posprintertestdialog.cpp
+    
 )
 
 # --- Additional Headers (jika diperlukan) ---

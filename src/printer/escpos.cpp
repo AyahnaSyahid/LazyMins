@@ -13,17 +13,31 @@ EscPosBuilder::EscPosBuilder()
 {
 }
 
+EscPosBuilder& EscPosBuilder::codePage(EscPos::CodePage page) {
+    m_commands.append(EscPos::ESC);
+    m_commands.append('t');
+    m_commands.append(static_cast<char>(page));
+    return *this;
+}
+
+EscPosBuilder& EscPosBuilder::setDefaultCodePage() {
+    return codePage(EscPos::CodePage::PC858);   // PC858 mendukung € dan banyak karakter Eropa/Indonesia
+}
+
 EscPosBuilder& EscPosBuilder::reset() {
     m_commands.clear();
     m_currentStyle = EscPos::TextStyle();
     m_currentAlignment = EscPos::Alignment::Left;
     m_currentCharSize = 0x00;
+    setDefaultCodePage();
     return *this;
 }
 
 EscPosBuilder& EscPosBuilder::initialize() {
     m_commands.append(EscPos::ESC);
     m_commands.append('@');
+    m_currentCharSize = 0x00;
+    setDefaultCodePage();
     return *this;
 }
 
@@ -33,25 +47,25 @@ EscPosBuilder& EscPosBuilder::text(const QString& text) {
 }
 
 EscPosBuilder& EscPosBuilder::textStyled(const QString& text, const EscPos::TextStyle& style) {
-    EscPos::TextStyle previousStyle = m_currentStyle;
-    uint8_t previousCharSize = m_currentCharSize;
+    EscPos::TextStyle prevStyle = m_currentStyle;
+    uint8_t prevCharSize = m_currentCharSize;
 
     m_currentStyle = style;
 
-    // Apply all style differences
-    if (style.bold != previousStyle.bold)          bold(style.bold);
-    if (style.underline != previousStyle.underline) underline(style.underline);
-    if (style.italic != previousStyle.italic)      italic(style.italic);
-    if (style.doubleHeight != previousStyle.doubleHeight) doubleHeight(style.doubleHeight);
-    if (style.doubleWidth != previousStyle.doubleWidth)   doubleWidth(style.doubleWidth);
-    if (style.fontSize != previousStyle.fontSize)  fontSize(style.fontSize);
+    // Terapkan perubahan
+    if (style.bold != prevStyle.bold)           bold(style.bold);
+    if (style.underline != prevStyle.underline) underline(style.underline);
+    if (style.italic != prevStyle.italic)       italic(style.italic);
+    if (style.doubleHeight != prevStyle.doubleHeight) doubleHeight(style.doubleHeight);
+    if (style.doubleWidth != prevStyle.doubleWidth)   doubleWidth(style.doubleWidth);
+    if (style.fontSize != prevStyle.fontSize)   fontSize(style.fontSize);
 
     this->text(text);
 
-    // Restore previous style
-    m_currentStyle = previousStyle;
-    m_currentCharSize = previousCharSize;
-    resetStyle();
+    // Restore
+    m_currentStyle = prevStyle;
+    m_currentCharSize = prevCharSize;
+    resetStyle();   // Atau applyCharSize() jika ingin lebih ringan
 
     return *this;
 }
@@ -115,23 +129,29 @@ void EscPosBuilder::applyCharSize() {
 
 EscPosBuilder& EscPosBuilder::doubleHeight(bool enable) {
     m_currentStyle.doubleHeight = enable;
-    if (enable) m_currentCharSize |= 0x01;
-    else        m_currentCharSize &= ~0x01;
+    if (enable)
+        m_currentCharSize |= 0x01;      // bit 0 = double height
+    else
+        m_currentCharSize &= ~0x01;
+
     applyCharSize();
     return *this;
 }
 
 EscPosBuilder& EscPosBuilder::doubleWidth(bool enable) {
     m_currentStyle.doubleWidth = enable;
-    if (enable) m_currentCharSize |= 0x10;
-    else        m_currentCharSize &= ~0x10;
+    if (enable)
+        m_currentCharSize |= 0x10;      // bit 4 = double width
+    else
+        m_currentCharSize &= ~0x10;
+
     applyCharSize();
     return *this;
 }
 
 EscPosBuilder& EscPosBuilder::fontSize(EscPos::FontSize size) {
     m_currentStyle.fontSize = size;
-    m_currentCharSize = static_cast<uint8_t>(size);
+    m_currentCharSize = static_cast<uint8_t>(size);   // FontSize enum sudah mengandung kombinasi yang benar
     applyCharSize();
     return *this;
 }
@@ -140,10 +160,12 @@ EscPosBuilder& EscPosBuilder::resetStyle() {
     m_currentStyle = EscPos::TextStyle();
     m_currentCharSize = 0x00;
 
+    // Reset semua style
     bold(false);
     underline(false);
     italic(false);
-    applyCharSize();
+    applyCharSize();        // Kembalikan ke normal size
+
     return *this;
 }
 
@@ -454,8 +476,24 @@ bool EscPosPrinter::testPrint() {
     EscPosBuilder builder;
 
     builder.initialize();
-    builder.lineFeed(1);
+    builder.lineFeed(3);
+    
+    builder.text("Double Height + Double Width Test:\n");
 
+    builder.doubleHeight(true);
+    builder.text("Hanya Double Height\n");
+
+    builder.doubleHeight(false);
+    builder.doubleWidth(true);
+    builder.text("Hanya Double Width\n");
+
+    builder.doubleHeight(true);
+    builder.doubleWidth(true);
+    builder.text("Double Height + Double Width (Quad)\n");
+
+    builder.resetStyle();   // Kembali normal
+    builder.text("Kembali ke ukuran normal\n\n");
+    
     // Header - Center alignment with large font
     builder.alignCenter();
     builder.fontSize(EscPos::FontSize::VeryLarge);

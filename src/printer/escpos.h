@@ -10,10 +10,10 @@
 
 namespace EscPos {
     // Control characters
-    static constexpr const char* ESC = "\x1B";
-    static constexpr const char* GS  = "\x1D";
-    static constexpr const char* CR  = "\x0D";
-    static constexpr const char* LF  = "\x0A";
+    static constexpr const char ESC = '\x1B';
+    static constexpr const char GS  = '\x1D';
+    static constexpr const char CR  = '\x0D';
+    static constexpr const char LF  = '\x0A';
 
     // Alignment
     enum class Alignment {
@@ -58,6 +58,27 @@ namespace EscPos {
         Low    = 48,   // ~7%
         Medium = 49,   // ~15%
         High   = 51    // ~30%
+    };
+    
+    enum class CodePage {
+        PC437          = 0,    // USA, Standard Europe (default pabrik)
+        Katakana       = 1,
+        PC850          = 2,    // Multilingual Latin-1
+        PC860          = 3,    // Portuguese
+        PC863          = 4,    // Canadian-French
+        PC865          = 5,    // Nordic
+        WPC1252        = 16,   // Windows-1252 (Latin I)
+        PC866          = 17,   // Cyrillic
+        PC852          = 18,   // Latin 2 (Central Europe)
+        PC858          = 19,   // Multilingual + Euro symbol (sangat direkomendasikan)
+        // Tambahan umum lainnya
+        PC857          = 13,   // Turkish
+        PC862          = 36,   // Hebrew
+        PC864          = 37,   // Arabic
+        WPC1250        = 45,   // Central Europe
+        WPC1254        = 48,   // Turkish
+        WPC1257        = 51    // Baltic
+        // Anda dapat menambahkan lebih banyak sesuai kebutuhan printer
     };
 }
 
@@ -116,6 +137,8 @@ public:
     EscPosBuilder& partialCut();
     EscPosBuilder& fullCut();
     EscPosBuilder& cutAndFeed(int feedLines = 3);
+    EscPosBuilder& codePage(EscPos::CodePage page);
+    EscPosBuilder& setDefaultCodePage();
 
     // Buzzer
     EscPosBuilder& buzz(int duration = 100);

@@ -265,17 +265,36 @@ bool PosPrinter::testPrintViaEscPos() {
 // ==================== ESC/POS Builder Sections ====================
 
 void PosPrinter::buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width) {
+    EscPos::TextStyle namaTokoStyle { 
+        .bold = true,
+        .underline = false,
+        .italic = false,
+        .doubleWidth = true,
+        .doubleHeight = true,
+        .fontSize = EscPos::FontSize::Normal
+          };
+
     builder.alignCenter();
-    builder.bold(true);
-    builder.text("PERCETAKAN MAJU JAYA").newline();
-    builder.bold(false);
+    builder.horizontalLine('=', width);
+    builder.textStyled("AKSARAJAYA", namaTokoStyle);
+    builder.alignCenter()
+      .text("Jl. Kapten Naseh No. 40, Tasikmalaya")
+      .newline();
+    builder.text("Telp : 0816171816").newline();
+    builder.text("WA   : 0816171816").newline();
+    builder.horizontalLine('=', width);
 
     // TODO: tambahkan alamat/telepon toko di sini jika perlu
-    builder.text("Invoice #" + receipt.invoiceNo).newline();
     builder.alignLeft();
-    builder.text(receipt.date + " " + receipt.time).newline();
-    builder.text("Kasir: " + receipt.cashierName).newline();
-    builder.horizontalLine('=', width);
+    builder.bold(true);
+    builder.text("Nota No : " + receipt.invoiceNo).newline();
+    builder.bold(false);
+    builder.text("Tanggal : " + receipt.date + " " + receipt.time).newline();
+    builder.text("Kasir   : ");
+    builder.bold(true);
+    builder.text(receipt.cashierName).newline();
+    builder.bold(false);
+    builder.horizontalLine('-', width);
 }
 
 void PosPrinter::buildEscPosCustomerInfo(EscPosBuilder& builder, const Receipt& receipt, int width) {

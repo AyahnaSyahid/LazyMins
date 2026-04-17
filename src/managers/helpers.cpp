@@ -7,7 +7,7 @@
 #include "src/managers/stockmovementmanager.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
-#include "src/utils/posprinter.h"
+#include "src/printer/receipt.h"
 
 #include <QSqlQuery>
 #include <QSqlError>

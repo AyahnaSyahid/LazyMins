@@ -111,17 +111,19 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
         return false;
     }
     
-    InvoiceManager iman;
-    if ( !iman.recalculate(opt_pay->value("invoice_id").toInt()) ) {
-      setErrorString("Gagal update data invoice: " + iman.errorString());
-      return false;
-    }   
     
-    return update( id, {
+    bool ok = update( id, {
       { "verified_at", dateTimeToSql()},
       { "verified_by", adminId },
       { "verification_status", "verified" },
     } );
+
+    InvoiceManager iman;
+    if ( !iman.recalculate(opt_pay->value("invoice_id").toInt()) ) {
+      setErrorString("Gagal update data invoice: " + iman.errorString());
+      return false;
+    }
+    return true;
 }
 
 bool PaymentManager::cancel(int id, int admin_id)

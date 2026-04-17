@@ -1,0 +1,3 @@
+[submodule "escpos-qt"]
+	path = escpos-qt
+	url = https://github.com/ceciletti/escpos-qt.git

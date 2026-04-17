@@ -2,6 +2,7 @@
 #include "posprinter.h"
 
 #include <QPrinterInfo>
+#include <QSerialPortInfo>
 #include <QPageSize>
 #include <QPageLayout>
 #include <QJsonDocument>
@@ -20,12 +21,14 @@ PosPrinter& PosPrinter::instance() {
     return instance;
 }
 
+PosPrinter::PosPrinter(QObject * p) : QObject(p), m_serialPort(this) {
+  connect(&m_serialPort, &QSerialPort::errorOccurred, this, &PosPrinter::serialPortErrorHandler);
+}
+
 PosPrinter::~PosPrinter() {
     // Pastikan koneksi serial ditutup saat singleton dihancurkan
-    if (m_escPosPrinter) {
-        m_escPosPrinter->disconnect();
-        delete m_escPosPrinter;
-        m_escPosPrinter = nullptr;
+    if (m_serialPort.isOpen()) {
+        m_serialPort.close();
     }
 }
 
@@ -126,144 +129,89 @@ PrinterConfig PosPrinter::printerConfig() const {
 
 // ==================== ESC/POS Serial Connection ====================
 QString PosPrinter::serialPortName() const {
-  return m_escPosPrinter->currentPort();
+  return m_serialPort.portName();
 }
 
 qint32 PosPrinter::serialBaudRate(QSerialPort::Directions directions) const {
-  return m_escPosPrinter->currentBaud(directions);
+  return m_serialPort.baudRate(directions);
 }
 
 bool PosPrinter::connectSerialPort(const QString& portName, int baudRate) {
-    // Jika sudah ada instance, disconnect dulu sebelum reconnect
-    if (m_escPosPrinter) {
-        m_escPosPrinter->disconnect();
-        delete m_escPosPrinter;
-        m_escPosPrinter = nullptr;
+    if(m_serialPort.isOpen()) {
+      m_serialPort.close();
     }
-
-    m_escPosPrinter = new EscPosPrinter();
-    if (!m_escPosPrinter->connect(portName, baudRate)) {
-        m_lastError = QString("Gagal koneksi ke port %1: %2")
-                          .arg(portName, m_escPosPrinter->lastError());
-        delete m_escPosPrinter;
-        m_escPosPrinter = nullptr;
-        return false;
-    }
-
-    m_lastError.clear();
-    qDebug() << "Serial port terhubung:" << portName << "@ baud" << baudRate;
-    return true;
+    if (m_serialPort.portName() != portName ) m_serialPort.setPort(QSerialPortInfo(portName));
+    if (m_serialPort.baudRate() != baudRate ) m_serialPort.setBaudRate(baudRate);
+    m_serialPort.open(QIODevice::ReadWrite);
+    return m_serialPort.isOpen();
 }
 
 bool PosPrinter::disconnectSerialPort() {
-    if (!m_escPosPrinter) {
-        return true; // Sudah tidak terhubung, anggap sukses
+    if (m_serialPort.isOpen()) {
+      m_serialPort.close();
     }
-
-    bool ok = m_escPosPrinter->disconnect();
-    delete m_escPosPrinter;
-    m_escPosPrinter = nullptr;
-
-    if (!ok) {
-        m_lastError = "Gagal menutup koneksi serial";
-        return false;
-    }
-
-    m_lastError.clear();
     return true;
 }
 
 bool PosPrinter::isSerialConnected() const {
-    return m_escPosPrinter && m_escPosPrinter->isConnected();
+    return m_serialPort.isOpen();
 }
 
 QStringList PosPrinter::availableSerialPorts() const {
     // Buat instance sementara hanya untuk list port
-    EscPosPrinter temp;
-    return temp.availablePorts();
+    QStringList pl;
+    for(auto const& info : QSerialPortInfo::availablePorts()) {
+      pl << info.portName();
+    }
+    return pl;
 }
 
 // ==================== ESC/POS Internal Helper ====================
 
 bool PosPrinter::ensureEscPosReady() {
-    if (!isSerialConnected()) {
-        m_lastError = "Printer serial tidak terhubung. "
-                      "Panggil connectSerialPort() terlebih dahulu.";
-        return false;
-    }
-    return true;
+  return m_serialPort.isOpen();
 }
 
 // ==================== ESC/POS Commands ====================
 
-bool PosPrinter::sendRawEscPosCommand(const EscPosBuilder& builder) {
-    if (!ensureEscPosReady()) return false;
-
-    if (!m_escPosPrinter->sendCommand(builder)) {
-        m_lastError = QString("Gagal mengirim perintah: %1")
-                          .arg(m_escPosPrinter->lastError());
-        return false;
-    }
-
-    m_lastError.clear();
-    return true;
-}
-
 bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
-    if (!ensureEscPosReady()) return false;
+  if (!ensureEscPosReady()) return false;
+  EscPosPrinter p(&m_serialPort);
+  auto line = [](QChar ch, int size=40) { return QString(size, ch); }
 
-    int width = calculateMaxCharsPerLine();
-    EscPosBuilder builder;
-
-    // Inisialisasi printer sebelum mulai cetak
-    builder.initialize();
-
-    // Susun struk bagian per bagian
-    // TODO: sesuaikan urutan atau tambahkan section baru sesuai kebutuhan
-    buildEscPosHeader(builder, receipt, width);
-    buildEscPosCustomerInfo(builder, receipt, width);
-    buildEscPosItems(builder, receipt, width);
-    buildEscPosTotals(builder, receipt, width);
-    buildEscPosPaymentInfo(builder, receipt, width);
-    buildEscPosFooter(builder, receipt, width);
-
-    // Potong kertas setelah selesai
-    // TM-U220D hanya support partial cut
-    if (m_config.autoCut) {
-        if (m_config.supportsPartialCut) {
-            builder.partialCut();
-        } else if (m_config.supportsFullCut) {
-            builder.fullCut();
-        }
-        // Jika tidak ada yang support, lewati — tidak semua printer bisa cut
-    }
-
-    if (!m_escPosPrinter->sendCommand(builder)) {
-        m_lastError = QString("Gagal mencetak struk: %1")
-                          .arg(m_escPosPrinter->lastError());
-        return false;
-    }
-
-    m_lastError.clear();
-    return true;
+  p << EscPosPrinter::init << EscPosPrinter::EncodingPC850
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
+    << EscPosPrinter::JustificationCenter
+    
+  return true;
 }
 
 bool PosPrinter::testPrintViaEscPos() {
     if (!ensureEscPosReady()) return false;
+    
+    EscPosPrinter p(&m_serialPort);
+    // Init(reset) the printer and set some encoding
+    p << EscPosPrinter::init << EscPosPrinter::EncodingPC850;
+    
+    // Print some text with some formatting options, if a plain string "foo" is sent
+    // it won't be handled by QCodec, it will send as raw data.
+    p << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
+      << EscPosPrinter::JustificationCenter
+      << QStringLiteral("Some Text");
 
-    // Delegate ke EscPosPrinter::testPrint() yang sudah ada
-    if (!m_escPosPrinter->testPrint()) {
-        m_lastError = QString("Test print gagal: %1")
-                          .arg(m_escPosPrinter->lastError());
-        return false;
-    }
+    p << "\n";
 
-    m_lastError.clear();
+    // Printing QRCodes
+    p << EscPosPrinter::JustificationCenter << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+      << EscPosPrinter::QRCode(EscPosPrinter::QRCode::Model2, 5, EscPosPrinter::QRCode::M, "https://github.com/ceciletti/escpos-qt") << "\n"
+      << EscPosPrinter::JustificationLeft;
     return true;
 }
 
-// ==================== ESC/POS Builder Sections ====================
 
+
+// ==================== ESC/POS Builder Sections ====================
+/*****
 void PosPrinter::buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width) {
     EscPos::TextStyle namaTokoStyle { 
         .bold = true,
@@ -437,6 +385,7 @@ void PosPrinter::buildEscPosFooter(EscPosBuilder& builder, const Receipt& receip
     // Feed beberapa baris sebelum cut agar teks tidak terpotong
     builder.lineFeed(6);
 }
+  ***************/
 
 // ==================== QPrinter Receipt Printing ====================
 
@@ -800,4 +749,8 @@ int PosPrinter::calculateMaxCharsPerLine() const {
         // (m_config.paperWidth - m_config.marginLeft - m_config.marginRight) /
         // (m_config.characterWidth / 10.0)
     // );
+}
+
+void PosPrinter::serialPortErrorHandler(QSerialPort::SerialPortError error) {
+  qDebug() << "SerialPort Error";
 }

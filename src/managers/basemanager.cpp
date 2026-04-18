@@ -64,7 +64,7 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
 
 std::optional<QSqlRecord> BaseManager::getById(int id) const
 {
-    QSqlQuery query(BaseManager::connection);
+    auto query = baseQuery();
     
     QString deleteCondition = getDeleteCondition();
     QString sql = QString("SELECT * FROM %1 WHERE id = :id %2")

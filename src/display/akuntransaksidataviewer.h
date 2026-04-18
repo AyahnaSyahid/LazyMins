@@ -21,8 +21,10 @@ private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
     void openEditAkunDialog(int akunId);
     void onAddAkunActionTriggered();
+    void openBalanceAdjustment(int akunId);
 
 private:
     Ui::DataViewer *ui;
     QAction *m_addAkunAction = nullptr;
+    QAction *m_adjustBalanceAction = nullptr;
 };

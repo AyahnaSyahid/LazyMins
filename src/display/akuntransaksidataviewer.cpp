@@ -3,6 +3,7 @@
 
 // TODO: Buat dialog untuk tambah/edit akun transaksi
 #include "src/dialogs/akuntransaksidialog.h"
+#include "src/dialogs/akuntransaksiopnamedialog.h"
 #include "src/managers/managers.h"
 
 #include <QStyledItemDelegate>
@@ -108,9 +109,25 @@ QAction *AkunTransaksiDataViewer::addAkunAction()
     return m_addAkunAction;
 }
 
+QAction *AkunTransaksiDataViewer::adjustBalanceAction() {
+  if (!m_adjustBalanceAction) {
+    m_adjustBalanceAction = new QAction("Penyesuaian Saldo", this);
+    m_adjustBalanceAction->setObjectName("adjustBalanceAction");
+    m_adjustBalanceAction->setToolTip("Sesuaikan saldo akun");
+    connect(m_adjustBalanceAction, &QAction::triggered,
+            thism &AkunTransaksiDataViewer::onAdjustBalanceActionTriggered);
+  }
+  return m_adjustBalanceAction;
+}
+
 void AkunTransaksiDataViewer::onAddAkunActionTriggered()
 {
     openCreateAkunDialog();
+}
+
+void AkunTransaksiDataViewer::onAdjustBalanceActionTriggered()
+{
+  
 }
 
 void AkunTransaksiDataViewer::openCreateAkunDialog()
@@ -138,6 +155,17 @@ void AkunTransaksiDataViewer::openEditAkunDialog(int akunId)
     connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
     dlg.setWindowTitle("Edit Akun Transaksi");
     dlg.exec();
+}
+
+void AkunTransaksiDataViewer::openBalanceAdjustment(int akunId)
+{
+  AkunTransaksiManager aman;
+  auto optAcc = aman.getById(akunId);
+  if (!optAcc.has_value()) {
+    QMessageBox::warning(this, "Kesalahan", "Akun Transaksi tidak ditemukan");
+    return ;
+  }
+  
 }
 
 void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)

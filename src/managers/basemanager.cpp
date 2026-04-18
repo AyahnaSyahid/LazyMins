@@ -253,7 +253,7 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
         qDebug() << "Error getting records from" << m_tableName << ":" << query.lastError().text();
         qDebug() << "Query:" << query.lastQuery();
     }
-    
+    qDebug() << sql;
     return records;
 }
 

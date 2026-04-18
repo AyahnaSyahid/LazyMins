@@ -421,7 +421,6 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(int invoic
 
     // 3. Bersihkan list sebelum diisi
     rec->items.clear();
-    rec->finishings.clear();
 
     // 4. Looping Order dan Items
     for (auto const& order : order_list) {
@@ -443,16 +442,17 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(int invoic
             rItem.totalPrice = rItem.quantity * price;
             rItem.unit       = item.value("unit").toString();
 
-            rec->items.append(rItem);
 
             // 5. Finishings per item
             auto finishings = oifm.getByOrderItem(item.value("id").toInt());
+            rItem.finishings.clear();
             for (auto const& fin : finishings) {
                 ReceiptFinishing rFin;
                 rFin.name = fin.value("finishing_name").toString();
                 rFin.cost = fin.value("subtotal").toInt();
-                rec->finishings.append(rFin);
+                rItem.finishings.append(rFin);
             }
+            rec->items.append(rItem);
         }
     }
 
@@ -567,7 +567,6 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
 
     // 3. Bersihkan list sebelum diisi
     rec->items.clear();
-    rec->finishings.clear();
 
     // 4. Looping Order dan Items
     OrderItemManager           oim;
@@ -594,13 +593,16 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
             rec->items.append(rItem);
 
             // 5. Finishings per item
+            rItem.finishings.clear();
             auto finishings = oifm.getByOrderItem(item.value("id").toInt());
             for (auto const& fin : finishings) {
                 ReceiptFinishing rFin;
                 rFin.name = fin.value("finishing_name").toString();
+                rFin.qty = fin.value("quantity").toInt();
                 rFin.cost = fin.value("subtotal").toInt();
-                rec->finishings.append(rFin);
+                rItem.finishings.append(rFin);
             }
+          rec->items.append(rItem);
         }
     }
 

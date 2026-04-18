@@ -5,17 +5,19 @@
 
 // ==================== Receipt Structure ====================
 
+struct ReceiptFinishing {
+    QString name;
+    int qty;
+    double cost = 0.0;
+};
+
 struct ReceiptItem {
     QString description;
     double quantity = 1.0;
     double unitPrice = 0.0;
     double totalPrice = 0.0;
     QString unit = "pcs";
-};
-
-struct ReceiptFinishing {
-    QString name;
-    double cost = 0.0;
+    QList<ReceiptFinishing> finishings;
 };
 
 struct ReceiptPayment {
@@ -32,6 +34,11 @@ struct ReceiptPayment {
 };
 
 struct Receipt {
+    // Company Info
+    QString companyName;
+    QString companyAddress;
+    QString companyPhone;
+    QString companyPhone2;
     // Header Info
     QString invoiceNo;
     QString date;
@@ -45,7 +52,6 @@ struct Receipt {
 
     // Items
     QList<ReceiptItem>     items;
-    QList<ReceiptFinishing> finishings;
 
     // Totals
     double subtotal   = 0.0;

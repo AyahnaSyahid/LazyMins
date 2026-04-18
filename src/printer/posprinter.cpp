@@ -177,12 +177,90 @@ bool PosPrinter::ensureEscPosReady() {
 bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
   if (!ensureEscPosReady()) return false;
   EscPosPrinter p(&m_serialPort);
-  auto line = [](QChar ch, int size=40) { return QString(size, ch); }
-
+  auto line = [](QChar ch, int width=40) { return QString(width, ch) + "\n"; };
+  auto fill = [](const QString& left, const QString& right="", int width=40) {
+    auto safeLeft = left.mid(0, 23);
+    int  padding  = width - safeLeft.size() - right.size();
+    return safeLeft + QString(padding, QChar(' ')) + right + "\n";
+  };
+  
+  // print header part
   p << EscPosPrinter::init << EscPosPrinter::EncodingPC850
-    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
     << EscPosPrinter::JustificationCenter
-    
+    << line('=')
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
+    << receipt.companyName << "\n" // company name
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << line('-')
+    << receipt.companyAddress << "\n" // company name
+    << receipt.companyPhone << "\n" ; // nomor telpon1
+    if (!receipt.companyPhone2.isEmpty())
+       p << receipt.companyPhone2 << "\n" ; // nomor telpon2
+  // print header nota
+  p << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << EscPosPrinter::JustificationCenter
+    << line('=')
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeFont2)
+    << EscPosPrinter::JustificationLeft
+    << "Nota  : "
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << receipt.invoiceNo << "\n"
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeFont2)
+    << "TGL   : "
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << receipt.date << "\n"
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeFont2)
+    << "KASIR : "
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << receipt.cashierName << "\n"
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << EscPosPrinter::JustificationCenter
+    << line('=');
+  // print header customer
+  p << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeFont2)
+    << EscPosPrinter::JustificationLeft
+    << "Tn/Ny/Toko : "
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << receipt.customerName << "\n"
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeFont2)
+    << "TELP/WA    : "
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << receipt.customerPhone << "\n"
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << EscPosPrinter::JustificationCenter
+    << line('-')
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+    << fill("ITEM", "HARGA  ")
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << EscPosPrinter::JustificationCenter
+    << line('-')
+    << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+    << EscPosPrinter::JustificationLeft;
+  // items
+  for(auto const& item : receipt.items) {
+    QString desc = item.description.mid(0, 36);
+    QString info = QString(" %L1 %2 x %L3")
+                      .arg(item.quantity)
+                      .arg(item.unit)
+                      .arg(item.unitPrice);
+    p << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone | EscPosPrinter::PrintModeEmphasized)
+      << EscPosPrinter::JustificationLeft
+      << desc << "\n"
+      << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+      << EscPosPrinter::JustificationLeft
+      << info
+      << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone  | EscPosPrinter::PrintModeEmphasized)
+      << EscPosPrinter::JustificationRight
+      << QString("%L1").arg(item.totalPrice)
+      << EscPosPrinter::PrintModes(EscPosPrinter::PrintModeNone)
+      << EscPosPrinter::JustificationLeft;
+      for(auto const& fin : item.finishings) {
+        QString finName = QString("• %1x %L2").arg(fin.qty).arg(fin.name);
+        p << fill(finName, QString("%L1").arg(fin.cost));
+      }
+  }
+  p << line('-');
   return true;
 }
 
@@ -565,18 +643,18 @@ void PosPrinter::drawItems(QPainter& painter, const Receipt& receipt, int maxCha
         y += 12;
     }
 
-    if (!receipt.finishings.isEmpty()) {
-        y += 5;
-        painter.drawText(10, y, "Biaya Finishing:");
-        y += 12;
+    // if (!receipt.finishings.isEmpty()) {
+        // y += 5;
+        // painter.drawText(10, y, "Biaya Finishing:");
+        // y += 12;
 
-        for (const auto& finishing : receipt.finishings) {
-            painter.drawText(10, y, leftAlignText("- " + finishing.name,
-                                                  QString::number(finishing.cost, 'f', 0),
-                                                  maxCharsPerLine));
-            y += 12;
-        }
-    }
+        // for (const auto& finishing : receipt.finishings) {
+            // painter.drawText(10, y, leftAlignText("- " + finishing.name,
+                                                  // QString::number(finishing.cost, 'f', 0),
+                                                  // maxCharsPerLine));
+            // y += 12;
+        // }
+    // }
 
     y += 5;
 }

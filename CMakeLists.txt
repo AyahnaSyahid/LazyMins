@@ -99,6 +99,7 @@ set(PROJECT_SOURCES
     src/dialogs/productpickerdialog.cpp
     src/dialogs/basepickerdialog.cpp
     src/dialogs/expensedialog.cpp
+    src/dialogs/akuntransaksiopnamedialog.cpp
 
     # Display / Viewers
     src/display/dataviewer.cpp

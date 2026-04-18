@@ -30,7 +30,7 @@ struct ReceiptPayment {
 
     // Dari JOIN ke akun_transaksi
     QString akunNama;           // e.g. "Kas Admin", "Bank BRI"
-    QString akunTipe;           // "cash" | "bank" | "ewallet" | "lainnya"
+    QString akunKode;           // e.g. "Kas Admin", "Bank BRI"
 };
 
 struct Receipt {
@@ -83,3 +83,16 @@ struct Receipt {
 using ReceiptPtr = QSharedPointer<Receipt>;
 
 Q_DECLARE_METATYPE(ReceiptPtr);
+
+// ==================== Debugging Support ====================
+
+#include <QDebug>
+
+/**
+ * Operator overload agar struct dapat dicetak langsung menggunakan qDebug() << struct;
+ */
+QDebug operator<<(QDebug debug, const ReceiptFinishing &f);
+QDebug operator<<(QDebug debug, const ReceiptItem &item);
+QDebug operator<<(QDebug debug, const ReceiptPayment &p);
+QDebug operator<<(QDebug debug, const Receipt &r);
+QDebug operator<<(QDebug debug, const ReceiptPtr &ptr);

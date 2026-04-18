@@ -128,6 +128,7 @@ set(PROJECT_SOURCES
     src/printer/escpos.cpp
     src/printer/posprinter.cpp
     src/printer/posprintertestdialog.cpp
+    src/printer/receipt_debug.cpp
     
 )
 

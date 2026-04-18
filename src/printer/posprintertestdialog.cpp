@@ -115,7 +115,7 @@ void PosPrinterTestDialog::on_testDummyStruk_clicked() {
     // Setup Dummy Data
     Receipt dummy;
     
-    auto res = DBOperationHelper::loadInvoiceDataFast(1, &dummy);
+    auto res = DBOperationHelper::loadInvoiceDataFast(6, &dummy);
     
     if (!res.ok) {
       QMessageBox::warning(this, "Peringatan", res.error);
@@ -123,41 +123,20 @@ void PosPrinterTestDialog::on_testDummyStruk_clicked() {
       return ;
     }
     
-    // dummy.invoiceNo = "TEST-999";
-    // dummy.date = QDate::currentDate().toString("dd/MM/yyyy");
-    // dummy.time = QTime::currentTime().toString("HH:mm");
-    // dummy.cashierName = "Admin Tester";
-    // dummy.customerName = "Pelanggan Umum";
     
-    // ReceiptItem item1;
-    // item1.description = "Cetak Undangan";
-    // item1.quantity = 100;
-    // item1.unitPrice = 1500;
-    // item1.totalPrice = 150000;
-    
-    // ReceiptItem item2;
-    // item2.description = "Jasa Desain";
-    // item2.quantity = 1;
-    // item2.unitPrice = 50000;
-    // item2.totalPrice = 50000;
-
-    // dummy.items.append(item1);
-    // dummy.items.append(item2);
-
-    // dummy.subtotal = 200000;
-    // dummy.discount = 0;
-    // dummy.tax = 0;
-    // dummy.grandTotal = 200000;
-    // dummy.amountPaid = 250000;
-    // dummy.change = 50000;
-    // dummy.status = "LUNAS";
-
     // Log isi struk singkat
     ui->logTextEdit->appendPlainText(QString("Detail Invoice: %1 | Total: Rp%2")
                                      .arg(dummy.invoiceNo)
                                      .arg(dummy.grandTotal));
     ui->logTextEdit->appendPlainText("Mengirim data struk ke printer...");
-
+    
+    qDebug() << dummy;
+    for(auto const& item : dummy.items) {
+      qDebug() << item;
+      for (auto const& fin : item.finishings) {
+        qDebug() << fin;
+      }
+    }
     // Eksekusi Cetak
     if (localPP.printReceiptViaEscPos(dummy)) {
         ui->logTextEdit->appendPlainText("=> Dummy Struk BERHASIL dicetak.");

@@ -157,6 +157,9 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
+  connect(&sm, &SessionManager::loginFailed, [this](const QString& m) {
+    QMessageBox::warning(this, "Peringatan", m);
+  });
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
 
   // Window Title
@@ -198,12 +201,6 @@ void MainWindow::currentUserChanged() {
   }
   auto rec_user = *opt_user;
   AdminManager a_man;
-  // lakukan preparasi ui untuk current user dan pembatasan akses GUI
   auto has_super_user = a_man.userHasRole(rec_user.value("id").toInt(), "super_admin");
-  // qDebug() << QString("%1 : %2").arg(rec_user.value("username").toString()).arg(has_super_user);
-  if (!has_super_user) {
-    ui->actionAdminAdd->setEnabled(false);
-  } else {
-    ui->actionAdminAdd->setEnabled(true);
-  }
+  ui->actionAdminAdd->setEnabled(has_super_user);
 }

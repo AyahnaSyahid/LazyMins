@@ -8,6 +8,7 @@
 struct ReceiptFinishing {
     QString name;
     int qty;
+    int price;
     double cost = 0.0;
 };
 
@@ -37,6 +38,7 @@ struct Receipt {
     // Company Info
     QString companyName;
     QString companyAddress;
+    QString companyEmail;
     QString companyPhone;
     QString companyPhone2;
     // Header Info

@@ -107,6 +107,18 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>Keterangan</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QPlainTextEdit" name="notesEdit"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
      <item row="2" column="1">
       <widget class="QSpinBox" name="adjustBox">
        <property name="alignment">
@@ -124,24 +136,15 @@
        <property name="showGroupSeparator" stdset="0">
         <bool>true</bool>
        </property>
+       <property name="minimum">
+        <number>-2147483647</number>
+       </property>
        <property name="maximum">
         <number>2147483647</number>
        </property>
        <property name="singleStep">
         <number>1001</number>
        </property>
-      </widget>
-     </item>
-     <item row="3" column="0" colspan="2">
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Keterangan</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QPlainTextEdit" name="notesEdit"/>
-        </item>
-       </layout>
       </widget>
      </item>
     </layout>

@@ -72,6 +72,7 @@ void OrderPickerDialog::onParameterChanged() {
   
   QString baseQuery (R"--(
     SELECT id AS ID,
+           customer_name AS Pelanggan,
            order_number AS Nomor,
            subtotal AS Subtotal,
            discount_amount AS Diskon,
@@ -96,6 +97,8 @@ void OrderPickerDialog::onParameterChanged() {
   
   auto proxy = qobject_cast<QSortFilterProxyModel*>(ui->orderView->model());
   if (proxy && proxy->sourceModel() != model) proxy->setSourceModel(model);
+  proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+  proxy->setFilterKeyColumn(-1);
   ui->orderView->resizeColumnsToContents();
 }
 

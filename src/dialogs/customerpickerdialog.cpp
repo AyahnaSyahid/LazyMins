@@ -45,7 +45,7 @@ CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
     auto proxy = new QSortFilterProxyModel(this);
     proxy->setObjectName("proxy");
     proxy->setSourceModel(model);
-    proxy->setFilterKeyColumn(1);
+    proxy->setFilterKeyColumn(-1);
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     proxy->sort(1);
     ui->customerView->setModel(proxy);

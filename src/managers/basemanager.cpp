@@ -212,8 +212,8 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
                                         const QString& orderBy,
                                         int limit)
 {
-    QList<QSqlRecord> records;
-    QSqlQuery query(BaseManager::connection);
+    QList<QSqlRecord> recordList;
+    QSqlQuery query = baseQuery();
     
     QString whereClause = condition;
     QString deleteCondition = getDeleteCondition();
@@ -247,14 +247,13 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
     
     if (query.exec()) {
         while (query.next()) {
-            records.append(query.record());
+            recordList << query.record();
         }
     } else {
-        qDebug() << "Error getting records from" << m_tableName << ":" << query.lastError().text();
+        qDebug() << "Error getting recordList from" << m_tableName << ":" << query.lastError().text();
         qDebug() << "Query:" << query.lastQuery();
     }
-    qDebug() << sql;
-    return records;
+    return recordList;
 }
 
 QList<QSqlRecord> BaseManager::getByIds(const QList<int>& ids)

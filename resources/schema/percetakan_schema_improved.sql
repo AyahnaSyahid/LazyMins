@@ -308,7 +308,7 @@ CREATE TABLE kategori_transaksi (
     id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
-    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran', 'opname')),
     parent_id INTEGER,                -- TAMBAHAN: Untuk sub-kategori
     description TEXT,                 -- TAMBAHAN: Deskripsi kategori
     is_active INTEGER DEFAULT 1,
@@ -326,7 +326,7 @@ CREATE TABLE transaksi (
     kategori_id INTEGER,
     
     -- Detail transaksi
-    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran', 'opname')),
     deskripsi TEXT,
     
     -- Ledger Mode (Buku Besar)

@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.23)
-
 project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
 # ==================== Global Settings ====================
@@ -25,23 +24,20 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 qt_standard_project_setup()
 
-# ==================== Source Organization ====================
-
-# --- All Source Files (.cpp) ---
-set(PROJECT_SOURCES
-    # Main
-    src/main.cpp
-
-    # Utils
+# ==================== 1. Core & Utils Library ====================
+# Library untuk utilitas dasar dan koneksi database awal
+add_library(core_utils STATIC
     src/utils/authmanager.cpp
     src/utils/sessionmanager.cpp
     src/utils/sqltransaction.cpp
-    
-    # Database
     src/database/databasemanager.cpp
     src/database/initializeschema.cpp
+)
+target_link_libraries(core_utils PUBLIC Qt6::Sql Qt6::Core Qt6::Network)
 
-    # Managers
+# ==================== 2. Data Layer (Managers) ====================
+# Berisi logika bisnis dan manajemen data 
+add_library(data_layer STATIC
     src/managers/activitylogmanager.cpp
     src/managers/adminmanager.cpp
     src/managers/akuntransaksimanager.cpp
@@ -63,15 +59,35 @@ set(PROJECT_SOURCES
     src/managers/stockmovementmanager.cpp
     src/managers/transaksimanager.cpp
     src/managers/helpers.cpp
+)
+target_link_libraries(data_layer PUBLIC core_utils)
 
-    # Models
+# ==================== 3. UI Components (Models & Customs) ====================
+# Berisi model data dan widget custom [cite: 3, 5]
+add_library(model_components STATIC
     src/models/ordermodel.cpp
     src/models/advancedquerymodel.cpp
     src/models/finishinglistmodel.cpp
     src/models/priceleveleditormodel.cpp
     src/models/invoicecomposermodel.cpp
+)
 
-    # Dialogs
+target_link_libraries(model_components PUBLIC data_layer)
+
+add_library(ui_components STATIC
+    src/customs/querycombobox.cpp
+    src/customs/rolescombobox.cpp
+    src/customs/tipekonsumencombobox.cpp
+    src/customs/productcategoriescombobox.cpp
+    src/customs/finishingitemdelegate.cpp
+    src/customs/orderitemdelegate.cpp
+    src/customs/invoicecomposerdelegate.cpp
+)
+target_link_libraries(ui_components PUBLIC model_components Qt6::Widgets)
+
+# ==================== 4. Dialogs Library ====================
+# Berisi semua dialog interaktif [cite: 3, 4]
+add_library(ui_dialogs STATIC
     src/dialogs/logindialog.cpp
     src/dialogs/edituserdialog.cpp
     src/dialogs/edituserlogininfodialog.cpp
@@ -100,8 +116,6 @@ set(PROJECT_SOURCES
     src/dialogs/basepickerdialog.cpp
     src/dialogs/expensedialog.cpp
     src/dialogs/akuntransaksiopnamedialog.cpp
-
-    # Display / Viewers
     src/display/dataviewer.cpp
     src/display/finishingservicesviewer.cpp
     src/display/orderdataviewer.cpp
@@ -110,58 +124,50 @@ set(PROJECT_SOURCES
     src/display/akuntransaksidataviewer.cpp
     src/display/konsumendataviewer.cpp
     src/display/paymentsdataviewer.cpp
+)
 
-    # Custom Widgets
-    src/customs/querycombobox.cpp
-    src/customs/rolescombobox.cpp
-    src/customs/tipekonsumencombobox.cpp
-    src/customs/productcategoriescombobox.cpp
-    src/customs/finishingitemdelegate.cpp
-    src/customs/orderitemdelegate.cpp
-    src/customs/invoicecomposerdelegate.cpp
+target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)
+# Header tambahan jika diperlukan
+# set_target_properties(ui_dialogs PROPERTIES
+    # SOURCES "src/dialogs/fieldmap.h"
+# )
 
-    # Main Window & Setup
-    src/mainwindow/mainwindow.cpp
-    src/mainwindow/actiongroup.cpp
-    src/setup/setupwindow.cpp
-    
-    # Printer
+# ==================== 5. Printing Module ====================
+# Modul khusus printer [cite: 5]
+add_library(printing_module STATIC
     src/printer/escpos.cpp
     src/printer/posprinter.cpp
     src/printer/posprintertestdialog.cpp
     src/printer/receipt_debug.cpp
-    
 )
-
-# --- Additional Headers (jika diperlukan) ---
-set(PROJECT_HEADERS
-    src/dialogs/fieldmap.h
-    # Tambahkan header lain hanya jika benar-benar diperlukan
-)
-
-# --- Resources ---
-set(PROJECT_RESOURCES
-    resources/database_resources.qrc
-)
+target_link_libraries(printing_module PUBLIC data_layer Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 
 add_subdirectory(escpos-qt)
 
-# ==================== Executable ====================
+# ==================== Executable Utama ====================
+# Menggabungkan semua library dan file utama [cite: 1, 5, 6]
 qt_add_executable(LazyMins
-    ${PROJECT_SOURCES}
-    ${PROJECT_HEADERS}
-    ${PROJECT_RESOURCES}
+    src/main.cpp
+    src/mainwindow/mainwindow.cpp
+    src/mainwindow/actiongroup.cpp
+    src/setup/setupwindow.cpp
+    resources/database_resources.qrc
 )
 
-# ==================== Linking ====================
+
+# Link semua modul ke target utama [cite: 6]
 target_link_libraries(LazyMins PRIVATE 
+    core_utils
+    data_layer
+    ui_components
+    ui_dialogs
+    printing_module
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network
     Qt6::PrintSupport
     Qt6::SerialPort
     Qt6::Core5Compat
-    EscPosQt
 )
 
 # ==================== Build Information ====================
@@ -171,5 +177,4 @@ message(STATUS "Build Type       : ${CMAKE_BUILD_TYPE}")
 message(STATUS "Generator        : ${CMAKE_GENERATOR}")
 message(STATUS "CXX Standard     : C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Executable       : LazyMins")
-message(STATUS "========================================")
 message(STATUS "========================================")

@@ -1,7 +1,6 @@
 #include "src/utils/sessionmanager.h"
 #include "src/utils/authmanager.h"
 #include "src/managers/adminmanager.h"
-#include <QMessageBox>
 
 SessionManager &SessionManager::instance() {
   static SessionManager sm;
@@ -17,9 +16,7 @@ void SessionManager::login(const QString& name, const QString& pass) {
     if (orc) {
       auto rc = *orc;
       if (!rc.value("is_active").toBool()) {
-        // tidak aktif
-        QMessageBox::warning(nullptr, "Peringatan", "Akun anda sedang berada dalam status PASIF");
-        emit loginFailed();
+        emit loginFailed("Akun anda sedang berada dalam status PASIF");
         return ;
       }
     }
@@ -28,8 +25,7 @@ void SessionManager::login(const QString& name, const QString& pass) {
     emit userChanged();
     return ;
   }
-  QMessageBox::warning(nullptr, "Peringatan", "Nama dan sandi anda TIDAK COCOK");
-  emit loginFailed();
+  emit loginFailed("Nama dan sandi anda TIDAK COCOK");
 }
 
 void SessionManager::logout() {

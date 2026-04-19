@@ -195,7 +195,7 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
       QString desc = _i.description.mid(0, 36);
       QString info = QString(" %L1 %2 x %L3")
                         .arg(_i.quantity)
-                        .arg(_i.unit)
+                        .arg(_i.unit.mid(0, 5))
                         .arg(_i.unitPrice);
       int spaces = 40;
       QString tstr = QString("%L1").arg(_i.totalPrice);
@@ -217,7 +217,7 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
   };
   
   auto _drawFinishing = [fontNormal, fontKecil, fontBold] (EscPosPrinter& _p, const ReceiptFinishing& fin) {
-      QString finName = QString("• %1x %L2").arg(fin.qty).arg(fin.name).mid(0, 25);
+      QString finName = QString("[%1] %L2*%L3").arg(fin.name).arg(fin.qty).arg(fin.price).mid(0, 25);
       QString finCost = QString("%L1").arg(fin.cost);
       int spaces = 40;
       spaces    -= finCost.size();
@@ -244,7 +244,9 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << receipt.companyPhone << "\n" ; // nomor telpon1
     if (!receipt.companyPhone2.isEmpty())
        p << receipt.companyPhone2 << "\n" ; // nomor telpon2
-  // print header nota
+    if (!receipt.companyEmail.isEmpty())
+       p << receipt.companyEmail << "\n" ; // alamat email
+    // print header nota
   p << EscPosPrinter::PrintModes(fontKecil)
     << EscPosPrinter::JustificationCenter
     << line('=')

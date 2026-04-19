@@ -20,7 +20,7 @@ signals:
   void userChanged();
   void userLogin();
   void userLogout();
-  void loginFailed();
+  void loginFailed(const QString&);
   void loginSuccess();
 
 private:

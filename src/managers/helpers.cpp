@@ -5,6 +5,7 @@
 #include "src/managers/ordermanager.h"
 #include "src/managers/invoicemanager.h"
 #include "src/managers/stockmovementmanager.h"
+#include "src/managers/appsettingsmanager.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
 #include "src/printer/receipt.h"
@@ -502,10 +503,12 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
       return x.exec() && x.next();
     };
     
-    // Init companyData
-    rec->companyName    = "AKSARAJAYA";
-    rec->companyAddress = "Jl. KaptenNaseh 40-43, Cipedes, TSM";
-    rec->companyPhone   = "WA Admin : 0812-1458-7757";
+    AppSettingsManager aps;
+
+    rec->companyName    = aps.getSettings("company_name")["setting_value"].toString();
+    rec->companyAddress = aps.getSettings("company_address")["setting_value"].toString();
+    rec->companyPhone   = aps.getSettings("company_phone")["setting_value"].toString();
+    rec->companyEmail   = aps.getSettings("company_email")["setting_value"].toString();
     
     
     // --- 1. GET INVOICE RECORD ---
@@ -515,9 +518,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
         qWarning() << "[FAST-DB] Invoice not found or canceled. SQL Error:" << q.lastError().text();
         return { false, "Data Invoice tidak ditemukan" };
     }
-    
-    
-    
+
     auto rec_invoice = q.record();
     rec->invoiceNo    = rec_invoice.value("invoice_number").toString();
     rec->date         = rec_invoice.value("created_at").toDateTime().date().toString("dd/MM/yyyy");
@@ -609,7 +610,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
         qDebug() << "[FAST-DB] Fetching" << items.size() << "items for Order ID:" << orderId;
         for (auto const& item : items) {
             ReceiptItem rItem;
-            rItem.description = QString("%1 [%2]").arg(item.value("product_name").toString().mid(0, 23), item.value("sku").toString().mid(0, 7));
+            rItem.description = QString("[%1] %2").arg(item.value("sku").toString().mid(0, 7), item.value("product_name").toString().mid(0, 23));
             rItem.quantity    = item.value("quantity").toDouble();
             if (item.value("use_area").toInt() == 1) {
                 rItem.quantity = roundUpValue(item.value("size_width").toDouble() *
@@ -640,6 +641,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
                 ReceiptFinishing rFin;
                 rFin.name = fin.value("finishing_name").toString();
                 rFin.qty = fin.value("quantity").toInt();
+                rFin.price = fin.value("finishing_price").toInt();
                 rFin.cost = fin.value("subtotal").toInt();
                 rItem.finishings.append(rFin);
             }

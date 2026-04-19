@@ -143,6 +143,12 @@ add_library(printing_module STATIC
 )
 target_link_libraries(printing_module PUBLIC data_layer Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 
+# Modul khusus printer [cite: 5]
+add_library(printer_setup_module STATIC
+    src/dialogs/configureserialposdialog.cpp)
+    
+target_link_libraries(printer_setup_module PUBLIC Qt6::Widgets Qt6::PrintSupport Qt6::SerialPort EscPosQt)
+
 add_subdirectory(escpos-qt)
 
 # ==================== Executable Utama ====================
@@ -163,6 +169,7 @@ target_link_libraries(LazyMins PRIVATE
     ui_components
     ui_dialogs
     printing_module
+    printer_setup_module
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network

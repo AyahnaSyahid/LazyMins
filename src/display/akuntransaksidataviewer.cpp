@@ -109,25 +109,9 @@ QAction *AkunTransaksiDataViewer::addAkunAction()
     return m_addAkunAction;
 }
 
-QAction *AkunTransaksiDataViewer::adjustBalanceAction() {
-  if (!m_adjustBalanceAction) {
-    m_adjustBalanceAction = new QAction("Penyesuaian Saldo", this);
-    m_adjustBalanceAction->setObjectName("adjustBalanceAction");
-    m_adjustBalanceAction->setToolTip("Sesuaikan saldo akun");
-    connect(m_adjustBalanceAction, &QAction::triggered,
-            thism &AkunTransaksiDataViewer::onAdjustBalanceActionTriggered);
-  }
-  return m_adjustBalanceAction;
-}
-
 void AkunTransaksiDataViewer::onAddAkunActionTriggered()
 {
     openCreateAkunDialog();
-}
-
-void AkunTransaksiDataViewer::onAdjustBalanceActionTriggered()
-{
-  
 }
 
 void AkunTransaksiDataViewer::openCreateAkunDialog()
@@ -165,7 +149,12 @@ void AkunTransaksiDataViewer::openBalanceAdjustment(int akunId)
     QMessageBox::warning(this, "Kesalahan", "Akun Transaksi tidak ditemukan");
     return ;
   }
-  
+  auto dlg = QSharedPointer<AkunTransaksiOpnameDialog>::create(this);
+  dlg->prepareOpname(akunId);
+  connect(dlg.data(), &QDialog::accepted, this, &DataViewer::refresh);
+  connect(dlg.data(), &QDialog::destroyed, []() { qDebug() << "AkunTransaksiOpnameDialog destroyed"; });
+  dlg->prepareOpname(akunId);
+  dlg->exec();
 }
 
 void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)
@@ -179,6 +168,9 @@ void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoin
     editAction->setToolTip("Edit data akun transaksi");
     editAction->setEnabled(clickedIndex.isValid());
 
+    auto opnameAction = menu.addAction("Opname");
+    opnameAction->setToolTip("Sesuaikan data stok dengan gudang");
+    opnameAction->setEnabled(clickedIndex.isValid());
     menu.addSeparator();
 
     auto submenu = menu.addMenu("Data baru");
@@ -188,6 +180,11 @@ void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoin
     connect(editAction, &QAction::triggered, [this, clickedIndex]() {
         if (clickedIndex.isValid())
             openEditAkunDialog(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
+
+    connect(opnameAction, &QAction::triggered, [this, clickedIndex]() {
+        if (clickedIndex.isValid())
+            openBalanceAdjustment(clickedIndex.siblingAtColumn(0).data().toInt());
     });
 
     menu.exec(ui->dataView->viewport()->mapToGlobal(pt));

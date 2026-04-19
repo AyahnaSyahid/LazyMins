@@ -6,6 +6,7 @@
 #include <QStyledItemDelegate>
 #include <QTimer>
 #include <QHeaderView>
+#include <QScrollBar>
 
 #include "src/managers/basemanager.h"
 
@@ -57,6 +58,7 @@ SELECT id, name, description, stock
   auto pr = new QSortFilterProxyModel(this);
   pr->setSourceModel(qm);
   pr->setFilterKeyColumn(-1);
+  pr->setFilterCaseSensitivity(Qt::CaseInsensitive);
   
   ui->productView->setModel(pr);
   
@@ -70,6 +72,9 @@ SELECT id, name, description, stock
   filterTimer->setInterval(300);
   connect(ui->lineEdit, &QLineEdit::textChanged, [filterTimer](QString) { filterTimer->start(); } );
   connect(filterTimer, &QTimer::timeout, this, onFilterTimerTimeout);
+
+  // Resize
+  this->adjustDialogSize();
 }
 
 ProductPickerDialog::~ProductPickerDialog() { delete ui; }
@@ -87,4 +92,34 @@ void ProductPickerDialog::onFilterTimerTimeout() {
   auto pr = qobject_cast<QSortFilterProxyModel*>(ui->productView->model());
   if (!pr) return ;
   pr->setFilterFixedString(ui->lineEdit->text());
+}
+
+void ProductPickerDialog::adjustDialogSize()
+{   
+    QSortFilterProxyModel* m_proxyModel = qobject_cast<QSortFilterProxyModel*>(ui->productView->model());
+    // 1. Hitung total lebar kolom yang terlihat
+    int totalWidth = 0;
+    int columnCount = m_proxyModel->columnCount();
+    
+    for (int i = 0; i < columnCount; ++i) {
+        if (!ui->productView->isColumnHidden(i)) {
+            totalWidth += ui->productView->columnWidth(i);
+        }
+    }
+
+    // 2. Tambahkan margin layout dan lebar scrollbar (jika ada)
+    int frameWidth = ui->productView->frameWidth() * 2;
+    int scrollbarWidth = ui->productView->verticalScrollBar()->isVisible() ? 
+                         ui->productView->verticalScrollBar()->width() : 20;
+    
+    // Ambil margin dari layout utama
+    int margins = layout()->contentsMargins().left() + layout()->contentsMargins().right();
+    
+    // Berikan sedikit padding tambahan agar tidak terlalu mepet
+    int finalWidth = totalWidth + frameWidth + scrollbarWidth + margins + 10;
+
+    // 3. Batasi ukuran minimum dan maksimum agar dialog tetap proporsional
+    finalWidth = qBound(400, finalWidth, 1000); 
+    
+    this->resize(finalWidth, this->height());
 }

@@ -18,6 +18,7 @@ class ProductPickerDialog : public QDialog
     void on_productView_clicked(const QModelIndex& ix);
     void on_productView_activated(const QModelIndex& ix);
     void onFilterTimerTimeout();
+    void adjustDialogSize();
   
   signals:
     void productPicked(int product_id);

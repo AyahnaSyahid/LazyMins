@@ -30,6 +30,11 @@ bool AdminManager::beforeUpdate(int id, QVariantMap &param)
   return true;
 }
 
+QVariantMap AdminManager::validateParams(const QVariantMap &params)
+{
+    return params;
+}
+
 bool AdminManager::changeLoginInfo(const QString &oldname, const QString &newName, const QString &newPass)
 {
   resetErrorString();

@@ -124,6 +124,7 @@ add_library(ui_dialogs STATIC
     src/display/akuntransaksidataviewer.cpp
     src/display/konsumendataviewer.cpp
     src/display/paymentsdataviewer.cpp
+    src/dialogs/depositdialog.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)

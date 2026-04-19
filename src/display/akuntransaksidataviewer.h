@@ -19,9 +19,9 @@ public slots:
 
 private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
-    void openEditAkunDialog(int akunId);
-    void onAddAkunActionTriggered();
     void openBalanceAdjustment(int akunId);
+    void openDepositDialog(int akunId);
+    void openEditAkunDialog(int akunId);
 
 private:
     Ui::DataViewer *ui;

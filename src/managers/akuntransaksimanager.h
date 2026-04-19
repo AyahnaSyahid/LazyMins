@@ -14,4 +14,5 @@ public:
     // Saldo hanya boleh diubah melalui method ini, bukan update() langsung
     bool updateSaldo(int id, int newSaldo);
     bool opname(int id, int newSaldo, const QString& deskripsi = "Opname");
+    bool deposit(int id, int nominal, const QString& deskripsi);
 };

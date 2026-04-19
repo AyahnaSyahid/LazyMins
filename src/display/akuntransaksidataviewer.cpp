@@ -4,6 +4,7 @@
 // TODO: Buat dialog untuk tambah/edit akun transaksi
 #include "src/dialogs/akuntransaksidialog.h"
 #include "src/dialogs/akuntransaksiopnamedialog.h"
+#include "src/dialogs/depositdialog.h"
 #include "src/managers/managers.h"
 
 #include <QStyledItemDelegate>
@@ -104,14 +105,9 @@ QAction *AkunTransaksiDataViewer::addAkunAction()
         m_addAkunAction->setObjectName("addAkunAction");
         m_addAkunAction->setToolTip("Tambah akun transaksi baru");
         connect(m_addAkunAction, &QAction::triggered,
-                this, &AkunTransaksiDataViewer::onAddAkunActionTriggered);
+                this, &AkunTransaksiDataViewer::openCreateAkunDialog);
     }
     return m_addAkunAction;
-}
-
-void AkunTransaksiDataViewer::onAddAkunActionTriggered()
-{
-    openCreateAkunDialog();
 }
 
 void AkunTransaksiDataViewer::openCreateAkunDialog()
@@ -121,6 +117,23 @@ void AkunTransaksiDataViewer::openCreateAkunDialog()
     dlg.prepareCreate();
     connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
     dlg.setWindowTitle("Form Akun Transaksi Baru");
+    dlg.exec();
+}
+
+void AkunTransaksiDataViewer::openDepositDialog(int akunId)
+{
+    // TODO: implementasi saat dialog tersedia
+    AkunTransaksiManager akunTransaksiManager;
+    auto optAcc = akunTransaksiManager.getById(akunId);
+    if (!optAcc.has_value()) {
+      QMessageBox::warning(this, "Kesalahan", "Akun Transaksi tidak ditemukan");
+      return ;
+    }
+    auto recAcc = *optAcc;
+    DepositDialog dlg(this);
+    dlg.prepareModify(recAcc);
+    connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh); 
+    dlg.setWindowTitle("Catat penarikan / penambahan Saldo");
     dlg.exec();
 }
 
@@ -135,6 +148,7 @@ void AkunTransaksiDataViewer::openEditAkunDialog(int akunId)
     }
     auto recAcc = *optAcc;
     AkunTransaksiDialog dlg(this);
+    dlg.setWindowTitle("Edit Data Akun Transaksi");
     dlg.prepareModify(recAcc);
     connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
     dlg.setWindowTitle("Edit Akun Transaksi");
@@ -151,8 +165,8 @@ void AkunTransaksiDataViewer::openBalanceAdjustment(int akunId)
   }
   auto dlg = QSharedPointer<AkunTransaksiOpnameDialog>::create(this);
   dlg->prepareOpname(akunId);
+  dlg->setWindowTitle("Sesuaikan Saldo Akun Transaksi");
   connect(dlg.data(), &QDialog::accepted, this, &DataViewer::refresh);
-  connect(dlg.data(), &QDialog::destroyed, []() { qDebug() << "AkunTransaksiOpnameDialog destroyed"; });
   dlg->prepareOpname(akunId);
   dlg->exec();
 }
@@ -171,6 +185,11 @@ void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoin
     auto opnameAction = menu.addAction("Opname");
     opnameAction->setToolTip("Sesuaikan data stok dengan gudang");
     opnameAction->setEnabled(clickedIndex.isValid());
+
+    auto depositAction = menu.addAction("Deposit");
+    depositAction->setToolTip("Catat penarikan / penambahan Saldo");
+    depositAction->setEnabled(clickedIndex.isValid());
+    
     menu.addSeparator();
 
     auto submenu = menu.addMenu("Data baru");
@@ -185,6 +204,11 @@ void AkunTransaksiDataViewer::on_dataView_customContextMenuRequested(const QPoin
     connect(opnameAction, &QAction::triggered, [this, clickedIndex]() {
         if (clickedIndex.isValid())
             openBalanceAdjustment(clickedIndex.siblingAtColumn(0).data().toInt());
+    });
+
+    connect(depositAction, &QAction::triggered, [this, clickedIndex]() {
+        if (clickedIndex.isValid())
+            openDepositDialog(clickedIndex.siblingAtColumn(0).data().toInt());
     });
 
     menu.exec(ui->dataView->viewport()->mapToGlobal(pt));

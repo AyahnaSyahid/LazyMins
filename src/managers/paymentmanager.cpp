@@ -85,7 +85,7 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
     
     // Set Kategori Pemasukan
     KategoriTransaksiManager katman;
-    auto opt_kat = katman.getById(1);
+    auto opt_kat = katman.getById(4); // ID Khusus Penjualan/Pembayaran Invoice
     if (!opt_kat) {
       setErrorString("Data Corrupt : \nKategori penjualan produk tidak ditemukan dalam database");
       return false;
@@ -98,7 +98,7 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
     trxParams["admin_id"]       = adminId;
     trxParams["kategori_id"]    = opt_kat->value("id");
     trxParams["tipe"]           = opt_kat->value("tipe");
-    trxParams["deskripsi"]      = QString("Pembayaran invoice #%1").arg(opt_pay->value("invoice_id").toInt());
+    trxParams["deskripsi"]      = QString("Pembayaran invoice #%1").arg(opt_pay->value("invoice_number").toString());
     trxParams["amount_before"]  = saldoBefore;
     trxParams["amount"]         = amount;
     trxParams["amount_after"]   = saldoAfter;
@@ -110,8 +110,7 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
         setErrorString("Gagal catat transaksi: " + tm.errorString());
         return false;
     }
-    
-    
+
     bool ok = update( id, {
       { "verified_at", dateTimeToSql()},
       { "verified_by", adminId },

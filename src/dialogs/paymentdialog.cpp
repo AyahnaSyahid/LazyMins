@@ -3,10 +3,36 @@
 
 #include <QMessageBox>
 #include <QStandardItemModel>
+#include <QStyledItemDelegate>
 #include <QSqlQueryModel>
 #include <QStandardItem>
 #include <QTimeZone>
+#include <QHeaderView>
 #include "src/managers/managers.h"
+
+namespace {
+  class PaymentDialogDelegate : public QStyledItemDelegate {
+  public:
+    PaymentDialogDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+  protected:
+    void initStyleOption(QStyleOptionViewItem *option, const QModelIndex& index) const override {
+      QStyledItemDelegate::initStyleOption(option, index);
+      switch (index.column())
+      {
+        case 0:
+          option->displayAlignment = Qt::AlignCenter;
+          break;
+        case 1:
+          option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+          break;
+      }
+      if (index.row() == index.model()->rowCount() - 1) {
+        option->font.setBold(true);
+        option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+      }
+    }
+  };
+}
 
 PaymentDialog::PaymentDialog(QWidget *p) : 
 ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog(p) 
@@ -30,7 +56,13 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   
   // m_paymentModel
   m_paymentModel->setColumnCount(2);
-  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );  
+
+  ui->tableView->setModel(m_paymentModel);
+  ui->tableView->horizontalHeader()->setStretchLastSection(true);
+  ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->tableView->setAlternatingRowColors(true);
+  ui->tableView->setItemDelegate(new PaymentDialogDelegate(this));
+  ui->tableView->verticalHeader()->hide();
 }
 
 PaymentDialog::~PaymentDialog() { delete ui; }
@@ -52,14 +84,19 @@ void PaymentDialog::setInvoiceId(int iid)
   for (auto const& pr : payment_records) {
     auto tanggal = pr.value("payment_date").toDateTime().toLocalTime().date();
     auto value   = pr.value("amount").toInt();
+    sumVal += value;
     auto tanggalItem = new QStandardItem(tanggal.toString("dd MMMM yyyy"));
     auto valueItem   = new QStandardItem(QString("%L1").arg(value));
-    m_paymentModel->insertRow(m_paymentModel->rowCount(), QList<QStandardItem*> { tanggalItem, valueItem });
+    m_paymentModel->appendRow({ tanggalItem, valueItem });
   }
   auto rem = m_invoiceRecord.value("remaining_amount").toInt();
-  auto sumItem = new QStandardItem(QString("%L1").arg(rem));
-  m_paymentModel->insertRow(m_paymentModel->rowCount(), { new QStandardItem("Terbayar"), sumItem });
+  auto sumItem = new QStandardItem(QString("Terbayar : %L1").arg(sumVal));
+  m_paymentModel->appendRow(sumItem);
+  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );
+  ui->tableView->setSpan(m_paymentModel->rowCount() -1, 0, 1, 2);
+  ui->tableView->resizeColumnsToContents();
   ui->belumBayarSpinBox->setValue(rem);
+  ui->sisaSpinBox->setValue(rem);
 }
 
 void PaymentDialog::verboseAkunTRCombo()
@@ -157,7 +194,7 @@ QVariantMap PaymentDialog::collect() const {
     { "cash_received",     ui->jumlahUangSpinBox->value() },
     { "cash_change",       ui->kembalianSpinBox->value() },
     { "amount",            ui->dibayarkanSpinBox->value() },
-    { "payment_date",      QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd") },
+    { "payment_date",      QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss") },
     { "verification_status", "pending" }
   };
   if (currentTRAkun() == 1) {

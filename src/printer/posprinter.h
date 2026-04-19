@@ -71,7 +71,7 @@ class PosPrinter : public QObject
 public:
     // Singleton instance
     static PosPrinter& instance();
-
+    QSet<QString> portErrors() const { return m_errorPorts; }
     // Printer Discovery & Management (QPrinter / system printer)
     QStringList availablePrinters() const;
     bool selectPrinter(const QString& printerName);
@@ -113,8 +113,15 @@ public:
     QString lastError() const;
     void clearError();
 
+public slots:
+    void onPrintSerialReceiptRequested(const Receipt& receipt);
+
 private slots:
-    void serialPortErrorHandler(QSerialPort::SerialPortError error);
+    void onSerialPortError(QSerialPort::SerialPortError error);
+
+signals:
+    void serialPortError(const QString& message);
+    void needConfigureSerial();
 
 private:
     PosPrinter(QObject* p = nullptr);
@@ -152,7 +159,10 @@ private:
     int calculateMaxCharsPerLine() const;
 
     // Member variables
+    QString m_serialPortName;
+    qint32 m_serialPortBaudRate;
     QString m_currentPrinter;
     PrinterConfig m_config;
     QString m_lastError;
+    QSet<QString> m_errorPorts;
 };

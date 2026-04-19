@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfigureSerialPosDialog</class>
+ <widget class="QDialog" name="ConfigureSerialPosDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>199</width>
+    <height>130</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Atur Printer Serial</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Port</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="portNameBox"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Baud Rate</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="baudRateBox"/>
+     </item>
+     <item row="2" column="0" colspan="2" alignment="Qt::AlignmentFlag::AlignRight">
+      <widget class="QPushButton" name="testButton">
+       <property name="text">
+        <string>Test</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignRight">
+    <widget class="QPushButton" name="simpanButton">
+     <property name="text">
+      <string>Simpan</string>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

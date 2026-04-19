@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QLocale>
+#include <QSettings>
 #include <cmath>
 
 // ==================== Singleton Implementation ====================
@@ -22,7 +23,23 @@ PosPrinter& PosPrinter::instance() {
 }
 
 PosPrinter::PosPrinter(QObject * p) : QObject(p), m_serialPort(this) {
-  connect(&m_serialPort, &QSerialPort::errorOccurred, this, &PosPrinter::serialPortErrorHandler);
+  QSettings settings;
+  if (!settings.value("SerialPrinter/Disabled").toBool()) {
+    auto candidatePort = settings.value("SerialPrinter/PortName").toString();
+    auto candidateBaudRate = settings.value("SerialPrinter/BaudRate").toInt();
+    QStringList availablePortNames;
+    for (const auto& info : QSerialPortInfo::availablePorts()) {
+        availablePortNames << info.portName();
+    }
+    if (availablePortNames.contains(candidatePort) && 
+            ! QSerialPortInfo(candidatePort).isNull()) {
+        m_serialPortName = candidatePort;
+        if(QSerialPortInfo::standardBaudRates().contains(candidateBaudRate)) {
+            m_serialPortBaudRate = candidateBaudRate;
+        }
+    }
+  }
+  connect(&m_serialPort, &QSerialPort::errorOccurred, this, &PosPrinter::onSerialPortError);
 }
 
 PosPrinter::~PosPrinter() {
@@ -930,6 +947,13 @@ int PosPrinter::calculateMaxCharsPerLine() const {
     // );
 }
 
-void PosPrinter::serialPortErrorHandler(QSerialPort::SerialPortError error) {
-  qDebug() << "SerialPort Error";
+void PosPrinter::onSerialPortError(QSerialPort::SerialPortError error) {
+  qDebug() << "Serial port error: " << error;
+  m_errorPorts << m_serialPortName;
+  disconnectSerialPort();
+  emit serialPortError("Error Code : " + QString::number(error));
+}
+
+void PosPrinter::onPrintSerialReceiptRequested(const Receipt& receipt) {
+    
 }

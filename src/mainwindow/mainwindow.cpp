@@ -18,6 +18,7 @@
 #include "src/display/akuntransaksidataviewer.h"
 #include "src/display/konsumendataviewer.h"
 #include "src/display/paymentsdataviewer.h"
+#include "src/dialogs/configureserialposdialog.h"
 
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
@@ -167,9 +168,14 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");
   
   // Printer Test
-  connect(ui->actionPrinterTest, &QAction::triggered, [this](){
+  ui->actionPrinterTest_2->setEnabled(false);
+  connect(ui->actionPrinterTest_2, &QAction::triggered, [this](){
     PosPrinterTestDialog *pp = new PosPrinterTestDialog(this);
     pp->open();
+  });
+  connect(ui->actionEscPosConfig, &QAction::triggered, [this](){
+    auto *pp = new ConfigureSerialPosDialog(this);
+    pp->exec();
   });
 }
 

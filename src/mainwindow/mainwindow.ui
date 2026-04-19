@@ -33,8 +33,15 @@
      </property>
      <addaction name="actionKeluar"/>
     </widget>
+    <widget class="QMenu" name="menuPrinter">
+     <property name="title">
+      <string>Printer</string>
+     </property>
+     <addaction name="actionEscPosConfig"/>
+     <addaction name="actionPrinterTest_2"/>
+    </widget>
     <addaction name="menuAkun"/>
-    <addaction name="actionPrinterTest"/>
+    <addaction name="menuPrinter"/>
    </widget>
    <widget class="QMenu" name="menuToolbar">
     <property name="title">
@@ -208,9 +215,14 @@
     <string>Kategori Produk</string>
    </property>
   </action>
-  <action name="actionPrinterTest">
+  <action name="actionEscPosConfig">
    <property name="text">
-    <string>Printer Test</string>
+    <string>Serial Printer (Esc/Pos)</string>
+   </property>
+  </action>
+  <action name="actionPrinterTest_2">
+   <property name="text">
+    <string>Test Printer</string>
    </property>
   </action>
  </widget>

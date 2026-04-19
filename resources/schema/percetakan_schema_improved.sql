@@ -643,13 +643,13 @@ INSERT INTO app_settings (setting_key, setting_value, data_type, description) VA
 
 -- Finishing Services
 INSERT INTO finishing_services (code, name, description, price_per_unit) VALUES 
-('A3-DOF', 'L DOFF', 'A3Plus Laminasi Doff', 4000),
-('A3-GLOS', 'L GLOS', 'A3Plus Laminasi Glossy', 4000),
-('A3-CUT-SUMMA', 'CUT SUMMA', 'A3Plus Cutting - Summa', 5000),
-('A3-CUT-SAGA', 'CUT SAGA', 'A3Plus Cutting - SAGA', 4000),
-('A3-PTG-MIN', 'POTONG MIN', 'A3Plus Potong MIN', 4000),
-('A3-PTG-MED', 'POTONG MED', 'A3Plus Potong MED', 8000),
-('A3-PTG-HI', 'POTONG HIGH', 'A3Plus Potong HIGH', 12000);
+('A3DOF', 'L DOFF', 'A3Plus Laminasi Doff', 4000),
+('A3GLS', 'L GLOS', 'A3Plus Laminasi Glossy', 4000),
+('A3CSUMA', 'CUT SUMMA', 'A3Plus Cutting - Summa', 5000),
+('A3CSAGA', 'CUT SAGA', 'A3Plus Cutting - SAGA', 4000),
+('A3PTGA', 'A3PTG BS', 'A3Plus Potong Uk Besar', 4000),
+('A3PTGB', 'A3PTG SD', 'A3Plus Potong Uk Sedang', 8000),
+('A3PTGC', 'A3PTG KC', 'A3Plus Potong Uk Kecil', 12000);
 
 -- Data awal roles
 INSERT INTO roles (id, role_name, description) VALUES
@@ -658,15 +658,12 @@ INSERT INTO roles (id, role_name, description) VALUES
 (3, 'operator', 'Mengelola order dan produksi');
 
 -- Data awal kategori transaksi
-INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
-('Penjualan Produk', 'pemasukan', 'Pemasukan dari penjualan produk'),
-('Penjualan Jasa', 'pemasukan', 'Pemasukan dari jasa finishing'),
-('Lain-lain (Pemasukan)', 'pemasukan', 'Pemasukan lainnya'),
-('Pembelian Bahan', 'pengeluaran', 'Pengeluaran untuk bahan baku'),
-('Gaji Karyawan', 'pengeluaran', 'Pengeluaran gaji'),
-('Utilitas', 'pengeluaran', 'Listrik, air, internet'),
-('Maintenance', 'pengeluaran', 'Perawatan mesin dan peralatan'),
-('Lain-lain (Pengeluaran)', 'pengeluaran', 'Pengeluaran lainnya');
+INSERT INTO kategori_transaksi (nama, tipe, description, parent_id) VALUES
+('Pemasukan',        'pemasukan',   'Kategori parent pemasukan',       NULL),
+('Pengeluaran',      'pengeluaran', 'Kategori parent pengeluaran',     NULL),
+('Opname',           'opname',      'Kategori parent opname',          NULL),
+('Penjualan Produk', 'pemasukan',   'Pemasukan dari penjualan produk', 1),
+('Penjualan Jasa',   'pemasukan',   'Pemasukan dari penjualan jasa',   2);
 
 -- COMMENT INSERT INI Dalam PRODUKSI
 -- INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES 
@@ -676,9 +673,9 @@ INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
 
 -- Data awal price levels
 INSERT INTO price_levels (id, level_name, discount_percentage, description) VALUES
-(1, 'ORDER', 0, 'Harga normal untuk pelanggan OD'),
-(2, 'MAKLOON', 0, 'Harga normal untuk reseller MAKLOON'),
-(3, 'NEGO', 0, 'Harga Nego BOS');
+(1, 'ORDER', 0, 'Harga minimum untuk pelanggan OD'),
+(2, 'MAKLOON', 0, 'Harga minimum untuk reseller MAKLOON'),
+(3, 'NEGO', 0, 'Harga Penawarn untuk order banyak');
 
 -- Data awal kategori produk
 INSERT INTO product_categories (category_name, description) VALUES
@@ -690,43 +687,38 @@ INSERT INTO product_categories (category_name, description) VALUES
 
 -- updated_at untuk product_prices dikelola di level aplikasi (ProductPriceManager::upsert)
 INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, cost_price, use_area) VALUES 
-    ('BN-FLEX',    'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30, 15000, 1),
-    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20,  45000, 1),
-    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15,  90000, 1),
-    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10,  90000, 1),
-    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10, 120000, 1),
-    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 0),
-    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 0),
-    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 0),
-    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,   3000, 0),
-    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,   5000, 0),
-    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,   8500, 0),
-    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,   8500, 0),
-    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10,  75000, 0),
-    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10,  60000, 0),
-    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 0),
-    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10,  10000, 0),
-    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5,   12000, 0),
-    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5,   20000, 0),
-    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3,   15000, 0),
-    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2,    35000, 0),
-    ('OFF-TOKO',   'CO-TOKO',         5, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 0),
-    ('OFF-SORM-F', 'CO-SORM-F',       5, 'Cetak Offset SORM Full Color',        'set',     80, 20,  20000, 0),
-    ('OFF-P46-F',  'CO-P46-F',        5, 'Cetak Offset P46 Full Color',         'set',     60, 15,  15000, 0),
-    ('OFF-P52-F',  'CO-P52-F',        5, 'Cetak Offset P52 Full Color',         'set',     40, 10,  35000, 0);
+    ('BN-FLEX',  'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30,  15000,  1),
+    ('BN-KOR',   'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80,  20,  45000,  1),
+    ('IND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60,  15,  90000,  1),
+    ('IND-GFT',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50,  10,  90000,  1),
+    ('IND-LST',  'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40,  10,  120000, 1),
+    ('A3AP15',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500,   0),
+    ('A3AP21',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000,   0),
+    ('A3AP23',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000,   0),
+    ('A3AP26',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90,  20,  3000,   0),
+    ('A3AP26BB', 'AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80,  20,  5000,   0),
+    ('A3VNL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70,  15,  8500,   0),
+    ('A3TRNS',   'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60,  15,  8500,   0),
+    ('A3PVC',    'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50,  10,  75000,  0),
+    ('A3PVCNF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40,  10,  60000,  0),
+    ('A3HVS',    'HVS',             2, 'Cetak A3+ Bahan HVS',                 'lembar',  200, 50,  2500,   0),
+    ('A3KAL+',   'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'lembar',  30,  10,  10000,  0),
+    ('CTPTOKO',  'Toko',            3, 'Pelat Toko',                          'pcs',     20,  5,   12000,  0),
+    ('CTPSORM',  'SORM',            3, 'Pelat SORM',                          'pcs',     15,  5,   20000,  0),
+    ('CTPP46',   'P46',             3, 'Pelat 46',                            'pcs',     10,  3,   15000,  0),
+    ('CTPP52',   'P52',             3, 'Pelat 52',                            'pcs',     8,   2,   35000,  0),
+    ('OFFTOKO',  'COFFTOKO',        5, 'Cetak Offset Toko',                   'set',     100, 25,  12000,  0),
+    ('OFFSORMF', 'COFFSORMF',       5, 'Cetak Offset SORM Full Color',        'set',     80,  20,  20000,  0),
+    ('OFFP46F',  'COFFP46F',        5, 'Cetak Offset P46 Full Color',         'set',     60,  15,  15000,  0),
+    ('OFFP52F',  'COFFP52F',        5, 'Cetak Offset P52 Full Color',         'set',     40,  10,  35000,  0);
 
 -- buat beberapa test data konsumen setelah price levels dibuat, karena ada foreign key reference ke price_levels
 INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_telp, alamat, kota, kode_pos, npwp, catatan, price_level_id) VALUES
-('CUST-001', 'PT. Sinar Jaya', 'Company', 'contact@sinarjaya.com', '021-12345678', 'Jl. Raya No. 123', 'Jakarta', '12345', '12.345.678.9-000.000', 'Pelanggan utama', 1),
-('CUST-002', 'Budi Santoso', 'Individual', 'budi.santoso@email.com', '021-87654321', 'Jl. Merdeka No. 456', 'Bandung', '45678', NULL, 'Pelanggan baru', 1),
-('CUST-003', 'CV. Maju Terus', 'Company', 'info@majuterus.com', '021-23456789', 'Jl. Pahlawan No. 789', 'Surabaya', '67890', '12.345.678.9-000.000', 'Pelanggan strategis', 1),
-('CUST-004', 'Siti Aminah', 'Individual', NULL, '021-34567890', 'Jl. Sudirman No. 321', 'Medan', '54321', NULL, 'Pelanggan dengan potensi besar', 1),
-('CUST-005', 'PT. Global Abadi', 'Company', 'info@globalabadi.com', '021-45678901', 'Jl. Diponegoro No. 567', 'Semarang', '78901', '12.345.678.9-000.000', 'Pelanggan utama', 1),
-('CUST-006', 'Ahmad Fauzi', 'Individual', 'ahmad.fauzi@email.com', '021-56789012', 'Jl. Gatot Subroto No. 678', 'Yogyakarta', '89012', NULL, 'Pelanggan loyal', 1);
+('Tamu', 'Guest', 'Individual', NULL, NULL, NULL, NULL, NULL, NULL, 'Semua Pelanggan Belum terdaftar', 1);
 
 -- buat akun transaksi default
 INSERT INTO akun_transaksi ( kode, nama, tipe, nama_bank, nomor_rekening, atas_nama, saldo, description ) VALUES 
-( 'CASH', 'Kas Admin', 'cash', NULL, NULL, NULL, 0, 'Akun trasaksi default' )
+( 'CASH', 'Kas Admin', 'cash', NULL, NULL, NULL, 0, 'Akun trasaksi default' );
 
 -- buat inisiasi kas
 -- INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 

@@ -24,4 +24,5 @@ class AdminManager : public BaseManager
   protected:
     bool beforeCreate(QVariantMap &m) override;
     bool beforeUpdate(int id, QVariantMap &m) override;
+    virtual QVariantMap validateParams(const QVariantMap& params);
 };

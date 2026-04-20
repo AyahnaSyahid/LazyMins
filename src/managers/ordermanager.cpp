@@ -1,5 +1,6 @@
 #include "ordermanager.h"
 #include "konsumenmanager.h"
+#include "orderitemmanager.h"
 
 QString OrderManager::nextNumber() {
   return generateCode("orders", "order_number", "ORD-", 5, true);
@@ -60,7 +61,23 @@ bool OrderManager::updateSubtotal(int id, int subtotal)
 }
 
 bool OrderManager::recalculate(int oid) {
+  
   QSqlQuery q(BaseManager::connection);
+  
+  q.prepare("SELECT id FROM order_items WHERE order_id = :oi");
+  q.bindValue(":oi", oid);
+  if(!q.exec()) {
+    setErrorString(q.lastError().text());
+    return false;
+  }
+  OrderItemManager oim;
+  while(q.next()) {
+    if(!oim.recalculate(q.value("id").toInt())) {
+      setErrorString(oim.errorString());
+      return false;
+    }
+  }
+
   q.prepare(R"-(
       UPDATE orders
          SET subtotal = cte.new_sub,

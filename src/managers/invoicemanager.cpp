@@ -1,4 +1,5 @@
 #include "invoicemanager.h"
+#include "ordermanager.h"
 
 InvoiceManager::InvoiceManager()
     : BaseManager("invoices", false)
@@ -166,7 +167,25 @@ bool InvoiceManager::removeOrder(int invoice_id,int oid) {
 }
 
 bool InvoiceManager::recalculate(int id) {
+  // Recusive Recalculate all_order
   QSqlQuery q(BaseManager::connection);
+  
+  OrderManager om;
+  
+  q.prepare("SELECT id FROM orders WHERE invoice_id = :id");
+  q.bindValue(":iid", id);
+  if (!q.exec()) {
+    setErrorString(q.lastError().text());
+    return false;
+  }
+  
+  while(q.next()) {
+    if(!om.recalculate(q.value("id").toInt())){
+      setErrorString(om.errorString());
+      return false;
+    }
+  }
+  
   q.prepare( R"-(
 UPDATE invoices SET 
     (subtotal, discount_amount, paid_amount, settlement_status, updated_at) = (
@@ -191,11 +210,11 @@ UPDATE invoices SET
     )
 WHERE id = :iid
 )-");
-  
   q.bindValue(":iid", id);
   if (!q.exec()) {
     setErrorString("Tidak dapat memperbarui data finansial invoice :\n" + q.lastError().text());
     return false;
   }
+  
   return true;
 }

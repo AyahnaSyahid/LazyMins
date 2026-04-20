@@ -53,6 +53,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"order_number", header.order_number},
     {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<int>()) : header.customer_id},
     {"customer_name", header.customer_name},
+    {"customer_phone", header.customer_phone},
     {"discount_amount", header.discount_amount},
     {"price_level_id", header.price_level_id},
     {"priority", header.priority},
@@ -148,12 +149,14 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     }
   }
   
+  if (!om.recalculate(created_order_id)) { return { false, "Unable to recalculate order data" }; }
+  
   // Register invoice and order
   QVariantMap inv_par ( {
     {"invoice_number", invoiceCode},
     {"customer_id", header.customer_id < 1 ? QVariant(QMetaType::fromType<qint64>()) : header.customer_id},
     {"customer_name", header.customer_name},
-    {"customer_phone", header.customer_name},
+    {"customer_phone", header.customer_phone},
     {"admin_id", getAdminId()},
     {"tax_amount", paymentInfo["tax_amount"]}
   });
@@ -193,8 +196,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     QString err = BaseManager::connection.lastError().text();
     return { false, "Tidak dapat melakukan commit : " + err };
   }
-
-  tr.commit();
+  
   return { true, "", {{"invoice_id", created_invoice_id}, {"payment_id", opt_pay->value("id")}} };
 }
 
@@ -283,10 +285,6 @@ DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(cons
     return { false, iman.errorString() };
   }
   
-  if (!iman.recalculate(opt_inv->value("id").toInt())) {
-    return { false, iman.errorString() };
-  }
-
   return { true, "", {{"invoice_id", opt_inv->value("id")}}};
 }
 
@@ -315,6 +313,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
 
   int invoice_id = ires.data["invoice_id"].toInt();
   
+  InvoiceManager invm;
   PaymentManager payman;
   QVariantMap copyPay(pay);
   copyPay["invoice_id"] = invoice_id;
@@ -324,9 +323,8 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
   
   auto opt_pay = payman.create(copyPay);
   if (!opt_pay) return { false, payman.errorString() };
-  
+  if (!invm.recalculate(invoice_id)) return {false, "Unable to recalculate invoices"};
   if (!tr.commit()) return { false, BaseManager::connection.lastError().text() };
-  
   return { true, "", {{"invoice_id", invoice_id}, {"payment_id", opt_pay->value("id")}}};
 }
 

@@ -159,8 +159,8 @@ private:
     int calculateMaxCharsPerLine() const;
 
     // Member variables
-    QString m_serialPortName;
-    qint32 m_serialPortBaudRate;
+    QString m_serialPortName    = "";
+    qint32 m_serialPortBaudRate = 0;
     QString m_currentPrinter;
     PrinterConfig m_config;
     QString m_lastError;

@@ -138,15 +138,16 @@ void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
   int invoiceId = vm["invoice_id"].toInt();
   PaymentManager paymentManager;
   
-  QVariantMap addUser(vm);
-  addUser["admin_id"] = userRec.value("id");
+  QVariantMap withUser(vm);
+  withUser["admin_id"] = userRec.value("id");
   
-  auto optPayment = paymentManager.create(addUser);
+  auto optPayment = paymentManager.create(withUser);
   if(!optPayment.has_value()) {
     QMessageBox::warning(this, "Pembayaran Gagal", "Error:\n" + paymentManager.errorString());
     return ;
   }
   refresh();
   auto payment = *optPayment;
+  
   emit paymentCreated(payment.value("id").toInt());
 }

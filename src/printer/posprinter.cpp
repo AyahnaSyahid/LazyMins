@@ -23,22 +23,6 @@ PosPrinter& PosPrinter::instance() {
 }
 
 PosPrinter::PosPrinter(QObject * p) : QObject(p), m_serialPort(this) {
-  QSettings settings;
-  if (!settings.value("SerialPrinter/Disabled").toBool()) {
-    auto candidatePort = settings.value("SerialPrinter/PortName").toString();
-    auto candidateBaudRate = settings.value("SerialPrinter/BaudRate").toInt();
-    QStringList availablePortNames;
-    for (const auto& info : QSerialPortInfo::availablePorts()) {
-        availablePortNames << info.portName();
-    }
-    if (availablePortNames.contains(candidatePort) && 
-            ! QSerialPortInfo(candidatePort).isNull()) {
-        m_serialPortName = candidatePort;
-        if(QSerialPortInfo::standardBaudRates().contains(candidateBaudRate)) {
-            m_serialPortBaudRate = candidateBaudRate;
-        }
-    }
-  }
   connect(&m_serialPort, &QSerialPort::errorOccurred, this, &PosPrinter::onSerialPortError);
 }
 
@@ -175,7 +159,6 @@ bool PosPrinter::isSerialConnected() const {
 }
 
 QStringList PosPrinter::availableSerialPorts() const {
-    // Buat instance sementara hanya untuk list port
     QStringList pl;
     for(auto const& info : QSerialPortInfo::availablePorts()) {
       pl << info.portName();
@@ -289,13 +272,13 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << EscPosPrinter::JustificationLeft
   // print header customer
     << EscPosPrinter::PrintModes(fontNormal)
-    << "Tn/Ny/Toko : "
+    << "TN/NY/TK : "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << receipt.customerName
     << EscPosPrinter::PrintModes(fontKecil) 
     << "\n"
     << EscPosPrinter::PrintModes(fontNormal) 
-    << "TELP/WA    : "
+    << "TELP/WA  : "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << receipt.customerPhone
     << EscPosPrinter::PrintModes(fontKecil) 
@@ -955,5 +938,5 @@ void PosPrinter::onSerialPortError(QSerialPort::SerialPortError error) {
 }
 
 void PosPrinter::onPrintSerialReceiptRequested(const Receipt& receipt) {
-    
+  printReceiptViaEscPos(receipt);
 }

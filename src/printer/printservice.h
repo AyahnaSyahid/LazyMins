@@ -13,6 +13,6 @@ class PrintService : public QObject
     void printReceipt(const ReceiptPtr &ptr);
   
   private:
-    PrintService();
+    explicit PrintService();
     PrintService(PrintService&&) = delete;
 };

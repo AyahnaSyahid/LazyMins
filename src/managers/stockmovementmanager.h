@@ -22,7 +22,6 @@ public:
                                           const QString& movementType, // "in"|"out"|"adjustment"
                                           double quantity,
                                           double stockBefore,
-                                          double stockAfter,
                                           int adminId,
                                           const QString& referenceType = QString(),
                                           int referenceId              = -1,

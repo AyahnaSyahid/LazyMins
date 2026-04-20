@@ -107,7 +107,6 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
           "out",
           -c_qty,
           pr_stock,
-          roundUpValue(c_qty - order_item.quantity),
           getAdminId(),
           "order_items",
           opt_oitem->value("id").toInt(),
@@ -228,7 +227,7 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock( int pr
   
   auto opt_sm = smm.recordMovement( 
         product_id, "adjustment", 
-        delta, current_stock, _final,
+        delta, current_stock,
         currentAdminId(), "", 0, notes);
   
   if (!opt_sm) {
@@ -259,7 +258,6 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock ( int p
   
   auto opt_sm = smm.recordMovement( 
     productId, "in", stockIn, current_stock,
-    roundUpValue(stockIn + current_stock),
     currentAdminId(), "", 0, "Supplier : " + supplier + "\n" + notes);
   
   if (!opt_sm) {

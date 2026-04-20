@@ -454,7 +454,6 @@ bool OrderModel::commit(QSqlDatabase &db)
       
       auto opt_mvt = smm.recordMovement(r_pro.value("id").toInt(), "adjustment",
                                          calcqty, r_pro.value("stock").toDouble(),
-                                         qCeil((calcqty + r_pro.value("stock").toDouble()) * 100) / 100.0,
                                          m_header.admin_id, "Item Removal", -1, "");
       
       if(!opt_mvt) {
@@ -533,7 +532,6 @@ bool OrderModel::commit(QSqlDatabase &db)
                                          isNew ? "out" : "adjustment",
                                          delta,
                                          r_pro.value("stock").toDouble(),
-                                         qCeil((r_pro.value("stock").toDouble() + delta) * 100.0) / 100.0,
                                          m_header.admin_id,
                                          "orders", m_orderId,
                                          isNew ? "Penjualan Produk" : "Update Item Order");

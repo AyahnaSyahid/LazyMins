@@ -153,13 +153,19 @@ add_subdirectory(escpos-qt)
 
 # ==================== Executable Utama ====================
 # Menggabungkan semua library dan file utama [cite: 1, 5, 6]
-qt_add_executable(LazyMins
+
+set(EXECUTABLE_SOURCES
     src/main.cpp
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
-    resources/database_resources.qrc
-)
+    resources/database_resources.qrc )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+    qt_add_executable(LazyMins WIN32 ${EXECUTABLE_SOURCES})
+else()
+    qt_add_executable(LazyMins ${EXECUTABLE_SOURCES})
+endif()
 
 
 # Link semua modul ke target utama [cite: 6]

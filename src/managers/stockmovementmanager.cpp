@@ -98,7 +98,6 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(int productId,
                                                                  const QString& movementType,
                                                                  double quantity,
                                                                  double stockBefore,
-                                                                 double stockAfter,
                                                                  int adminId,
                                                                  const QString& referenceType,
                                                                  int referenceId,
@@ -109,7 +108,7 @@ std::optional<QSqlRecord> StockMovementManager::recordMovement(int productId,
     params["movement_type"]  = movementType;
     params["quantity"]       = quantity;
     params["stock_before"]   = stockBefore;
-    params["stock_after"]    = stockAfter;
+    params["stock_after"]    = qCeil((stockBefore + quantity) * 100.0) / 100.0;
     params["admin_id"]       = adminId;
     params["reference_type"] = referenceType.isEmpty() ? QVariant() : QVariant(referenceType);
     params["reference_id"]   = referenceId > 0         ? QVariant(referenceId) : QVariant();

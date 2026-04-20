@@ -24,6 +24,8 @@
 #include "src/managers/appsettingsmanager.h"
 #include <QDockWidget>
 #include <QMessageBox>
+#include <QDate>
+#include <QTimer>
 
 #include "src/utils/posprintertestdialog.h"
 
@@ -177,6 +179,15 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     auto *pp = new ConfigureSerialPosDialog(this);
     pp->exec();
   });
+  
+  // pengamanan
+  auto app = qApp;
+  if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd")) {
+    QTimer::singleShot(60000, [app]() {
+      QMessageBox::information(nullptr, "Aplikasi Kadaluarsa", "Ini adalah versi Pengembang\ndan telah dijadwalkan kadaluarsa tanggal pada 20 Juni 2026");
+      qApp->quit();
+    });
+  }
 }
 
 MainWindow::~MainWindow() {delete ui;}

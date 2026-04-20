@@ -30,7 +30,10 @@ SetupWindow::~SetupWindow()
 
 void SetupWindow::on_browseButton_clicked() 
 {
-  auto databaseDir = QFileDialog::getExistingDirectory(this, "Pilih penyimpanan database", QDir::homePath());
+  auto dr = ui->lineEdit->text();
+  if (!QFileInfo::exists(dr)) dr = QDir::homePath();
+  
+  auto databaseDir = QFileDialog::getExistingDirectory(this, "Pilih penyimpanan database", dr);
   if (databaseDir.isEmpty()) return;
   ui->lineEdit->setText(databaseDir);
 }
@@ -119,6 +122,8 @@ void SetupWindow::on_installButton_clicked()
     // Jalankan skema database lengkap
     if (!dbm.initSchema(db)) {
         db.close();
+        qDebug() << db.lastError().text();
+        emit setupFailed();
         QSqlDatabase::removeDatabase("SetupConnection");
         return;   // Pesan error sudah ditampilkan di dalam initializeDatabase()
     }

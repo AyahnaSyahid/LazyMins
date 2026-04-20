@@ -19,7 +19,6 @@ FORMAT 1: NOTA SIMPLE (40 KARAKTER - UNTUK PRINTER THERMAL KECIL)
 Jl. Raya Indah No. 123, Tasikmalaya
 Telp: 0265-123456
 WA: 0812-3456-7890
-
 ========================================
 NO NOTA : ORD-20260205-0001
 TANGGAL : 05 Feb 2026, 14:30

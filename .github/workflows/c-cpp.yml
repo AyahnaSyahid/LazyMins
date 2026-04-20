@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Restore Qt cache
         id: qt-cache
@@ -32,7 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip aqtinstall
           # Install Qt & Tools ke C:\Qt
-          python -m aqt install-qt windows desktop ${{ env.QT_VERSION }} win64_mingw --outputdir ${{ env.QT_INSTALL_DIR }}
+          python -m aqt install-qt windows desktop ${{ env.QT_VERSION }} win64_mingw -m qtserialport qt5compat --outputdir ${{ env.QT_INSTALL_DIR }}
           python -m aqt install-tool windows desktop tools_ninja qt.tools.ninja --outputdir ${{ env.QT_INSTALL_DIR }}
           python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 --outputdir ${{ env.QT_INSTALL_DIR }}
 

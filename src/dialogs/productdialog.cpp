@@ -2,10 +2,16 @@
 #include "ui_productdialog.h"
 #include "src/managers/managers.h"
 #include <QMessageBox>
+#include <QSqlQueryModel>
+
 ProductDialog::ProductDialog(QWidget *p):
 ui(new Ui::ProductDialog), FormDialog(p)
 {
   ui->setupUi(this);
+  auto unitModel = new QSqlQueryModel(this);
+  unitModel->setQuery("SELECT DISTINCT unit FROM products ORDER BY unit ASC");
+  ui->comboUnit->setModel(unitModel);
+  ui->comboUnit->setCurrentText("");
 }
 
 ProductDialog::~ProductDialog() { delete ui; }
@@ -43,5 +49,26 @@ bool ProductDialog::onSave(const QVariantMap& map) {
 }
 
 void ProductDialog::on_simpanButton_clicked() {
+  if (!isInputAcceptable()) return ;
   accept();
+}
+
+void ProductDialog::onPrepareCreate() {
+  ui->productCategoriesComboBox->blockSignals(true);
+  ui->productCategoriesComboBox->setCurrentIndex(-1);
+  ui->productCategoriesComboBox->blockSignals(false);
+}
+
+bool ProductDialog::isInputAcceptable() const
+{
+  QStringList errs;
+  if(ui->namaLineEdit->text().isEmpty()) errs << "- Nama harus diisi";
+  if(ui->sKULineEdit->text().isEmpty()) errs << "- SKU harus diisi";
+  if(ui->descPlainTextEdit->toPlainText().isEmpty()) errs << "- Deskripsi harus diisi";
+  if(ui->productCategoriesComboBox->currentIndex() < 0) errs << "- Kategori belum ditentukan";
+  if (errs.size()) {
+    QMessageBox::warning(nullptr, "Input belum lengkap", "Periksa kebutuhan input berikut terpenuhi:\n" + errs.join("\n"));
+    return false;
+  }
+  return true;
 }

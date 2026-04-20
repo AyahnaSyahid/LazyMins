@@ -28,22 +28,25 @@ class InvoiceComposerModel : public QAbstractListModel
 
     InvoiceComposerModel(QObject * =nullptr);
     ~InvoiceComposerModel();
-    
+
     bool     loadInvoice(int invoiceId);
     int      rowCount(const QModelIndex& = QModelIndex()) const override;
     QVariant data(const QModelIndex& ix, int role) const override;
     
+    // unimplemented
+    bool     setData(const QModelIndex& ix, const QVariant& va, int role) override;
+    
     QList<int> imported() const;
-  
+
+    int subtotal() const;
+    int discount() const;
+
   public slots:
-  
     void insertOrder(int order_id);
     void removeOrder(int order_id);
-  
-    
+    void clearOrders();
   
   private:
     int m_invoice_id = -1;
-    
     QList<SavedOrder> m_orders;
 };

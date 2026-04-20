@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>595</width>
+    <width>623</width>
     <height>469</height>
    </rect>
   </property>
@@ -146,7 +146,11 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,0">
      <item>
-      <widget class="QListView" name="orderListView"/>
+      <widget class="QListView" name="orderListView">
+       <property name="contextMenuPolicy">
+        <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -211,11 +215,17 @@
             <property name="buttonSymbols">
              <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
             </property>
+            <property name="accelerated">
+             <bool>true</bool>
+            </property>
             <property name="showGroupSeparator" stdset="0">
              <bool>true</bool>
             </property>
             <property name="maximum">
              <number>99999999</number>
+            </property>
+            <property name="singleStep">
+             <number>500</number>
             </property>
            </widget>
           </item>
@@ -256,6 +266,36 @@
         </widget>
        </item>
        <item>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Catatan</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPlainTextEdit" name="plainTextEdit">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>76</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <widget class="QFrame" name="frame_3">
          <property name="frameShape">
           <enum>QFrame::Shape::StyledPanel</enum>
@@ -269,18 +309,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QComboBox" name="metodeBayar">
-            <item>
-             <property name="text">
-              <string>Cash</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Transfer</string>
-             </property>
-            </item>
-           </widget>
+           <widget class="QueryComboBox" name="metodeBayar"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="diskonTotalLabel_2">
@@ -295,43 +324,10 @@
              <string/>
             </property>
             <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-            </property>
-            <property name="readOnly">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0" colspan="2">
-           <widget class="Line" name="line_2">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="totalLabel_2">
-            <property name="text">
-             <string>Jumlah</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QSpinBox" name="totalSpinBox_2">
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
             <property name="readOnly">
              <bool>true</bool>
-            </property>
-            <property name="buttonSymbols">
-             <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
-            </property>
-            <property name="showGroupSeparator" stdset="0">
-             <bool>true</bool>
-            </property>
-            <property name="maximum">
-             <number>99999999</number>
             </property>
            </widget>
           </item>
@@ -387,7 +383,39 @@
     </layout>
    </item>
   </layout>
+  <action name="removeSelectedOrdersAction">
+   <property name="text">
+    <string>Hapus</string>
+   </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="importOrdersAction">
+   <property name="text">
+    <string>Import</string>
+   </property>
+   <property name="toolTip">
+    <string>Import Orders</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QueryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/querycombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -17,7 +17,6 @@ public:
   ~OrderDialog();
 
 private slots:
-
   void addOrderItem(const OrderItem& oi);
   void on_simpanButton_clicked();
   void on_tambahItem_triggered();
@@ -26,7 +25,10 @@ private slots:
   void on_orderItemList_customContextMenuRequested(const QPoint &pos);
   void on_diskonDoubleSpinBox_valueChanged(double arg1);
   void on_diskonRpSpinBox_valueChanged(int arg1);
-  void on_pajakRpSpinBox_valueChanged(int arg1);
+  void setCustomer(const QSqlRecord&);
+
+signals:
+  void orderCreated(int id);
 
 private:
   Ui::OrderDialog *ui;

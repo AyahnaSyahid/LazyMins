@@ -33,7 +33,15 @@
      </property>
      <addaction name="actionKeluar"/>
     </widget>
+    <widget class="QMenu" name="menuPrinter">
+     <property name="title">
+      <string>Printer</string>
+     </property>
+     <addaction name="actionEscPosConfig"/>
+     <addaction name="actionPrinterTest_2"/>
+    </widget>
     <addaction name="menuAkun"/>
+    <addaction name="menuPrinter"/>
    </widget>
    <widget class="QMenu" name="menuToolbar">
     <property name="title">
@@ -193,10 +201,10 @@
      <normaloff>:/svg/svg/cash-flow.svg</normaloff>:/svg/svg/cash-flow.svg</iconset>
    </property>
    <property name="text">
-    <string>Cash</string>
+    <string>Instant Order</string>
    </property>
    <property name="toolTip">
-    <string>Cash-Flow</string>
+    <string>Catat order cash</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -205,6 +213,16 @@
   <action name="actionAddKatProduk">
    <property name="text">
     <string>Kategori Produk</string>
+   </property>
+  </action>
+  <action name="actionEscPosConfig">
+   <property name="text">
+    <string>Serial Printer (Esc/Pos)</string>
+   </property>
+  </action>
+  <action name="actionPrinterTest_2">
+   <property name="text">
+    <string>Test Printer</string>
    </property>
   </action>
  </widget>

@@ -58,7 +58,7 @@ void PriceLevelDialog::on_simpanButton_clicked() {
 
     // 3. Validasi Keunikan Nama
     PriceLevelManager plm;
-    auto existing = plm.findByName(name);
+    auto existing = plm.getByName(name);
     
     if (existing.has_value()) {
         int existingId = existing->value("id").toInt();

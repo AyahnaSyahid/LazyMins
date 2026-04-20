@@ -106,21 +106,9 @@
      </item>
      <item row="6" column="1">
       <widget class="QComboBox" name="comboUnit">
-       <item>
-        <property name="text">
-         <string>meter</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>lembar</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ream</string>
-        </property>
-       </item>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
      <item row="7" column="0">
@@ -243,11 +231,13 @@
   <tabstop>sKULineEdit</tabstop>
   <tabstop>productCategoriesComboBox</tabstop>
   <tabstop>descPlainTextEdit</tabstop>
+  <tabstop>useAreaBox</tabstop>
   <tabstop>comboUnit</tabstop>
   <tabstop>costSpinBox</tabstop>
   <tabstop>minStock</tabstop>
   <tabstop>aktifComboBox</tabstop>
   <tabstop>stokSpinBox</tabstop>
+  <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

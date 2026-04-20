@@ -13,18 +13,18 @@ qmodel(new QSqlQueryModel(this)), boxView(new QTableView), QComboBox(p)
 {
   setModel(qmodel);
   setModelColumn(1);
-  
+  setMaxVisibleItems(5);
   setView(boxView);
   
   auto vh = boxView->verticalHeader();
   vh->setMinimumSectionSize(22);
   vh->setDefaultSectionSize(20);
   vh->hide();
-  boxView->setHorizontalScrollMode(QTableView::ScrollPerPixel);
+  boxView->setVerticalScrollMode(QTableView::ScrollPerPixel);
   boxView->setSelectionBehavior(QTableView::SelectRows);
   boxView->horizontalHeader()->hide();
   boxView->setAlternatingRowColors(true);
-  boxView->setMaximumHeight(20 * 10);
+  
 }
 
 void QueryComboBox::setQuery(const QString& s, QSqlDatabase &db){
@@ -98,4 +98,12 @@ int QueryComboBox::findValue(const QVariant& value, int column) const{
 void QueryComboBox::showColumn(int column, bool show)
 {
     boxView->setColumnHidden(column, !show);
+}
+
+int  QueryComboBox::findIndex(const QVariant& val, int column) const {
+  auto l = qmodel->match(qmodel->index(0, column), Qt::DisplayRole, val, 1, Qt::MatchExactly);
+  if(l.isEmpty()) {
+    return -1;
+  }
+  return l.first().row();
 }

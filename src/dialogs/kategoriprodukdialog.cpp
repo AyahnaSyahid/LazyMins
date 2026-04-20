@@ -32,21 +32,27 @@ void KategoriProdukDialog::prepareModify(int _id) {
   ui->deskripsiPlainText->setPlainText(kp.value("description").toString());
 }
 
+bool KategoriProdukDialog::isInputAcceptable() const {
+  QStringList errs;
+  if (ui->nameLineEdit->text().isEmpty()) errs << "- Field Nama";
+  if (ui->deskripsiPlainText->toPlainText().isEmpty())   errs << "- Field Deskripsi";
+  
+  if (errs.size()) {
+    QMessageBox::warning(nullptr, "Input belum lengkap", "Periksa kebutuhan input berikut terpenuhi:\n" + errs.join("\n"));
+    return false;
+  }
+  return true;
+}
+
+
 void KategoriProdukDialog::on_simpanButton_clicked() {
-  // Check Input
+  
+  if(!isInputAcceptable()) return;
+  
   QMap<QString, QString> pairs {
     {"category_name", ui->nameLineEdit->text()},
     {"description", ui->deskripsiPlainText->toPlainText()},
   };
-  
-  QStringList errs;
-  if (pairs["category_name"].isEmpty()) errs << "- Field Nama";
-  if (pairs["description"].isEmpty())   errs << "- Field Deskripsi";
-  
-  if (errs.size()) {
-    QMessageBox::information(this, "Periksa Input", QString("Pastikan semua field berikut diisi dengan benar:\n%1\n").arg(errs.join("\n")));
-    return ;
-  }
   
   if (m_id < 1) {
     // Create Mode

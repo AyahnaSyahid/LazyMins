@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ExpenseDialog</class>
+ <widget class="QDialog" name="ExpenseDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>310</width>
+    <height>209</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Catat Pengeluaran</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Kategori</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QueryComboBox" name="kategoriCombo"/>
+       </item>
+       <item>
+        <widget class="QToolButton" name="pilihKategori">
+         <property name="text">
+          <string>Pilih</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Akun</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QueryComboBox" name="akunCombo"/>
+       </item>
+       <item>
+        <widget class="QToolButton" name="pilihAkun">
+         <property name="text">
+          <string>Pilih</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Jumlah</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QSpinBox" name="spinBox">
+       <property name="font">
+        <font>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+       </property>
+       <property name="showGroupSeparator" stdset="0">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>20000000</number>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Keterangan</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPlainTextEdit" name="plainTextEdit">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>81</height>
+        </size>
+       </property>
+       <property name="tabChangesFocus">
+        <bool>true</bool>
+       </property>
+       <property name="placeholderText">
+        <string>Wajib diisi</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignRight">
+    <widget class="QPushButton" name="simpanButton">
+     <property name="text">
+      <string>Simpan</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QueryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/querycombobox.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>kategoriCombo</tabstop>
+  <tabstop>pilihKategori</tabstop>
+  <tabstop>akunCombo</tabstop>
+  <tabstop>pilihAkun</tabstop>
+  <tabstop>spinBox</tabstop>
+  <tabstop>plainTextEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

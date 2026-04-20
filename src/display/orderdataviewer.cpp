@@ -1,6 +1,11 @@
 #include "orderdataviewer.h"
 #include "ui_dataviewer.h"
+#include "src/dialogs/orderdialog.h"
+
 #include <QStyledItemDelegate>
+#include <QMenu>
+#include <QAction>
+
 #include <QTimeZone>
 
 namespace {
@@ -31,8 +36,7 @@ namespace {
           case 7: {
             option->displayAlignment = Qt::AlignCenter;
             QDateTime date = ix.data().toDateTime();
-            date.setTimeZone(QTimeZone(QTimeZone::LocalTime));
-            option->text = date.toString("dd/MM/yyyy");
+            option->text = date.toString("dd MMMM yyyy");
             break;
           }
           default:
@@ -44,15 +48,21 @@ namespace {
 
 OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
 {
-  auto ui = Ui();
-  auto mod = &model();
+  auto ui = DataViewer::Ui();
+  auto mod = &DataViewer::model();
   
   setQueryArgs(R"--(
-    SELECT id, customer_name, 
-           customer_phone, order_number, 
-           subtotal, discount_amount as discount, total_amount, order_date
-    FROM orders
-    WHERE payment_status <> 'paid')--");
+    SELECT o.id AS id,
+           o.customer_name AS customer_name,
+           o.customer_phone AS customer_phone,
+           order_number,
+           o.subtotal AS subtotal,
+           o.discount_amount AS discount,
+           o.total_amount AS total_amount,
+           date(order_date, 'localtime')
+      FROM orders o
+     WHERE o.invoice_id IS NULL
+  )--");
   
   setFilterColumnNames( {"order_number", "customer_name"} );
   ui->dataView->setItemDelegate(new Delegate(this));
@@ -65,12 +75,38 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
   mod->setHeaderData(6, Qt::Horizontal, "Total");
   mod->setHeaderData(7, Qt::Horizontal, "Tanggal");
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
-  ui->dataView->resizeColumnsToContents();
   ui->dataView->verticalHeader()->hide();
+  adjustColumns();
+  
+  ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(ui->dataView, &QTableView::customContextMenuRequested, this, &OrderDataViewer::on_dataView_customContextMenuRequested);
+  
+  connect(this, &DataViewer::refreshed, ui->dataView, &QTableView::resizeColumnsToContents);
+  
+  // inisiasi actions
+  m_createOrderAction = new QAction(this);
+  m_createOrderAction->setObjectName("createOrderAction");
+  m_createOrderAction->setToolTip("Buat order baru");
+  m_createOrderAction->setText("Order Baru");
+  connect(m_createOrderAction, &QAction::triggered, this, &OrderDataViewer::openCreateOrderDialog);
+  
 }
 
 OrderDataViewer::~OrderDataViewer(){}
 
 void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
-  
+  QMenu ctx;
+  ctx.setToolTipsVisible(true);
+
+  auto submenu = ctx.addMenu("Data baru");
+  submenu->setToolTipsVisible(true);
+  submenu->addAction(m_createOrderAction);
+  ctx.exec(Ui()->dataView->viewport()->mapToGlobal(p));
+}
+
+void OrderDataViewer::openCreateOrderDialog() {
+  OrderDialog od;
+  connect(&od, &QDialog::accepted, this, &DataViewer::refresh);
+  connect(&od, &OrderDialog::orderCreated, this, &OrderDataViewer::orderCreated);
+  od.exec();
 }

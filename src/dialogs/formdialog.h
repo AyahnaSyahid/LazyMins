@@ -29,6 +29,7 @@ public:
         QString column;
         ValueGetter getter;
         ValueSetter setter;
+        QVariant defaultValue;
     };
 
     void prepareCreate();
@@ -37,29 +38,31 @@ public:
     FormMode mode() const { return m_mode; }
     bool isCreateMode() const { return m_mode == FormMode::Create; }
     bool isModifyMode() const { return m_mode == FormMode::Modify; }
+    // FIX Bug 7: isModified() tidak lagi memanggil collect() pada Create mode
     bool isModified() const;
-
     void accept() override;
+
+    virtual bool isInputAcceptable() const { return true; }
 
 protected:
     virtual void setupFields() = 0;
-    virtual void setupBoundFields() {} // opsional – override jika ada field custom
+    virtual void setupBoundFields() {}
 
     virtual bool onSave(const QVariantMap &changes) = 0;
 
     virtual void onPrepareCreate() {}
     virtual void onPrepareModify() {}
 
-    // Helpers untuk subclass
     void setFields(const QList<FieldMap> &fields);
+
     void addBoundField(
         const QString &column,
         ValueGetter getter,
-        ValueSetter setter = nullptr);
+        ValueSetter setter = nullptr,
+        const QVariant &defaultValue = QVariant());
 
     const QSqlRecord &originalRecord() const { return m_originalRecord; }
 
-    // Fungsi utama: mengumpulkan semua perubahan (atau semua field di mode create)
     virtual QVariantMap collect() const;
 
 protected:
@@ -68,6 +71,7 @@ protected:
 
 private:
     void populateFields();
+
     QList<BoundField> m_boundFields;
 
     FormMode m_mode = FormMode::Create;

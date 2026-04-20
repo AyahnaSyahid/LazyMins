@@ -1,20 +1,31 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "actiongroup.h"
 #include "src/dialogs/konsumendialog.h"
 #include "src/dialogs/userdialog.h"
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/instantorderdialog.h"
+#include "src/dialogs/kategoriprodukdialog.h"
+#include "src/dialogs/logindialog.h"
+
 #include "src/utils/sessionmanager.h"
-#include "src/display/dataviewer.h"
+
 #include "src/display/produkdataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/orderdataviewer.h"
-#include "src/dialogs/logindialog.h"
-#include "src/dialogs/kategoriprodukdialog.h"
+#include "src/display/invoicedataviewer.h"
+#include "src/display/akuntransaksidataviewer.h"
+#include "src/display/konsumendataviewer.h"
+#include "src/display/paymentsdataviewer.h"
+#include "src/dialogs/configureserialposdialog.h"
+
 #include "src/managers/adminmanager.h"
+#include "src/managers/appsettingsmanager.h"
 #include <QDockWidget>
 #include <QMessageBox>
+
+#include "src/utils/posprintertestdialog.h"
 
 namespace {
   void connectCreateActionToFormDialog(QAction *action, 
@@ -52,67 +63,120 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   auto dockSetup = [](QDockWidget *dw, const QString &title, QWidget *widget) -> QDockWidget* { dw->setWidget(widget); dw->setWindowTitle(title); return dw; };
   
   auto dv1 = new ProdukDataViewer;
-  auto ds = dockSetup(new QDockWidget(this), "Data Produk", dv1);
-  addDockWidget(Qt::TopDockWidgetArea, ds);
+  auto dsP = dockSetup(new QDockWidget(this), "Data Produk", dv1);
+  addDockWidget(Qt::TopDockWidgetArea, dsP);
   dv1->setPageSize(100);
   dv1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsP->toggleViewAction());
   connect(ui->actionProdukAdd, &QAction::triggered, dv1->addProductAction(), &QAction::trigger);
+  connect(ui->actionAddKatProduk, &QAction::triggered, dv1->addCategoryProductAction(), &QAction::trigger);
 
   auto fs1 = new FinishingServicesViewer;
-  ds = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
-  addDockWidget(Qt::LeftDockWidgetArea, ds);
+  auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
+  addDockWidget(Qt::LeftDockWidgetArea, dsF);
   fs1->setPageSize(100);
   fs1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsF->toggleViewAction());
+
 
   auto ord1 = new OrderDataViewer;
-  ds = dockSetup(new QDockWidget(this), "Data Orders", ord1);
-  addDockWidget(Qt::TopDockWidgetArea, ds);
+  auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
+  addDockWidget(Qt::TopDockWidgetArea, dsO);
   ord1->setPageSize(50);
   ord1->refresh();
-  ui->menuView->addAction(ds->toggleViewAction());
+  ui->menuView->addAction(dsO->toggleViewAction());
+  connect(ui->actionOrderCreate, &QAction::triggered, ord1, &OrderDataViewer::openCreateOrderDialog);
+  connect(ord1, &OrderDataViewer::orderCreated, dv1, &DataViewer::refresh);
+
+  auto idv = new InvoiceDataViewer;
+  auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
+  addDockWidget(Qt::TopDockWidgetArea, dsI);
+  idv->setPageSize(50);
+  idv->refresh();
+  ui->menuView->addAction(dsI->toggleViewAction());
+  connect(ui->actionInvoiceCreate, &QAction::triggered, idv, &InvoiceDataViewer::onCreateInvoice);
+  connect(idv, &DataViewer::refreshed, ord1, &DataViewer::refresh); // Hati2 jangan sampai circular
   
-  connectCreateActionToFormDialog(ui->actionKonsumenAdd, "Tambah data konsumen baru", [this](){ return new KonsumenDialog(this); }, this);
-  // connectCreateActionToFormDialog(ui->actionProdukAdd, "Tambah data produk baru", [this, dv1]()
-    // { auto pd =  new ProductDialog(this);
-      // pd->connect(pd, &QDialog::accepted, dv1, &DataViewer::refresh);
-      // return pd;
-    // }, this);
+  auto atdv = new AkunTransaksiDataViewer;
+  auto dsAT = dockSetup(new QDockWidget(this), "Akun Transaksi", atdv);
+  addDockWidget(Qt::BottomDockWidgetArea, dsAT);
+  atdv->setPageSize(100);
+  atdv->refresh();
+  ui->menuView->addAction(dsAT->toggleViewAction());
+
+  auto kdv = new KonsumenDataViewer;
+  auto dsK = dockSetup(new QDockWidget(this), "Data Konsumen", kdv);
+  addDockWidget(Qt::BottomDockWidgetArea, dsK);
+  kdv->setPageSize(100);
+  kdv->refresh();
+  ui->menuView->addAction(dsK->toggleViewAction());
+  connect(ui->actionKonsumenAdd, &QAction::triggered, kdv, &KonsumenDataViewer::openCreateKonsumenDialog);
   
-  auto createOrderDialog = [this, ord1, dv1]() {
-    auto d = new OrderDialog(this);
-    d->setAttribute(Qt::WA_DeleteOnClose);
-    connect(d, &OrderDialog::accepted, ord1, &OrderDataViewer::refresh);
-    connect(d, &OrderDialog::accepted, dv1, &DataViewer::refresh);
-    d->open();
-  };
+  auto pdv = new PaymentsDataViewer;
+  auto dsPy = dockSetup(new QDockWidget(this), "Pembayaran", pdv);
+  addDockWidget(Qt::RightDockWidgetArea, dsPy);
+  pdv->setPageSize(100);
+  pdv->refresh();
+  ui->menuView->addAction(dsPy->toggleViewAction());
   
-  connect(ui->actionOrderCreate, &QAction::triggered, createOrderDialog);
+  // InvoiceDataViewer bisa membuat pembayaran
+  connect(idv, &InvoiceDataViewer::paymentCreated, pdv, &DataViewer::refresh);
+  
+  // PaymentsDataViewer bisa memverifikasi pembayaran
+  connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
+
+  tabifyDockWidget(dsP, dsF); // products, finishings
+  dsP->raise();
+  
+  tabifyDockWidget(dsO, dsI); // orders, invoices
+  tabifyDockWidget(dsI, dsPy); // invoices, payments
+  dsO->raise();
+  
+  tabifyDockWidget(dsK, dsAT); // AkunTransaksi, konsumen
+  dsK->raise();
+  
   connectCreateActionToFormDialog(ui->actionAdminAdd, "Tambah data admin baru", 
     [this](){ 
       auto ud = new UserDialog(this);
       return ud; }, this);
-  connect(ui->actionInstantOrderCreate, &QAction::triggered, [this](){
+  connect(ui->actionInstantOrderCreate, &QAction::triggered, [this, dv1, idv](){
     auto dialog = new InstantOrderDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    // connect signal
-    // connect(dialog, &QDialog::accepted, ) 
+    connect(dialog, &QDialog::accepted, dv1, &DataViewer::refresh); 
+    connect(dialog, &QDialog::accepted, idv, &DataViewer::refresh); 
     dialog->open();
   });
-  
-  connect(ui->actionAddKatProduk, &QAction::triggered, [this]() {
-    auto dia = new KategoriProdukDialog(this);
-    dia->setAttribute(Qt::WA_DeleteOnClose);
-    dia->prepareCreate();
-    dia->open();
-  });
-  
+
+  // Various actions
+  auto actionGroup = new ActionGroup(this);
+  actionGroup->setRootWidget(this);
+  ui->menuTambah->addSeparator();
+  ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
+  ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
+
   // UserSession
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
+  connect(&sm, &SessionManager::loginFailed, [this](const QString& m) {
+    QMessageBox::warning(this, "Peringatan", m);
+  });
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
+
+  // Window Title
+  AppSettingsManager apm;
+  setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");
+  
+  // Printer Test
+  ui->actionPrinterTest_2->setEnabled(false);
+  connect(ui->actionPrinterTest_2, &QAction::triggered, [this](){
+    PosPrinterTestDialog *pp = new PosPrinterTestDialog(this);
+    pp->open();
+  });
+  connect(ui->actionEscPosConfig, &QAction::triggered, [this](){
+    auto *pp = new ConfigureSerialPosDialog(this);
+    pp->exec();
+  });
 }
 
 MainWindow::~MainWindow() {delete ui;}
@@ -143,12 +207,6 @@ void MainWindow::currentUserChanged() {
   }
   auto rec_user = *opt_user;
   AdminManager a_man;
-  // lakukan preparasi ui untuk current user dan pembatasan akses GUI
   auto has_super_user = a_man.userHasRole(rec_user.value("id").toInt(), "super_admin");
-  // qDebug() << QString("%1 : %2").arg(rec_user.value("username").toString()).arg(has_super_user);
-  if (!has_super_user) {
-    ui->actionAdminAdd->setEnabled(false);
-  } else {
-    ui->actionAdminAdd->setEnabled(true);
-  }
+  ui->actionAdminAdd->setEnabled(has_super_user);
 }

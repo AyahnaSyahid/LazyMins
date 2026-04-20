@@ -706,6 +706,9 @@ bool AdvancedQueryModel::executeDatabaseOperation(const QString &sql, const QVar
         m_lastError = q.lastError().text();
         qWarning() << "AdvancedQueryModel::executeDatabaseOperation error:" << m_lastError;
         qWarning() << "SQL:" << sql;
+        for(auto const& [key, value] : bindings.asKeyValueRange()) {
+          qWarning() << QString("%1 : %2").arg(key, value.toString());
+        }
         return false;
     }
     return true;

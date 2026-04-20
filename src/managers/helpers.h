@@ -1,13 +1,17 @@
 #pragma once
 
 #include "src/models/ordermodel.h"
-#include "src/managers/managers.h"
 
+struct Receipt;
 namespace DBOperationHelper {
   struct OperationResult {
     bool ok; 
-    QString error; 
+    QString error;
+    
+    // neded if caller requires some value after database item creation
+    QVariantMap data; // maybe empty
   };
+
   // digunakan di InstantOrderDialog
   // menggunakan transaction
   OperationResult createInstantOrder( const OrderHeader&, 
@@ -16,17 +20,29 @@ namespace DBOperationHelper {
                                       const QVariantMap& paymentInfo );
   
   // tanpa transaction
+  OperationResult internalCreateInvoice( const QVariantMap& param, QList<int> oids);
+  
+  // menggunakan transaction
+  OperationResult createInvoiceForOrders(const QVariantMap& iPar,  QList<int> orderIds);
+  OperationResult createPaymentForOrders(const QVariantMap& iPar,  const QVariantMap& pPar, QList<int> orderIds);
+
+  // tanpa transaction
   OperationResult stockUpdate( const OrderItem& it, 
                                const QString& tipe, 
                                const QString& notes,
                                int   adminId  = 1 );
-  
+
   // digunakan di StockOpnameDialog
   // menggunakan transaction
   OperationResult adjustProductStock( int product_id, qreal _final, const QString& notes);
-  
+
   // digunakan di StockRefillDialog
-  // menggunakan transaction
-  
+  // menggunakan transaction  
   OperationResult refillProductStock ( int productId, qreal stockIn, const QString& supplier, const QString& notes);
+  
+  int currentAdminId();
+  
+  // menggunakan transaction  
+  OperationResult loadInvoiceData(int invoice_id, Receipt *rec);
+  OperationResult loadInvoiceDataFast(int invoice_id, Receipt *rec);
 }

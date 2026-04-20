@@ -3,8 +3,9 @@
 
 #include "finishingdialog.h"
 #include "src/models/finishinglistmodel.h"
-#include "src/models/ordermodel.h"
 #include "src/customs/finishingitemdelegate.h"
+#include "src/models/ordermodel.h"
+#include "src/dialogs/productpickerdialog.h"
 #include <QMessageBox>
 #include <QMenu>
 #include <QStyledItemDelegate>
@@ -46,44 +47,15 @@ OrderItemDialog::OrderItemDialog(QWidget *parent) :
     ui->produkComboBox->showColumn(5, false); // Sembunyikan kolom sku
     ui->produkComboBox->boxViewAutoResize();
     ui->produkComboBox->setCurrentIndex(-1);
-    m_finModel.setList(&new_fItems);
-    ui->finishingView->setModel(&m_finModel);
+    m_finishingListModel.setList(&m_newFinishingItems);
+    ui->finishingView->setModel(&m_finishingListModel);
     ui->finishingView->setItemDelegate(new FinishingItemDelegate(this));
 
     // Context menu for finishing view: edit and remove
     ui->finishingView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->finishingView, &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
-        auto ix = ui->finishingView->indexAt(pos);
-        if (!ix.isValid()) return;
-        int row = ix.row();
-        QMenu menu;
-        auto editAct = menu.addAction("Edit");
-        auto delAct  = menu.addAction("Hapus");
-        auto chosen  = menu.exec(ui->finishingView->viewport()->mapToGlobal(pos));
-        if (chosen == editAct) {
-            const QList<FinishingItem> *items = m_finModel.getItems();
-            if (!items || row >= items->count()) return;
-            // Use shared_ptr so the dialog's pointer and the accepted-lambda
-            // both refer to the same FinishingItem instance.
-            auto fi = std::make_shared<FinishingItem>((*items)[row]);
-            auto fd = new FinishingDialog(this);
-            fd->setAttribute(Qt::WA_DeleteOnClose);
-            fd->setItem(fi.get());
-            connect(fd, &QDialog::accepted, this, [this, row, fi]() {
-                // FinishingDialog wrote back into *fi via the stored pointer.
-                auto modelIx = m_finModel.index(row);
-                m_finModel.setData(modelIx, fi->finishing_id,    Qt::UserRole + 3);
-                m_finModel.setData(modelIx, fi->finishing_name,  Qt::UserRole + 4);
-                m_finModel.setData(modelIx, fi->quantity,        Qt::UserRole + 5);
-                m_finModel.setData(modelIx, fi->finishing_price, Qt::UserRole + 6);
-                QTimer::singleShot(0, this, [this]{ recalculateSubtotal(); });
-            });
-            fd->open();
-        } else if (chosen == delAct) {
-            m_finModel.removeItem(row);
-            QTimer::singleShot(0, this, [this]{ recalculateSubtotal(); });
-        }
-    });
+    connect(ui->finishingView, &QWidget::customContextMenuRequested, this, &OrderItemDialog::on_finishingView_customContextMenuRequested);
+    connect(&m_finishingListModel, &QAbstractListModel::rowsInserted, this, &OrderItemDialog::recalculateSubtotal);
+    connect(&m_finishingListModel, &QAbstractListModel::rowsRemoved, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 OrderItemDialog::~OrderItemDialog()
@@ -131,12 +103,11 @@ void OrderItemDialog::setOrder(OrderItem *order) {
   ui->diskonDoubleSpinBox->setValue(order->discount_percentage);
   ui->diskonRpSpinBox->setValue(order->discount_amount);
   ui->notesTextEdit->setPlainText(order->notes);
-  m_finModel.setList(&order->finishings);
+  m_finishingListModel.setList(&order->finishings);
 
   for (auto *w : inputs) w->blockSignals(false);
   // Now do one clean recalculation with all values in place.
   ui->qtySpinBox->setValue(order->quantity);
-  // recalculateSubtotal();
 }
 
 void OrderItemDialog::resetForm()
@@ -176,11 +147,11 @@ void OrderItemDialog::on_simpanButton_clicked()
       oi.base_price = pr.value("cost_price").toInt();
       oi.discount_percentage = ui->diskonDoubleSpinBox->value();
       oi.discount_amount = ui->diskonRpSpinBox->value();
-      oi.finishing_total = m_finModel.total();
+      oi.finishing_total = m_finishingListModel.total();
       oi.notes = ui->notesTextEdit->toPlainText();
-      auto p = m_finModel.getItems();
+      auto p = m_finishingListModel.getItems();
       oi.finishings.clear();
-      for(auto const fp : *p) {
+      for(auto const fp : p) {
         oi.finishings << fp;
       }
       emit itemCreated(oi);
@@ -204,7 +175,7 @@ void OrderItemDialog::on_simpanButton_clicked()
         m_orderItem->base_price          = pr.value("cost_price").toInt();
         m_orderItem->discount_percentage = ui->diskonDoubleSpinBox->value();
         m_orderItem->discount_amount     = ui->diskonRpSpinBox->value();
-        m_orderItem->finishing_total     = m_finModel.total();
+        m_orderItem->finishing_total     = m_finishingListModel.total();
         m_orderItem->notes               = ui->notesTextEdit->toPlainText();
         emit editFinished();
       }
@@ -245,7 +216,7 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
     auto optprice = m_priceManager.getPrice(productId, m_customerPriceLevel);
     int suggestedPrice = 0;
     if (optprice.has_value()) {
-        suggestedPrice = *optprice;
+        suggestedPrice = optprice->value("price").toInt();
     } else {
         // Fallback to cost_price column (index 4 in the query)
         suggestedPrice = model->index(index, 4).data(Qt::EditRole).toInt();
@@ -259,14 +230,12 @@ void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {
 
 void OrderItemDialog::on_hargaSpinBox_valueChanged(int arg1)
 {
-    Q_UNUSED(arg1);
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+    recalculateSubtotal();
 }
 
 void OrderItemDialog::on_qtySpinBox_valueChanged(int arg1)
 {
-    Q_UNUSED(arg1);
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+  recalculateSubtotal();
 }
 
 void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
@@ -278,7 +247,7 @@ void OrderItemDialog::on_diskonDoubleSpinBox_valueChanged(double arg1)
     // FIX: block signals to avoid triggering on_diskonRpSpinBox_valueChanged
     // which would re-enter and overwrite the percentage we just received.
     disableSignalAndSet(ui->diskonRpSpinBox, static_cast<int>(diskonRp));
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+    recalculateSubtotal();
 }
 
 void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
@@ -292,7 +261,7 @@ void OrderItemDialog::on_diskonRpSpinBox_valueChanged(int arg1)
     }
     double diskonPersen = (static_cast<double>(arg1) / static_cast<double>(calcullatedSubtotal)) * 100.0;
     disableSignalAndSet(ui->diskonDoubleSpinBox, diskonPersen);
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+    recalculateSubtotal();
 }
 
 void OrderItemDialog::recalculateSubtotal()
@@ -318,7 +287,7 @@ int OrderItemDialog::calculatedPrice() const
     bool use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole).toBool();
     double areaMultiplier = (use_area && width > 0 && height > 0) ? (width * height) : 1.0;
     int pr = static_cast<int>(std::ceil((harga * areaMultiplier * qty) / 100.0)) * 100;
-    return pr + m_finModel.total();
+    return pr + m_finishingListModel.total();
 }
 
 void OrderItemDialog::on_tambahButton_clicked() {
@@ -329,13 +298,63 @@ void OrderItemDialog::on_tambahButton_clicked() {
 }
 
 void OrderItemDialog::onCreateFinishing(const FinishingItem& item) {
-  m_finModel.addItem(item);
-  // Recalculate: calculatedPrice() includes m_finModel.total() 
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
-
+  m_finishingListModel.addItem(item);
+  // Recalculate: calculatedPrice() includes m_finishingListModel.total() 
+  QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
 }
 
 // handle editFinishing
-void OrderItemDialog::onFinishingAccepted() {
-    QTimer::singleShot(0, this, &OrderItemDialog::recalculateSubtotal);
+void OrderItemDialog::onFinishingEdited(const FinishingItem& fi) {
+  auto dl = qobject_cast<FinishingDialog*>(sender());
+  if(!dl) return;
+  auto row = dl->property("itemRowNumber").toInt();
+  auto modelIx = m_finishingListModel.index(row, 0);
+  m_finishingListModel.setData(modelIx, fi.finishing_id,    Qt::UserRole + 3);
+  m_finishingListModel.setData(modelIx, fi.finishing_name,  Qt::UserRole + 4);
+  m_finishingListModel.setData(modelIx, fi.quantity,        Qt::UserRole + 5);
+  m_finishingListModel.setData(modelIx, fi.finishing_price, Qt::UserRole + 6);
+}
+
+void OrderItemDialog::on_finishingView_customContextMenuRequested(const QPoint& pos) 
+{
+  auto ix = ui->finishingView->indexAt(pos);
+  if (!ix.isValid()) return;
+  int row = ix.row();
+  QMenu menu;
+  auto editAct = menu.addAction("Edit");
+  auto delAct  = menu.addAction("Hapus");
+  auto chosen  = menu.exec(ui->finishingView->viewport()->mapToGlobal(pos));
+  if (chosen == editAct) {
+    auto items = m_finishingListModel.getItems();
+    // Use shared_ptr so the dialog's pointer and the accepted-lambda
+    // both refer to the same FinishingItem instance.
+    auto fi = items[row];
+    auto fd = new FinishingDialog(this);
+    fd->setAttribute(Qt::WA_DeleteOnClose);
+    fd->setItem(fi);
+    fd->setProperty("itemRowNumber", row);
+    connect(fd, &FinishingDialog::itemModified, this, &OrderItemDialog::onFinishingEdited);
+    fd->open();
+  } else if (chosen == delAct) {
+      m_finishingListModel.removeItem(row);
+  }
+}
+
+void OrderItemDialog::on_pilihButton_clicked() {
+  ProductPickerDialog ppd(this);
+  // ppd.setWindowFlag(Qt::FramelessWindowHint, true);
+  connect(&ppd, &ProductPickerDialog::productPicked, this, &OrderItemDialog::setCurrentProduct);
+  connect(&ppd, &ProductPickerDialog::productPicked, &ppd, &QDialog::accept);
+  auto tr = ui->pilihButton->geometry().topRight();
+  ppd.move(mapToGlobal(tr));
+  ppd.exec();
+}
+
+void OrderItemDialog::setCurrentProduct(int p) {
+  int prix = ui->produkComboBox->findIndex(p, 0);
+  if (prix < 0) {
+    QMessageBox::warning(this, "Kesalahan Internal", "Tidak dapat menyetel produk");
+    return ;
+  }
+  ui->produkComboBox->setCurrentIndex(prix);
 }

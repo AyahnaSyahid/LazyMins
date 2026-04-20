@@ -10,7 +10,7 @@ bool AdminManager::exists(const QString &username)
   return found;
 }
 
-void AdminManager::beforeCreate(QVariantMap &param)
+bool AdminManager::beforeCreate(QVariantMap &param)
 {
   auto &am = AuthManager::instance();
   QString salt = am.generateSalt();
@@ -21,11 +21,18 @@ void AdminManager::beforeCreate(QVariantMap &param)
   param["password_hash"] = hash;
   param["created_at"] = QDateTime::currentDateTimeUtc();
   param["updated_at"] = QDateTime::currentDateTimeUtc();
+  return true;
 }
 
-void AdminManager::beforeUpdate(int id, QVariantMap &param)
+bool AdminManager::beforeUpdate(int id, QVariantMap &param)
 {
   param["updated_at"] = QDateTime::currentDateTimeUtc();
+  return true;
+}
+
+QVariantMap AdminManager::validateParams(const QVariantMap &params)
+{
+    return params;
 }
 
 bool AdminManager::changeLoginInfo(const QString &oldname, const QString &newName, const QString &newPass)

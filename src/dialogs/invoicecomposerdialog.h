@@ -7,6 +7,7 @@ namespace Ui {
 #include <QDialog>
 
 class InvoiceComposerModel;
+class QSqlRecord  ;
 class InvoiceComposerDialog : public QDialog
 {
   Q_OBJECT
@@ -19,18 +20,33 @@ class InvoiceComposerDialog : public QDialog
   public slots:
     void uiSync();
     void refresh();             // ambil kembali data orders yang ada didatabase
-    void setCustomerId(int id);
+    void setCustomer(const QSqlRecord&);
 
   private slots:
     void on_simpanButton_clicked();
     void on_bayarButton_clicked();
+    void on_removeSelectedOrdersAction_triggered();
+    void on_metodeBayar_currentIndexChanged(int);
+    // void on_pajakSpinBix_valueChanged(int);
     void onImportOrder(); // buka dialog order picker
     void importOrders(const QList<int> &imported);
     void on_orderListView_customContextMenuRequested(const QPoint&);
     void on_pilihButton_clicked();
+    void onCustomerChanged();
+    void handlePaymentGranted(const QVariantMap&);
+    void handlePaymentRejected();
+
+  signals:
+    void customerChanged();
+    void invoiceCreated(int id);
+    void paymentCreated(int id);
 
   private:
+    bool checkInput();
+    QVariantMap params() const;
     Ui::InvoiceComposerDialog *ui;
+    bool makeInvoice();
+    void makePayment();
 
     // data invoice
     int m_invoice_id = -1; // < 0 Menanadakan mode create

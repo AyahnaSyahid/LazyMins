@@ -40,11 +40,6 @@ public:
     virtual bool softDelete(int id);
     virtual bool restore(int id);
 
-    // Transaction support
-    // static bool beginTransaction();
-    // static bool commit();
-    // static bool rollback();
-
     // Count
     virtual int count(const QString& condition = "", const QVariantMap& bindings = QVariantMap());
     
@@ -54,6 +49,9 @@ public:
     // Errors String
     virtual QString errorString() const { return m_errorString; }
     virtual QSqlRecord empty() const;
+    
+    QVariant lastInsertId() const;
+
 protected:
     QString tableName() const { return m_tableName; }
     bool useSoftDelete() const { return m_useSoftDelete; }
@@ -62,21 +60,29 @@ protected:
     virtual QString buildInsertQuery(const QVariantMap& params);
     virtual QString buildUpdateQuery(int id, const QVariantMap& params);
     virtual QVariantMap validateParams(const QVariantMap& params);
-    virtual void beforeCreate(QVariantMap& params);
-    virtual void afterCreate(const QSqlRecord& record);
-    virtual void beforeUpdate(int id, QVariantMap& params);
-    virtual void afterUpdate(int id, const QSqlRecord& record);
-    virtual void beforeDelete(int id);
-    virtual void afterDelete(int id);
+    virtual bool beforeCreate(QVariantMap& params);
+    virtual bool afterCreate(const QSqlRecord& record);
+    virtual bool beforeUpdate(int id, QVariantMap& params);
+    virtual bool afterUpdate(int id, const QSqlRecord& recordBefore, const QSqlRecord& recordAfter);
+    virtual bool beforeDelete(int id);
+    virtual bool afterDelete(int id, const QSqlRecord& before);
 
     void resetErrorString();
     void setErrorString(const QString& err) { m_errorString = err; }
+
     // Helper methods
     QString getDeleteCondition() const;
-    
+    static QString generateCode(const QString& tableName,
+                             const QString& numberColumn,
+                             const QString& prefix,
+                             int padWidth = 5,
+                             bool useDate = false);
+    static QString dateToSql(const QDate& d = QDateTime::currentDateTimeUtc().date());
+    static QString dateTimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc());
 private:
+    static QMap<QString, QStringList> s_columnCache;
+    QVariant m_lastInsertId;
     QString m_errorString;
     QString m_tableName;
     bool m_useSoftDelete;
 };
-

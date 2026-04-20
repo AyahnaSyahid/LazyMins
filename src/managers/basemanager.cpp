@@ -5,6 +5,8 @@ void debugMap(const QVariantMap&);
 
 QSqlDatabase BaseManager::connection;
 
+QMap<QString, QStringList> BaseManager::s_columnCache;
+
 QSqlQuery BaseManager::baseQuery() {
   return QSqlQuery {connection};
 }
@@ -22,24 +24,17 @@ BaseManager::~BaseManager()
 
 std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
 {
+  m_lastInsertId = QVariant();
   resetErrorString();
-  
   QVariantMap validatedParams = validateParams(params); 
   
   if (validatedParams.isEmpty()) { 
     setErrorString("Parameter Kosong");
     return std::nullopt;
   }
-  
-  if (!validatedParams.contains("created_at")) {
-      validatedParams["created_at"] = QDateTime::currentDateTimeUtc();
-  }
-  if (!validatedParams.contains("updated_at")) {
-      validatedParams["updated_at"] = QDateTime::currentDateTimeUtc();
-  }
-  
+
   // Hook before create
-  beforeCreate(validatedParams);
+  if ( !beforeCreate(validatedParams) ) return std::nullopt;
   
   auto query = BaseManager::baseQuery();
   QString sql = buildInsertQuery(validatedParams);
@@ -50,46 +45,55 @@ std::optional<QSqlRecord> BaseManager::create(const QVariantMap& params)
   for (auto it = validatedParams.begin(); it != validatedParams.end(); ++it) {
       query.bindValue(":" + it.key(), it.value());
   }
-  
 
   if (query.exec()) {
-      int lastId = query.lastInsertId().toInt();
+      m_lastInsertId = query.lastInsertId();
+      int lastId = m_lastInsertId.toInt();
       auto record = getById(lastId);
-   
+
       // Hook after create
-      if (record)
-        afterCreate(*record);
-      
-      return record;
+      if (record && afterCreate(*record))
+        return record;
   }
   
-  qDebug() << "exec failed" << query.lastError().text();
+  qDebug() << "exec failed" << query.lastError().text() 
+           << "last query :" << sql;
   setErrorString(query.lastError().text());
   return std::nullopt;
 }
 
 std::optional<QSqlRecord> BaseManager::getById(int id) const
 {
-    QSqlQuery query(BaseManager::connection);
+    auto query = baseQuery();
     
+    QString deleteCondition = getDeleteCondition();
     QString sql = QString("SELECT * FROM %1 WHERE id = :id %2")
-                      .arg(m_tableName, getDeleteCondition());
-    
+                      .arg(m_tableName, deleteCondition.isEmpty() ? "" : "AND " + deleteCondition);
     query.prepare(sql);
     query.bindValue(":id", id);
     
-    if (query.exec() && query.next()) {
-        return query.record();
-    } else if (!query.exec()) {
-        qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
+    if (!query.exec()) {
+    qDebug() << "Error getting record from" << m_tableName << ":" << query.lastError().text();
+    return std::nullopt;
     }
-    
+    if (query.next()) return query.record();
     return std::nullopt;
 }
 
 bool BaseManager::update(int id, const QVariantMap& params)
 {
     resetErrorString();
+    
+    auto opt_rBefore = getById(id);
+    if(!opt_rBefore.has_value()) {
+      QString err ("Tidak dapat menemukan Record saat mencoba Update");
+      setErrorString(err);
+      qWarning() << "[BaseManager::update] Error: " << err;
+      return false;
+    }
+    
+    auto rBefore = *opt_rBefore;
+    
     QVariantMap validatedParams = validateParams(params);
     
     // Update timestamp
@@ -98,10 +102,15 @@ bool BaseManager::update(int id, const QVariantMap& params)
     }
     
     // Hook before update
-    beforeUpdate(id, validatedParams);
+    if ( !beforeUpdate(id, validatedParams) ) return false;
     
     QSqlQuery query(BaseManager::connection);
+    QString deleteCondition = getDeleteCondition();
     QString sql = buildUpdateQuery(id, validatedParams);
+    
+    if (!deleteCondition.isEmpty()) {
+        sql += " AND " + deleteCondition;
+    }
     
     query.prepare(sql);
     query.bindValue(":id", id);
@@ -119,18 +128,34 @@ bool BaseManager::update(int id, const QVariantMap& params)
     bool success = query.numRowsAffected() > 0;
     
     if (success) {
-        auto record = getById(id);
+        auto opt_rAfter = getById(id);
+        if (!opt_rAfter.has_value()) {
+          QString err("Tidak dapat menemukan Record saat update");
+          qWarning() << "[BaseManager::update] Error :" << err;
+          setErrorString(err);
+          return false;
+        }
+        
+        auto rAfter = *opt_rAfter;
         // Hook after update
-        afterUpdate(id, *record);
+        if ( !afterUpdate(id, rBefore, rAfter) ) return false;
     }
-    
     return success;
 }
 
 bool BaseManager::remove(int id)
 {
     // Hook before delete
-    beforeDelete(id);
+    if( !beforeDelete(id) ) return false;
+    
+    auto opt_op = getById(id);
+    
+    if (!opt_op.has_value()) {
+      QString err ("Id tidak ditemukan. Data corrupt ?");
+      qWarning() << "[BaseManager::remove] " << m_tableName << ": " << err;
+      setErrorString(err);
+      return false;
+    }
     
     if (m_useSoftDelete) {
         return softDelete(id);
@@ -147,15 +172,12 @@ bool BaseManager::remove(int id)
         return false;
     }
 
-    
     bool success = query.numRowsAffected() > 0;
     
     if (success) {
         // Hook after delete
-        afterDelete(id);
+        if ( !afterDelete(id, *opt_op) ) return false;
     }
-    
-    qDebug() << "Removing FROM " << m_tableName << " Success";
     return success;
 }
 
@@ -168,16 +190,11 @@ QList<QSqlRecord> BaseManager::getAll(const QString& orderBy, int limit)
     QList<QSqlRecord> records;
     QSqlQuery query(BaseManager::connection);
     
-    QString sql = QString("SELECT * FROM %1 %2")
-                      .arg(m_tableName, getDeleteCondition());
-    
-    if (!orderBy.isEmpty()) {
-        sql += " ORDER BY " + orderBy;
-    }
-    
-    if (limit > 0) {
-        sql += QString(" LIMIT %1").arg(limit);
-    }
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT * FROM %1").arg(m_tableName);
+    if (!deleteCondition.isEmpty()) sql += " WHERE " + deleteCondition;
+    if (!orderBy.isEmpty()) sql += " ORDER BY " + orderBy;
+    if (limit > 0) sql += QString(" LIMIT %1").arg(limit);
     
     if (query.exec(sql)) {
         while (query.next()) {
@@ -195,16 +212,16 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
                                         const QString& orderBy,
                                         int limit)
 {
-    QList<QSqlRecord> records;
-    QSqlQuery query(BaseManager::connection);
+    QList<QSqlRecord> recordList;
+    QSqlQuery query = baseQuery();
     
     QString whereClause = condition;
     QString deleteCondition = getDeleteCondition();
     
     if (!whereClause.isEmpty() && !deleteCondition.isEmpty()) {
-        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition.mid(6); // Remove "WHERE "
+        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition;
     } else if (!deleteCondition.isEmpty()) {
-        whereClause = deleteCondition.mid(6); // Remove "WHERE "
+        whereClause = deleteCondition; // Remove "WHERE "
     }
     
     QString sql = QString("SELECT * FROM %1").arg(m_tableName);
@@ -230,14 +247,13 @@ QList<QSqlRecord> BaseManager::getWhere(const QString& condition,
     
     if (query.exec()) {
         while (query.next()) {
-            records.append(query.record());
+            recordList << query.record();
         }
     } else {
-        qDebug() << "Error getting records from" << m_tableName << ":" << query.lastError().text();
+        qDebug() << "Error getting recordList from" << m_tableName << ":" << query.lastError().text();
         qDebug() << "Query:" << query.lastQuery();
     }
-    
-    return records;
+    return recordList;
 }
 
 QList<QSqlRecord> BaseManager::getByIds(const QList<int>& ids)
@@ -255,8 +271,11 @@ QList<QSqlRecord> BaseManager::getByIds(const QList<int>& ids)
         placeholders << QString(":id%1").arg(i);
     }
     
-    QString sql = QString("SELECT * FROM %1 WHERE id IN (%2) %3")
-                      .arg(m_tableName, placeholders.join(", "), getDeleteCondition());
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT * FROM %1 WHERE id IN (%2)")
+                      .arg(m_tableName, placeholders.join(", "));
+    
+    if (!deleteCondition.isEmpty()) sql += " AND " + deleteCondition;
     
     query.prepare(sql);
     
@@ -359,9 +378,9 @@ int BaseManager::count(const QString& condition, const QVariantMap& bindings)
     QString deleteCondition = getDeleteCondition();
     
     if (!whereClause.isEmpty() && !deleteCondition.isEmpty()) {
-        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition.mid(6);
+        whereClause = "(" + whereClause + ")" + " AND " + deleteCondition;
     } else if (!deleteCondition.isEmpty()) {
-        whereClause = deleteCondition.mid(6);
+        whereClause = deleteCondition;
     }
     
     QString sql = QString("SELECT COUNT(*) as total FROM %1").arg(m_tableName);
@@ -389,8 +408,10 @@ bool BaseManager::exists(int id)
 {
     QSqlQuery query(BaseManager::connection);
     
-    QString sql = QString("SELECT COUNT(*) as total FROM %1 WHERE id = :id %2")
-                      .arg(m_tableName, getDeleteCondition());
+    QString deleteCondition = getDeleteCondition();
+    QString sql = QString("SELECT COUNT(*) as total FROM %1 WHERE id = :id")
+                      .arg(m_tableName);
+    if(!deleteCondition.isEmpty()) sql += " AND " + deleteCondition; 
     
     query.prepare(sql);
     query.bindValue(":id", id);
@@ -434,47 +455,100 @@ QString BaseManager::buildUpdateQuery(int id, const QVariantMap& params)
 
 QVariantMap BaseManager::validateParams(const QVariantMap& params)
 {
-    // Default: return as is
-    // Override di derived class untuk validasi custom
-    return params;
+    if (m_tableName.isEmpty()) return params;
+
+    // 1. Cek apakah skema tabel sudah ada di static cache
+    if (!s_columnCache.contains(m_tableName)) {
+        QSqlRecord schema = connection.record(m_tableName);
+        QStringList fields;
+        
+        for (int i = 0; i < schema.count(); ++i) {
+            fields << schema.fieldName(i);
+        }
+        
+        // Simpan ke cache global agar bisa digunakan oleh instansi lain
+        s_columnCache[m_tableName] = fields;
+        
+        qDebug() << "[Static Cache] Initialized schema for table:" << m_tableName 
+                 << "with" << fields.count() << "columns";
+    }
+
+    // Ambil daftar kolom dari cache
+    const QStringList& fieldNames = s_columnCache[m_tableName];
+
+    if (fieldNames.isEmpty()) return params;
+
+    QVariantMap filteredParams;
+    // Gunakan iterator yang efisien untuk QVariantMap
+    for (auto it = params.begin(); it != params.end(); ++it) {
+        const QString& key = it.key();
+
+        // A. Validasi keberadaan kolom di database
+        if (!fieldNames.contains(key)) {
+            qDebug() << "[Manager :" << m_tableName << "] :"
+                     << "Unused parameter key :\"" << key << "\" Removed";
+            continue;
+        }
+
+        // B. Proteksi Primary Key (Auto Increment)
+        if (key == "id") continue;
+
+        // C. Proteksi kolom Soft Delete internal
+        if (!m_useSoftDelete && key == "deleted_at") continue;
+
+        filteredParams[key] = it.value();
+    }
+    
+    return filteredParams;
 }
 
-void BaseManager::beforeCreate(QVariantMap& params)
+bool BaseManager::beforeCreate(QVariantMap& params)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(params)
+    return true;
 }
 
-void BaseManager::afterCreate(const QSqlRecord& record)
+bool BaseManager::afterCreate(const QSqlRecord& record)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(record)
+    return true;
 }
 
-void BaseManager::beforeUpdate(int id, QVariantMap& params)
+bool BaseManager::beforeUpdate(int id, QVariantMap& params)
+{
+    // Hook kosong - override di derived class jika perlu
+    auto cc = s_columnCache.value(m_tableName);
+    if (cc.count()) {
+      if (cc.contains("updated_at") && !params.contains("updated_at")) {
+        params["updated_at"] = QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss");
+      }
+    }
+    return true;
+}
+
+bool BaseManager::afterUpdate(int id, const QSqlRecord& a, const QSqlRecord& b)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
-    Q_UNUSED(params)
+    Q_UNUSED(a)
+    Q_UNUSED(b)
+    return true;
 }
 
-void BaseManager::afterUpdate(int id, const QSqlRecord& record)
+bool BaseManager::beforeDelete(int id)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
-    Q_UNUSED(record)
+    return true;
 }
 
-void BaseManager::beforeDelete(int id)
+bool BaseManager::afterDelete(int id, const QSqlRecord&)
 {
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
-}
-
-void BaseManager::afterDelete(int id)
-{
-    // Hook kosong - override di derived class jika perlu
-    Q_UNUSED(id)
+    return true;
 }
 
 // ============================================================================
@@ -484,7 +558,7 @@ void BaseManager::afterDelete(int id)
 QString BaseManager::getDeleteCondition() const
 {
     if (m_useSoftDelete) {
-        return "WHERE deleted_at IS NULL";
+        return "deleted_at IS NULL";
     }
     return "";
 }
@@ -496,3 +570,33 @@ void BaseManager::resetErrorString() {
 QSqlRecord BaseManager::empty() const {
   return QSqlRecord();
 }
+
+QString BaseManager::generateCode(const QString& tableName,
+                                   const QString& numberColumn,
+                                   const QString& prefix,
+                                   int padWidth,
+                                   bool useDate)
+{
+    QString fullPrefix = prefix;
+    if (useDate) {
+        fullPrefix += QDateTime::currentDateTimeUtc().toString("yyyyMMdd") + "-";
+    }
+
+    QSqlQuery q(BaseManager::connection);
+    q.prepare(QString(
+        "SELECT COALESCE(MAX(CAST(SUBSTR(%1, :offset) AS INTEGER)), 0) + 1 AS next_val "
+        "FROM %2 WHERE %1 LIKE :prefix"
+    ).arg(numberColumn, tableName));
+    q.bindValue(":offset", fullPrefix.length() + 1);
+    q.bindValue(":prefix", fullPrefix + "%");
+
+    if (q.exec() && q.next()) {
+        int next = q.value("next_val").toInt();
+        return QString("%1%2").arg(fullPrefix).arg(next, padWidth, 10, QChar('0'));
+    }
+
+    return QString("%1%2").arg(fullPrefix).arg(QDateTime::currentMSecsSinceEpoch());
+}
+
+QString BaseManager::dateToSql(const QDate& d) { return d.toString("yyyy-MM-dd"); }
+QString BaseManager::dateTimeToSql(const QDateTime& d) { return d.toString("yyyy-MM-dd HH:mm:ss"); }

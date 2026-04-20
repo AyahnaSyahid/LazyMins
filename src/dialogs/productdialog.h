@@ -12,10 +12,12 @@ class ProductDialog : public FormDialog
   public:
     ProductDialog(QWidget *p=nullptr);
     ~ProductDialog();
-  
+    
+    bool isInputAcceptable() const override;
   protected:
     void setupFields() override;
     void setupBoundFields() override;
+    void onPrepareCreate() override;
     bool onSave(const QVariantMap& m) override;
     
   private slots:

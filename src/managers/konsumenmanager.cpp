@@ -1,11 +1,35 @@
 #include "konsumenmanager.h"
-#include <QDateTime>
 
-void KonsumenManager::beforeCreate(QVariantMap &vm) {
-  vm["created_at"] = QDateTime::currentDateTimeUtc();
-  vm["updated_at"] = QDateTime::currentDateTimeUtc();
+KonsumenManager::KonsumenManager()
+    : BaseManager("konsumen", false)
+{
 }
 
-void KonsumenManager::beforeUpdate(int id, QVariantMap &vm) {
-  vm["updated_at"] = QDateTime::currentDateTimeUtc();
+bool KonsumenManager::beforeCreate(QVariantMap& params)
+{
+    // Auto-generate customer_code jika belum diisi
+    if (!params.contains("customer_code") || params["customer_code"].toString().isEmpty()) {
+        params["customer_code"] = generateCode("konsumen", "customer_code", "CUST-", 3);
+    }
+    return true;
+}
+
+std::optional<QSqlRecord> KonsumenManager::getByCode(const QString& customerCode) const
+{
+    auto results = const_cast<KonsumenManager*>(this)->getWhere(
+        "customer_code = :customer_code",
+        {{ ":customer_code", customerCode }}
+    );
+    if (results.isEmpty()) return std::nullopt;
+    return results.first();
+}
+
+QList<QSqlRecord> KonsumenManager::getActive(const QString& orderBy, int limit)
+{
+    return getWhere("is_active = 1", {}, orderBy, limit);
+}
+
+bool KonsumenManager::deactivate(int id)
+{
+    return update(id, {{ "is_active", 0 }});
 }

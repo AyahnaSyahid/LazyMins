@@ -25,14 +25,14 @@ CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     model->setQuery(R"--(
-SELECT k.id,
-       nama_lengkap,
-       pl.id as pl_id,
-       level_name,
-       nomor_telp
-  FROM konsumen k
-       JOIN
-       price_levels pl ON k.price_level_id = pl.id;)--", BaseManager::connection);
+    SELECT k.id,
+           nama_lengkap,
+           pl.id AS pl_id,
+           level_name,
+           nomor_telp
+      FROM konsumen k
+           JOIN price_levels pl ON k.price_level_id = pl.id
+    )--", BaseManager::connection);
     
     while(model->canFetchMore()) model->fetchMore();
     
@@ -43,8 +43,9 @@ SELECT k.id,
     model->setHeaderData(4, Qt::Horizontal, "Nomor Telepon");
     
     auto proxy = new QSortFilterProxyModel(this);
+    proxy->setObjectName("proxy");
     proxy->setSourceModel(model);
-    proxy->setFilterKeyColumn(1);
+    proxy->setFilterKeyColumn(-1);
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     proxy->sort(1);
     ui->customerView->setModel(proxy);
@@ -77,10 +78,21 @@ void CustomerPickerDialog::on_customerView_clicked(const QModelIndex &index) {
     if (!index.isValid()) {
         return;
     }
-    auto proxy = findChild<QSortFilterProxyModel*>();
+    auto proxy = findChild<QSortFilterProxyModel*>("proxy");
     if(!proxy) return;
     // Handle the selection of a customer
     auto record = model->record(proxy->mapToSource(index).row());
     emit customerPicked(record);
     accept(); // Close the dialog after selection    
-}   
+}
+
+void CustomerPickerDialog::setModelQuery(const QString& name)
+{
+  QSqlQuery q(BaseManager::connection);
+  q.prepare(name);
+  if (!q.exec()) {
+    qWarning() << "CustomerPickerDialog : setModelQuery Error :" << q.lastError().text() ;
+    return ;
+  }
+  model->setQuery(std::move(q));
+}

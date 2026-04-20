@@ -17,7 +17,7 @@ InstantOrderDialog::InstantOrderDialog(QWidget *p):
   QDialog(p)
 {
   ui->setupUi(this);
-  ui->labelInvoiceCode->setText(m_invm.generateInvoiceNumber());
+  ui->labelInvoiceCode->setText(m_invm.nextNumber());
   ui->orderListView->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->orderListView->setModel(&omod);
   ui->orderListView->setItemDelegate(new OrderItemDelegate(this));
@@ -56,7 +56,7 @@ void InstantOrderDialog::on_pilihButton_clicked()
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowFlags(dialog->windowFlags() | Qt::FramelessWindowHint);
   auto buttonGeo = ui->pilihButton->geometry();
-  auto globalPos = mapToGlobal(buttonGeo.topLeft());
+  auto globalPos = mapToGlobal(buttonGeo.topRight());
   dialog->move(globalPos);
 
   connect(dialog, &CustomerPickerDialog::customerPicked,
@@ -115,7 +115,7 @@ void InstantOrderDialog::recalculate() {
   auto subs = calculatedSubtotal();
   auto total = 0;
   ui->labelSubtotal->setText(locale().toString(subs));
-  total = subs - ui->discountSpinBox->value();
+  total = subs + ui->ppnSpinBox->value() - ui->discountSpinBox->value();
   ui->bayarSpinBox->setMinimum(total);
   ui->labelTotal->setText(locale().toString(total));
   ui->labelKembalian->setText(locale().toString(qAbs(total - ui->bayarSpinBox->value())));
@@ -144,8 +144,9 @@ bool InstantOrderDialog::checkInput() {
 void InstantOrderDialog::on_bayarButton_clicked() {
   if(!checkInput()) return;
   auto inv_code = ui->labelInvoiceCode->text();
+
   OrderHeader oh;
-  oh.order_number = oman.generateOrderNumber();
+  oh.order_number = oman.nextNumber();
   // oh.admin_id = 1;// current admin id set by helper
   oh.customer_name = ui->nameLineEdit->text();
   oh.customer_phone = ui->phoneLineEdit->text();
@@ -160,6 +161,7 @@ void InstantOrderDialog::on_bayarButton_clicked() {
   auto p_disc = ui->discountSpinBox->value();
   auto res = DBOperationHelper::createInstantOrder( oh, omod.items(), inv_code, 
                 { {"payment_amount", p_amount - p_disc }, 
+                  {"tax_amount", ui->ppnSpinBox->value()}, 
                   {"cash_received", ui->bayarSpinBox->value()}, 
                   {"cash_change", ui->bayarSpinBox->value() - (p_amount + p_disc)} } );
   if(!res.ok) {

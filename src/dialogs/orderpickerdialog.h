@@ -18,6 +18,7 @@ public:
 
     void setCustomerId(int cid);
     void setFilterIds(const QList<int>& ids);
+    int  availableCount() const { return model->rowCount(); }
     
 private slots:
     void on_orderView_clicked(const QModelIndex &index);

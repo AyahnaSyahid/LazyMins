@@ -136,6 +136,7 @@ namespace {
             QStyledItemDelegate::initStyleOption(option, mi);
 
             // 2. Timpa teks dan perataan sesuai kebutuhan kolom
+            if(mi.data(Qt::UserRole + 102).toBool()) option->backgroundBrush = QColor(255, 255, 200);
             switch (mi.column()) {
                 case 0: {
                     option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
@@ -206,6 +207,7 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   
   ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->dataView, &QTableView::customContextMenuRequested, this, &FinishingServicesViewer::on_dataView_customContextMenuRequested);
+  connect(this, &DataViewer::refreshed, ui->dataView, &QTableView::resizeColumnsToContents);
 }
 
 FinishingServicesViewer::~FinishingServicesViewer() {}

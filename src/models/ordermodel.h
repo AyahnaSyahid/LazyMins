@@ -9,7 +9,7 @@
 #include <QSqlRecord>
 #include <QString>
 
-#include "src/managers/basemanager.h"
+#include "src/managers/managers.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderHeader – mirrors the orders table (fields managed by the application)
@@ -29,12 +29,11 @@ struct OrderHeader
     // Financial (order-level, not item-level)
     int     discount_amount     = 0;
     int     discount_percentage = 0;
-    int     tax_amount          = 0;
+    // int     tax_amount          = 0;
 
     // Status
-    QString status          = "pending";   // pending|processing|ready|completed|cancelled
     QString priority        = "normal";    // urgent|high|normal|low
-    QString payment_status  = "unpaid";    // unpaid|partial|paid
+    // QString payment_status  = "unpaid";    // unpaid|partial|paid
 
     // Dates
     QDateTime order_date;                  // default: now (left empty → DB default)
@@ -174,7 +173,6 @@ public:
     int  orderId() const { return m_orderId; }
     OrderItem &itemRef(int ix) { return m_items[ix]; }
     const QList<OrderItem>& items() const { return m_items; }
-
 signals:
     // Emitted after every in-memory mutation so a UI total label can update
     // immediately without waiting for commit().

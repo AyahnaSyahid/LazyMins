@@ -21,7 +21,7 @@ public:
   explicit FinishingDialog(QWidget *parent = nullptr);
   ~FinishingDialog();
   
-  void setItem(FinishingItem *item);
+  void setItem(const FinishingItem&);
 
   const Mode &mode() const { return m_mode; }
   
@@ -31,11 +31,12 @@ private slots:
 
 signals:
   void createItem(const FinishingItem& fi);
-  
+  void itemModified(const FinishingItem& fi);
+
 private:
   Ui::FinishingDialog *ui;
-  QSqlQueryModel *m_finishingModel;
+  QSqlQueryModel *m_queryFinishingModel;
   QTableView *m_finishingView;
-  FinishingItem *m_item = nullptr;
+  FinishingItem m_item;
   Mode m_mode;
 };

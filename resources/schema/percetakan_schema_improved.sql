@@ -1,12 +1,7 @@
--- ============================================================================
--- SKEMA DATABASE APLIKASI ADMINISTRASI PERCETAKAN (IMPROVED VERSION)
--- ============================================================================
--- Versi yang disempurnakan dengan fitur tambahan untuk manajemen order,
--- pembayaran, inventori, dan laporan keuangan percetakan
--- ============================================================================
 
-PRAGMA foreign_keys = ON;
-BEGIN TRANSACTION;
+-- di handle di aplikasi
+-- PRAGMA foreign_keys = ON;
+-- BEGIN TRANSACTION;
 
 -- ============================================================================
 -- 1. TABEL MASTER - MANAJEMEN PENGGUNA & ROLES
@@ -16,7 +11,7 @@ BEGIN TRANSACTION;
 CREATE TABLE roles (
     id INTEGER PRIMARY KEY,
     role_name TEXT NOT NULL UNIQUE,  -- Nama role: super_admin, kasir, operator
-    description TEXT,                 -- Deskripsi role
+    description TEXT,                -- Deskripsi role
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -86,7 +81,6 @@ CREATE TABLE product_categories (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- Tabel Products: Produk yang dijual (diperbaiki)
 CREATE TABLE products (
     id INTEGER PRIMARY KEY,
@@ -94,7 +88,7 @@ CREATE TABLE products (
     name TEXT NOT NULL,
     category_id INTEGER,              -- TAMBAHAN: Kategori produk
     description TEXT,                 -- TAMBAHAN: Deskripsi produk
-    unit TEXT DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter, dll)
+    unit TEXT COLLATE NOCASE DEFAULT 'pcs',          -- TAMBAHAN: Satuan (pcs, lembar, meter, dll)
     stock REAL DEFAULT 0,
     min_stock REAL DEFAULT 0,         -- TAMBAHAN: Minimum stok untuk alert
     cost_price INTEGER DEFAULT 0,     -- TAMBAHAN: Harga pokok (HPP)
@@ -171,25 +165,20 @@ CREATE TABLE orders (
     -- Informasi finansial (tetap di orders untuk performa produksi)
     subtotal            INTEGER NOT NULL DEFAULT 0,
     discount_amount     INTEGER NOT NULL DEFAULT 0,
-    discount_percentage INTEGER NOT NULL DEFAULT 0,
-    tax_amount          INTEGER NOT NULL DEFAULT 0,
+    discount_percentage REAL    DEFAULT 0,
     total_amount        INTEGER GENERATED ALWAYS AS (
-                            COALESCE(subtotal,0) - COALESCE(discount_amount, 0) + COALESCE(tax_amount, 0)
+                            COALESCE(subtotal,0) - COALESCE(discount_amount, 0)
                         ) VIRTUAL,
     
     -- Status operasional
-    status              TEXT DEFAULT 'pending' CHECK(status IN ('pending','processing','ready','completed','cancelled')),
+    staging_status      TEXT DEFAULT 'pending' COLLATE NOCASE CHECK(staging_status IN ('pending','processing','ready','completed','cancelled')),
     priority            TEXT DEFAULT 'normal',
     
     -- Jadwal
     order_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
     deadline_date       DATETIME,
     completion_date     DATETIME,
-    
-    -- Informasi pembayaran (denormalisasi ringan untuk kemudahan query)
-    payment_status      TEXT DEFAULT 'unpaid',
-    paid_amount         INTEGER DEFAULT 0,
-    
+
     -- Catatan
     notes               TEXT,
     internal_notes      TEXT,
@@ -208,8 +197,9 @@ CREATE TABLE orders (
 -- Index untuk orders
 CREATE INDEX idx_orders_invoice ON orders(invoice_id);
 CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_status ON orders(staging_status);
 CREATE INDEX idx_orders_deadline ON orders(deadline_date);
+CREATE INDEX idx_orders_creation ON orders(created_at);
 
 -- Tabel Order Items: Detail item dalam order (diperbaiki)
 CREATE TABLE order_items (
@@ -244,6 +234,7 @@ CREATE TABLE order_items (
 -- Index untuk order items
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product ON order_items(product_id);
+CREATE INDEX idx_order_items_creation ON order_items(created_at);
 
 -- Tabel Order Item Finishings: Finishing untuk setiap item order
 CREATE TABLE order_item_finishings (
@@ -267,16 +258,6 @@ CREATE INDEX idx_order_finishings_item ON order_item_finishings(order_item_id);
 -- 6. TABEL TRANSAKSI - PEMBAYARAN
 -- ============================================================================
 
--- Tabel Payment Methods (TAMBAHAN BARU)
-CREATE TABLE payment_methods (
-    id INTEGER PRIMARY KEY,
-    method_code TEXT UNIQUE NOT NULL,
-    method_name TEXT NOT NULL,
-    is_active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Tabel Payments: Pembayaran dari customer (diperbaiki)
 CREATE TABLE payments (
     id                       INTEGER PRIMARY KEY,
@@ -285,21 +266,14 @@ CREATE TABLE payments (
 
     -- Detail pembayaran
     amount                   INTEGER NOT NULL CHECK(amount > 0),
-    payment_method           TEXT NOT NULL DEFAULT 'cash',
-    
-    -- Informasi transfer
-    transfer_bank            TEXT,
-    transfer_account_name    TEXT,
-    transfer_account_number  TEXT,
-    transfer_verified        INTEGER DEFAULT 0,
-    transfer_proof_image     TEXT,
+    akun_transaksi_id        INTEGER NOT NULL,
     
     -- Informasi tunai
     cash_received            INTEGER,
     cash_change              INTEGER,
     
     -- Status & catatan
-    payment_status           TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending','verified','cancelled')),
+    verification_status      TEXT DEFAULT 'pending' COLLATE NOCASE CHECK( verification_status IN ('pending','verified','cancelled') ),
     notes                    TEXT,
     
     -- Tracking
@@ -311,16 +285,18 @@ CREATE TABLE payments (
     created_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at               DATETIME DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (invoice_id)    REFERENCES invoices(id) ON DELETE RESTRICT,
-    FOREIGN KEY (admin_id)      REFERENCES admins(id) ON DELETE RESTRICT,
-    FOREIGN KEY (verified_by)   REFERENCES admins(id)
+    FOREIGN KEY (invoice_id)        REFERENCES invoices(id) ON DELETE RESTRICT,
+    FOREIGN KEY (admin_id)          REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (verified_by)       REFERENCES admins(id) ON DELETE RESTRICT,
+    FOREIGN KEY (akun_transaksi_id) REFERENCES akun_transaksi(id)  ON DELETE RESTRICT
 );
 
 -- Index untuk payments
+CREATE INDEX idx_payments_admin   ON payments(admin_id);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
-CREATE INDEX idx_payments_date ON payments(payment_date);
-CREATE INDEX idx_payments_status ON payments(payment_status);
-CREATE INDEX idx_payments_method ON payments(payment_method);
+CREATE INDEX idx_payments_date    ON payments(payment_date);
+CREATE INDEX idx_payments_status  ON payments(verification_status);
+CREATE INDEX idx_payments_akun_tr ON payments(akun_transaksi_id);
 
 
 -- ============================================================================
@@ -332,7 +308,7 @@ CREATE TABLE kategori_transaksi (
     id INTEGER PRIMARY KEY,
     kode TEXT UNIQUE,                 -- TAMBAHAN: Kode kategori (KAT-001)
     nama TEXT UNIQUE NOT NULL,
-    tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran', 'opname')),
     parent_id INTEGER,                -- TAMBAHAN: Untuk sub-kategori
     description TEXT,                 -- TAMBAHAN: Deskripsi kategori
     is_active INTEGER DEFAULT 1,
@@ -344,12 +320,13 @@ CREATE TABLE kategori_transaksi (
 -- Tabel Transaksi: Catatan pemasukan/pengeluaran (diperbaiki)
 CREATE TABLE transaksi (
     id INTEGER PRIMARY KEY,
+    akun_id INTEGER NOT NULL,
     transaction_number TEXT UNIQUE,   -- TAMBAHAN: Nomor transaksi unik
     admin_id INTEGER NOT NULL,
     kategori_id INTEGER,
     
     -- Detail transaksi
-    tipe TEXT NOT NULL CHECK(tipe IN ('pemasukan', 'pengeluaran')),
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK( tipe IN ('pemasukan', 'pengeluaran', 'opname')),
     deskripsi TEXT,
     
     -- Ledger Mode (Buku Besar)
@@ -368,6 +345,7 @@ CREATE TABLE transaksi (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
+    FOREIGN KEY (akun_id) REFERENCES akun_transaksi(id) ON DELETE RESTRICT,
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
     FOREIGN KEY (kategori_id) REFERENCES kategori_transaksi(id) ON DELETE RESTRICT
 );
@@ -376,7 +354,35 @@ CREATE TABLE transaksi (
 CREATE INDEX idx_transaksi_admin_tanggal ON transaksi(tanggal, admin_id);
 CREATE INDEX idx_transaksi_kategori ON transaksi(kategori_id);
 CREATE INDEX idx_transaksi_tipe ON transaksi(tipe);
+CREATE INDEX idx_transaksi_akun ON transaksi(akun_id);
 CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
+CREATE INDEX idx_transaksi_creation ON transaksi(created_at);
+
+-- Tabel Akun Transaksi: Rekening/Sumber Dana
+CREATE TABLE akun_transaksi (
+    id INTEGER PRIMARY KEY,
+    kode TEXT UNIQUE NOT NULL,            -- Kode akun: 'CASH', 'BRI', 'BCA'
+    nama TEXT UNIQUE NOT NULL,            -- Nama tampilan: 'Kas Admin', 'Bank BRI'
+    tipe TEXT NOT NULL COLLATE NOCASE CHECK(tipe IN (
+        'cash',         -- Uang tunai
+        'bank',         -- Rekening bank
+        'ewallet',      -- Dompet digital (OVO, DANA, GoPay)
+        'lainnya'       -- Akun lain
+    )),
+    
+    -- Informasi rekening (opsional, untuk bank/ewallet)
+    nama_bank TEXT,                       -- 'BRI', 'BCA', 'Mandiri', dll
+    nomor_rekening TEXT,                  -- Nomor rekening/akun
+    atas_nama TEXT,                       -- Nama pemilik rekening
+    
+    -- Saldo
+    saldo INTEGER DEFAULT 0,
+    
+    is_active INTEGER DEFAULT 1,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ============================================================================
 -- 8.2 TABEL INVENTORI - STOCK MOVEMENTS (TAMBAHAN BARU)
@@ -386,7 +392,7 @@ CREATE INDEX idx_transaksi_tanggal ON transaksi(tanggal);
 CREATE TABLE stock_movements (
     id INTEGER PRIMARY KEY,
     product_id INTEGER NOT NULL,
-    movement_type TEXT NOT NULL CHECK(movement_type IN ('in', 'out', 'adjustment')),
+    movement_type TEXT NOT NULL COLLATE NOCASE CHECK(movement_type IN ('in', 'out', 'adjustment')),
     stock_before REAL NOT NULL,       -- Stok sebelum transaksi
     quantity     REAL NOT NULL,       -- Positif untuk masuk, negatif untuk keluar
     stock_after  REAL NOT NULL,       -- Stok setelah transaksi
@@ -411,6 +417,7 @@ CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
 CREATE INDEX idx_stock_product_id ON stock_movements(product_id, id);
 CREATE INDEX idx_stock_movements_date ON stock_movements(movement_date);
 CREATE INDEX idx_stock_movements_type ON stock_movements(movement_type);
+CREATE INDEX idx_stock_movements_creation ON stock_movements(created_at);
 
 -- ============================================================================
 -- 9. TABEL AUDIT & LOG (TAMBAHAN BARU)
@@ -457,44 +464,61 @@ CREATE TABLE app_settings (
 );
 
 CREATE TABLE invoices (
-    id                  INTEGER PRIMARY KEY,
-    invoice_number      TEXT UNIQUE NOT NULL,           -- INV-20260319-00001
-    customer_id         INTEGER NOT NULL,
-    customer_name       TEXT NOT NULL,
-    customer_phone      TEXT,
-    price_level_id      INTEGER DEFAULT 1,
+    id               INTEGER    PRIMARY KEY AUTOINCREMENT,
+    invoice_number   TEXT       UNIQUE NOT NULL,
+    
+    -- Relasi
+    customer_id      INTEGER,   -- sengaja untuk konsumen yang tidak terdaftar
+    customer_name    TEXT       NOT NULL,
+    customer_phone   TEXT,
+    price_level_id   INTEGER    DEFAULT 1,
+    admin_id         INTEGER    NOT NULL,
 
-    -- Finansial (tidak perlu virtual karena akan dihitung via trigger)
-    subtotal            INTEGER NOT NULL DEFAULT 0,
-    discount_amount     INTEGER NOT NULL DEFAULT 0, 
-    tax_amount          INTEGER NOT NULL DEFAULT 0,
-    total_amount        INTEGER GENERATED ALWAYS AS (subtotal - discount_amount + tax_amount) VIRTUAL,
-    paid_amount         INTEGER NOT NULL DEFAULT 0,
-    remaining_amount    INTEGER GENERATED ALWAYS AS (total_amount - paid_amount) VIRTUAL,
+    -- Keuangan
+    subtotal         INTEGER    NOT NULL DEFAULT 0,
+    discount_amount  INTEGER    NOT NULL DEFAULT 0,
+    tax_amount       INTEGER    NOT NULL DEFAULT 0,
+    total_amount     INTEGER    GENERATED ALWAYS AS (subtotal - discount_amount + tax_amount) VIRTUAL,
+    paid_amount      INTEGER    NOT NULL DEFAULT 0,
+    remaining_amount INTEGER    GENERATED ALWAYS AS (total_amount - paid_amount) VIRTUAL,
 
-    -- Khusus Tempo
-    due_date            DATETIME,                       -- jatuh tempo
-    status              TEXT DEFAULT 'draft' 
-                        CHECK(status IN ('draft','issued','sent','partial','paid','overdue','cancelled')),
+    -- Logika Status yang Terpisah
+    -- Status Dokumen: Fokus pada siklus hidup (Workflow)
+    staging_status      TEXT    DEFAULT 'draft' COLLATE NOCASE 
+                                CHECK (staging_status IN ('draft', 'issued', 'sent', 'cancelled')),
+    
+    -- Status Pembayaran: Fokus pada kas (Financial)
+    settlement_status   TEXT    DEFAULT 'unpaid' COLLATE NOCASE 
+                                CHECK (settlement_status IN ('unpaid', 'partial', 'paid', 'refunded')),
 
-    -- Tracking
-    issue_date          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    notes               TEXT,
-    internal_notes      TEXT,
-    admin_id            INTEGER NOT NULL,
-    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- Penanganan Revisi
+    revision_no      INTEGER    DEFAULT 0,
+    parent_id        INTEGER,   -- Referensi ke ID invoice sebelum direvisi
+    is_active        INTEGER    DEFAULT 1 CHECK (is_active IN (0, 1)),
 
-    FOREIGN KEY (customer_id)    REFERENCES konsumen(id),
-    FOREIGN KEY (price_level_id) REFERENCES price_levels(id),
-    FOREIGN KEY (admin_id)       REFERENCES admins(id)
+    -- Waktu (Semua Konsisten UTC)
+    issue_date       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+    due_date         DATETIME,
+    created_at       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME   DEFAULT CURRENT_TIMESTAMP,
+
+    -- Catatan
+    notes            TEXT,
+    internal_notes   TEXT,
+
+    FOREIGN KEY (customer_id)    REFERENCES konsumen (id),
+    FOREIGN KEY (price_level_id) REFERENCES price_levels (id),
+    FOREIGN KEY (admin_id)       REFERENCES admins (id),
+    FOREIGN KEY (parent_id)      REFERENCES invoices (id)
+    
 );
 
 -- Index penting
 CREATE INDEX idx_invoices_number ON invoices(invoice_number);
 CREATE INDEX idx_invoices_customer ON invoices(customer_id);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
-CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_status ON invoices(staging_status);
+CREATE INDEX idx_invoices_creation ON invoices(created_at);
 
 -- ============================================================================
 -- 11. VIEWS - UNTUK LAPORAN (TAMBAHAN BARU)
@@ -508,10 +532,7 @@ SELECT
     o.customer_name,
     o.customer_phone,
     o.total_amount,
-    o.paid_amount,
-    (o.total_amount - o.paid_amount) AS remaining_amount,
-    o.status,
-    o.payment_status,
+    o.staging_status,
     o.priority,
     o.order_date,
     o.deadline_date,
@@ -543,30 +564,30 @@ SELECT
     DATE(o.order_date) AS sale_date,
     COUNT(DISTINCT o.id) AS total_orders,
     SUM(o.total_amount) AS total_sales,
-    SUM(o.paid_amount) AS total_received,
-    SUM(o.total_amount - o.paid_amount) AS total_outstanding,
     COUNT(DISTINCT o.customer_id) AS unique_customers
 FROM orders o
-WHERE o.status != 'cancelled'
+WHERE o.staging_status != 'cancelled'
 GROUP BY DATE(o.order_date);
 
 -- View: Top Selling Products
 CREATE VIEW v_top_products AS
-SELECT 
-    p.id,
-    p.sku,
-    p.name,
-    pc.category_name,
-    COUNT(oi.id) AS order_count,
-    SUM(oi.quantity) AS total_sold,
-    SUM(oi.subtotal) AS total_revenue
-FROM products p
-LEFT JOIN product_categories pc ON p.category_id = pc.id
-LEFT JOIN order_items oi ON p.id = oi.product_id
-LEFT JOIN orders o ON oi.order_id = o.id
-WHERE o.status != 'cancelled'
-GROUP BY p.id
-ORDER BY total_revenue DESC;
+SELECT p.id,
+       p.sku,
+       p.name,
+       pc.category_name,
+       COUNT(oi.id) AS order_count,
+       CASE WHEN p.use_area = 0 THEN SUM(oi.quantity) ELSE SUM(oi.quantity * oi.size_width * oi.size_height) END AS total_sold,
+       SUM(oi.subtotal) AS total_revenue
+  FROM products p
+       LEFT JOIN
+       product_categories pc ON p.category_id = pc.id
+       LEFT JOIN
+       order_items oi ON p.id = oi.product_id
+       LEFT JOIN
+       orders o ON oi.order_id = o.id
+ WHERE o.staging_status != 'cancelled'
+ GROUP BY p.id
+ ORDER BY total_revenue DESC;
 
 -- View: Customer Loyalty (Top Customers)
 CREATE VIEW v_top_customers AS
@@ -581,7 +602,7 @@ CREATE VIEW v_top_customers AS
       FROM konsumen k
            LEFT JOIN
            orders o ON o.customer_id = k.id AND
-                       o.status != 'cancelled'-- jangan hitung order batal
+                       o.staging_status != 'cancelled'-- jangan hitung order batal
      WHERE k.is_active = 1
      GROUP BY k.id,
               k.customer_code,
@@ -589,250 +610,6 @@ CREATE VIEW v_top_customers AS
               k.nomor_telp,
               k.last_seen
      ORDER BY total_spent DESC;
-
--- ============================================================================
--- 12. TRIGGERS - AUTOMASI (TAMBAHAN BARU)
--- ============================================================================
-
--- updated_at untuk konsumen, products, dan orders dikelola di level aplikasi (BaseManager::update).
--- Trigger updated_at dihapus untuk menghindari recursive trigger dan overhead query tambahan.
-
--- Kurangi stok saat item masuk
--- CREATE TRIGGER trg_stock_decrease_on_item_insert
--- AFTER INSERT ON order_items
--- BEGIN
-    -- UPDATE products SET stock = stock - (NEW.quantity * NEW.size_width * New.size_height) WHERE id = NEW.product_id;
-    
-    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    -- SELECT NEW.product_id, 'out', NEW.quantity * NEW.size_width * New.size_height, p.stock + ( NEW.quantity * NEW.size_width * New.size_height ), p.stock, 'order', NEW.order_id, (SELECT admin_id FROM orders WHERE id = NEW.order_id), 'Item: ' || NEW.product_name
-    -- FROM products p WHERE p.id = NEW.product_id;
--- END;
-
--- Kembalikan stok saat item dihapus
--- CREATE TRIGGER trg_stock_increase_on_item_delete
--- AFTER DELETE ON order_items
--- BEGIN
-    -- UPDATE products SET stock = stock + (OLD.quantity * OLD.size_width * OLD.size_height) WHERE id = OLD.product_id;
-    
-    -- INSERT INTO stock_movements (product_id, movement_type, quantity, stock_before, stock_after, reference_type, reference_id, admin_id, notes)
-    -- SELECT OLD.product_id, 'in', (OLD.quantity * OLD.size_width * OLD.size_height) , p.stock - ( OLD.quantity * OLD.size_width * OLD.size_height) , p.stock, 'adjustment', OLD.order_id, (SELECT admin_id FROM orders WHERE id = OLD.order_id), 'Item Removed'
-    -- FROM products p WHERE p.id = OLD.product_id;
--- END;
-
--- Update jika edit order, lebih baik jangan update order yang telah di nota
--- CREATE TRIGGER trg_stock_sync_on_item_update
--- AFTER UPDATE OF quantity, size_width, size_height ON order_items
--- WHEN (OLD.quantity * OLD.size_width * OLD.size_height) != (NEW.quantity * NEW.size_width * NEW.size_height)
--- BEGIN
-    -- Menyesuaikan stok produk berdasarkan selisih (baru - lama)
-    -- UPDATE products 
-    -- SET stock = stock - ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height))
-    -- WHERE id = NEW.product_id;
-
-    -- Mencatat pergerakan stok (adjustment)
-    -- INSERT INTO stock_movements (
-        -- product_id, movement_type, quantity, stock_before, stock_after, 
-        -- reference_type, reference_id, admin_id, notes
-    -- )
-    -- SELECT 
-        -- NEW.product_id, 
-        -- 'adjustment', 
-        -- ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
-        -- p.stock + ((NEW.quantity * NEW.size_width * NEW.size_height) - (OLD.quantity * OLD.size_width * OLD.size_height)), 
-        -- p.stock, 
-        -- 'order', 
-        -- NEW.order_id, 
-        -- (SELECT admin_id FROM orders WHERE id = NEW.order_id), 
-        -- 'Item Updated: ' || NEW.product_name
-    -- FROM products p WHERE p.id = NEW.product_id;
--- END;
-
--- Update finishing_total di item saat finishing ditambah/diubah
-CREATE TRIGGER trg_update_item_finishing_total
-AFTER INSERT ON order_item_finishings
-BEGIN
-    UPDATE order_items 
-    SET finishing_total = (SELECT COALESCE(SUM(subtotal), 0) FROM order_item_finishings WHERE order_item_id = NEW.order_item_id)
-    WHERE id = NEW.order_item_id;
-END;
-
--- Update finishing_total di item saat finishing dihapus
-CREATE TRIGGER trg_update_item_finishing_total_on_delete
-AFTER DELETE ON order_item_finishings
-BEGIN
-    UPDATE order_items 
-    SET finishing_total = (SELECT COALESCE(SUM(subtotal), 0) FROM order_item_finishings WHERE order_item_id = OLD.order_item_id)
-    WHERE id = OLD.order_item_id;
-END;
-
--- Update finishing_total di item saat finishing diupdate
-CREATE TRIGGER trg_update_item_finishing_total_on_update
-AFTER UPDATE OF quantity, finishing_price ON order_item_finishings
-BEGIN
-    UPDATE order_items 
-    SET finishing_total = (
-        SELECT COALESCE(SUM(subtotal), 0) 
-        FROM order_item_finishings 
-        WHERE order_item_id = NEW.order_item_id
-    )
-    WHERE id = NEW.order_item_id;
-END;
-
--- Update status pembayaran auto
-CREATE TRIGGER t_sync_order_payment_status_after_invoice_paid
-AFTER UPDATE OF paid_amount ON invoices
-BEGIN
-    -- Jika invoice lunas
-    UPDATE orders
-    SET payment_status = 'paid'
-    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount <= 0;
-
-    -- Jika invoice belum lunas (mungkin pembayaran dibatalkan)
-    UPDATE orders
-    SET payment_status = 'unpaid'
-    WHERE invoice_id = NEW.id AND NEW.subtotal - NEW.discount_amount + NEW.tax_amount - NEW.paid_amount > 0;
-END;
-
--- Update Subtotal Order saat detail item berubah (Harga, Qty, Finishing, atau Diskon Item)
-CREATE TRIGGER trg_orders_sync_subtotal_on_update
-AFTER UPDATE OF finishing_total, quantity, sale_price, discount_amount ON order_items
-BEGIN
-    UPDATE orders
-    SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = NEW.order_id),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = NEW.order_id;
-END;
-
--- Update Subtotal Order saat ada item baru atau item dihapus
-CREATE TRIGGER trg_orders_sync_subtotal_on_change
-AFTER INSERT ON order_items
-BEGIN
-    UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = NEW.order_id) WHERE id = NEW.order_id;
-END;
-
-CREATE TRIGGER trg_orders_sync_subtotal_on_delete
-AFTER DELETE ON order_items
-BEGIN
-    UPDATE orders SET subtotal = (SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = OLD.order_id) WHERE id = OLD.order_id;
-END;
-
--- =============================================
--- TRIGGER UNTUK MENGELOLA INVOICE SUBTOTAL
--- =============================================
--- 1. Trigger saat Order baru dimasukkan ke Invoice
-
-DROP TRIGGER IF EXISTS t_invoice_subtotal_after_insert;
-CREATE TRIGGER t_invoice_subtotal_after_insert
-AFTER INSERT ON orders
-WHEN NEW.invoice_id IS NOT NULL
-BEGIN
-    UPDATE invoices
-    SET 
-        subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = NEW.invoice_id;
-END;
-
--- 2. Trigger saat data finansial di Order berubah
-DROP TRIGGER IF EXISTS t_invoice_subtotal_after_update;
-CREATE TRIGGER t_invoice_subtotal_after_update
-AFTER UPDATE OF invoice_id, subtotal, discount_amount, tax_amount ON orders
-BEGIN
-    -- Update invoice lama (jika order dipindah ke invoice lain)
-    UPDATE invoices
-    SET 
-        subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
-        discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = OLD.invoice_id),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE OLD.invoice_id IS NOT NULL AND id = OLD.invoice_id;
-
-    -- Update invoice baru
-    UPDATE invoices
-    SET 
-        subtotal = (SELECT COALESCE(SUM(subtotal), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        discount_amount = (SELECT COALESCE(SUM(discount_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        tax_amount = (SELECT COALESCE(SUM(tax_amount), 0) FROM orders WHERE invoice_id = NEW.invoice_id),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE NEW.invoice_id IS NOT NULL AND id = NEW.invoice_id;
-END;
-
--- =============================================
--- TRIGGER UNTUK MENGELOLA PAID_AMOUNT PADA INVOICE
--- =============================================
-
--- 1. After INSERT Payment
-CREATE TRIGGER t_invoice_paid_after_insert
-AFTER INSERT ON payments
-WHEN NEW.invoice_id IS NOT NULL
-BEGIN
-    UPDATE invoices
-    SET paid_amount = (
-        SELECT COALESCE(SUM(amount), 0)
-        FROM payments 
-        WHERE invoice_id = NEW.invoice_id
-    )
-    WHERE id = NEW.invoice_id;
-END;
-
--- 2. After UPDATE Payment
-CREATE TRIGGER t_invoice_paid_after_update
-AFTER UPDATE ON payments
-BEGIN
-    -- Update invoice lama
-    UPDATE invoices
-    SET paid_amount = (
-        SELECT COALESCE(SUM(amount), 0)
-        FROM payments 
-        WHERE invoice_id = OLD.invoice_id
-    )
-    WHERE OLD.invoice_id IS NOT NULL 
-      AND id = OLD.invoice_id;
-
-    -- Update invoice baru (jika invoice_id diubah)
-    UPDATE invoices
-    SET paid_amount = (
-        SELECT COALESCE(SUM(amount), 0)
-        FROM payments 
-        WHERE invoice_id = NEW.invoice_id
-    )
-    WHERE NEW.invoice_id IS NOT NULL 
-      AND id = NEW.invoice_id;
-END;
-
-
--- 3. After DELETE Payment (Opsional)
-CREATE TRIGGER t_invoice_paid_after_delete
-AFTER DELETE ON payments
-WHEN OLD.invoice_id IS NOT NULL
-BEGIN
-    UPDATE invoices
-    SET paid_amount = (
-        SELECT COALESCE(SUM(amount), 0)
-        FROM payments 
-        WHERE invoice_id = OLD.invoice_id
-    )
-    WHERE id = OLD.invoice_id;
-END;
-
--- ================================================
--- Trigger : finishing_services save update time
-CREATE TRIGGER trg_saveUpdate_time
-         AFTER UPDATE OF id,
-                         code,
-                         name,
-                         description,
-                         price_per_unit,
-                         unit,
-                         is_active,
-                         created_at
-            ON finishing_services
-BEGIN
-    UPDATE finishing_services
-       SET updated_at = datetime('now');
-END;
 
 -- ============================================================================
 -- CATATAN PENGGUNAAN:
@@ -866,13 +643,13 @@ INSERT INTO app_settings (setting_key, setting_value, data_type, description) VA
 
 -- Finishing Services
 INSERT INTO finishing_services (code, name, description, price_per_unit) VALUES 
-('A3-DOF', 'L DOFF', 'A3Plus Laminasi Doff', 4000),
-('A3-GLOS', 'L GLOS', 'A3Plus Laminasi Glossy', 4000),
-('A3-CUT-SUMMA', 'CUT SUMMA', 'A3Plus Cutting - Summa', 5000),
-('A3-CUT-SAGA', 'CUT SAGA', 'A3Plus Cutting - SAGA', 4000),
-('A3-PTG-MIN', 'POTONG MIN', 'A3Plus Potong MIN', 4000),
-('A3-PTG-MED', 'POTONG MED', 'A3Plus Potong MED', 8000),
-('A3-PTG-HI', 'POTONG HIGH', 'A3Plus Potong HIGH', 12000);
+('A3DOF', 'L DOFF', 'A3Plus Laminasi Doff', 4000),
+('A3GLS', 'L GLOS', 'A3Plus Laminasi Glossy', 4000),
+('A3CSUMA', 'CUT SUMMA', 'A3Plus Cutting - Summa', 5000),
+('A3CSAGA', 'CUT SAGA', 'A3Plus Cutting - SAGA', 4000),
+('A3PTGA', 'A3PTG BS', 'A3Plus Potong Uk Besar', 4000),
+('A3PTGB', 'A3PTG SD', 'A3Plus Potong Uk Sedang', 8000),
+('A3PTGC', 'A3PTG KC', 'A3Plus Potong Uk Kecil', 12000);
 
 -- Data awal roles
 INSERT INTO roles (id, role_name, description) VALUES
@@ -881,24 +658,12 @@ INSERT INTO roles (id, role_name, description) VALUES
 (3, 'operator', 'Mengelola order dan produksi');
 
 -- Data awal kategori transaksi
-INSERT INTO kategori_transaksi (nama, tipe, description) VALUES
-('Penjualan Produk', 'pemasukan', 'Pemasukan dari penjualan produk'),
-('Penjualan Jasa', 'pemasukan', 'Pemasukan dari jasa finishing'),
-('Lain-lain (Pemasukan)', 'pemasukan', 'Pemasukan lainnya'),
-('Pembelian Bahan', 'pengeluaran', 'Pengeluaran untuk bahan baku'),
-('Gaji Karyawan', 'pengeluaran', 'Pengeluaran gaji'),
-('Utilitas', 'pengeluaran', 'Listrik, air, internet'),
-('Maintenance', 'pengeluaran', 'Perawatan mesin dan peralatan'),
-('Lain-lain (Pengeluaran)', 'pengeluaran', 'Pengeluaran lainnya');
-
-
--- Data awal payment methods
-INSERT INTO payment_methods (method_code, method_name) VALUES
-('cash', 'Tunai'),
-('transfer', 'Transfer Bank'),
-('qris', 'QRIS'),
-('debit', 'Kartu Debit'),
-('credit', 'Kartu Kredit');
+INSERT INTO kategori_transaksi (nama, tipe, description, parent_id) VALUES
+('Pemasukan',        'pemasukan',   'Kategori parent pemasukan',       NULL),
+('Pengeluaran',      'pengeluaran', 'Kategori parent pengeluaran',     NULL),
+('Opname',           'opname',      'Kategori parent opname',          NULL),
+('Penjualan Produk', 'pemasukan',   'Pemasukan dari penjualan produk', 1),
+('Penjualan Jasa',   'pemasukan',   'Pemasukan dari penjualan jasa',   2);
 
 -- COMMENT INSERT INI Dalam PRODUKSI
 -- INSERT INTO admins (id, role_id, username, password_hash, salt, nama_lengkap, email, nomor_telp, is_active, last_login, created_at, updated_at) VALUES 
@@ -908,9 +673,9 @@ INSERT INTO payment_methods (method_code, method_name) VALUES
 
 -- Data awal price levels
 INSERT INTO price_levels (id, level_name, discount_percentage, description) VALUES
-(1, 'ORDER', 0, 'Harga normal untuk pelanggan OD'),
-(2, 'MAKLOON', 0, 'Harga normal untuk reseller MAKLOON'),
-(3, 'NEGO', 0, 'Harga Nego BOS');
+(1, 'ORDER', 0, 'Harga minimum untuk pelanggan OD'),
+(2, 'MAKLOON', 0, 'Harga minimum untuk reseller MAKLOON'),
+(3, 'NEGO', 0, 'Harga Penawarn untuk order banyak');
 
 -- Data awal kategori produk
 INSERT INTO product_categories (category_name, description) VALUES
@@ -922,39 +687,38 @@ INSERT INTO product_categories (category_name, description) VALUES
 
 -- updated_at untuk product_prices dikelola di level aplikasi (ProductPriceManager::upsert)
 INSERT INTO products (sku, name, category_id, description, unit, stock, min_stock, cost_price, use_area) VALUES 
-    ('BN-FLEX',    'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30, 15000, 1),
-    ('BN-KOR',     'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80, 20,  45000, 1),
-    ('STIND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60, 15,  90000, 1),
-    ('STIND-GRF',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50, 10,  90000, 1),
-    ('STIND-LUST', 'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40, 10, 120000, 1),
-    ('A3-AP150',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500, 0),
-    ('A3-AP210',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000, 0),
-    ('A3-AP230',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000, 0),
-    ('A3-AP260',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90, 20,   3000, 0),
-    ('A3-AP260-BB','AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80, 20,   5000, 0),
-    ('A3-VNYL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70, 15,   8500, 0),
-    ('A3-TRNS',    'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60, 15,   8500, 0),
-    ('A3-PVC',     'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50, 10,  75000, 0),
-    ('A3-PVC-NF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40, 10,  60000, 0),
-    ('A3-HVS',     'HVS',             2, 'Cetak A3+ Bahan HVS',                 'set',     200, 50,  2500, 0),
-    ('A3-KALKIR',  'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'set',     30, 10,  10000, 0),
-    ('CTP-TOKO',   'Toko',            3, 'Pelat Toko',                          'set',     20, 5,   12000, 0),
-    ('CTP-SORM',   'SORM',            3, 'Pelat SORM',                          'pcs',     15, 5,   20000, 0),
-    ('CTP-P46',    'P46',             3, 'Pelat 46',                            'pcs',     10, 3,   15000, 0),
-    ('CTP-P52',    'P52',             3, 'Pelat 52',                            'pcs',     8, 2,    35000, 0),
-    ('OFF-TOKO',   'CO-TOKO',         5, 'Cetak Offset Toko',                   'set',     100, 25, 12000, 0),
-    ('OFF-SORM-F', 'CO-SORM-F',       5, 'Cetak Offset SORM Full Color',        'set',     80, 20,  20000, 0),
-    ('OFF-P46-F',  'CO-P46-F',        5, 'Cetak Offset P46 Full Color',         'set',     60, 15,  15000, 0),
-    ('OFF-P52-F',  'CO-P52-F',        5, 'Cetak Offset P52 Full Color',         'set',     40, 10,  35000, 0);
+    ('BN-FLEX',  'FLEXY',           1, 'Cetak Banner Bahan Fleksi',           'meter',   120, 30,  15000,  1),
+    ('BN-KOR',   'KOREA',           1, 'Cetak Banner Bahan Korea',            'meter',   80,  20,  45000,  1),
+    ('IND-KOR',  'Indoor KOREA',    1, 'Cetak Printer Indoor Bahan Korea',    'meter',   60,  15,  90000,  1),
+    ('IND-GFT',  'Indoor Graftack', 1, 'Cetak Printer Indoor Bahan Graftack', 'meter',   50,  10,  90000,  1),
+    ('IND-LST',  'Indoor Luster',   1, 'Cetak Printer Indoor Bahan Luster',   'meter',   40,  10,  120000, 1),
+    ('A3AP15',   'AP150',           2, 'Cetak A3+ Bahan AP150',               'lembar',  200, 50,  2500,   0),
+    ('A3AP21',   'AP210',           2, 'Cetak A3+ Bahan AP210',               'lembar',  150, 40,  3000,   0),
+    ('A3AP23',   'AP230',           2, 'Cetak A3+ Bahan AP230',               'lembar',  100, 25,  3000,   0),
+    ('A3AP26',   'AP260',           2, 'Cetak A3+ Bahan AP260',               'lembar',  90,  20,  3000,   0),
+    ('A3AP26BB', 'AP260 BB',        2, 'Cetak A3+ Bahan AP260 2Sisi',         'lembar',  80,  20,  5000,   0),
+    ('A3VNL',    'VINYL',           2, 'Cetak A3+ Bahan VINYL',               'lembar',  70,  15,  8500,   0),
+    ('A3TRNS',   'TRANSPARENT',     2, 'Cetak A3+ Bahan TRANSPARENT',         'lembar',  60,  15,  8500,   0),
+    ('A3PVC',    'PVC',             2, 'Cetak A3+ Bahan PVC',                 'set',     50,  10,  75000,  0),
+    ('A3PVCNF',  'PVCNF',           2, 'Cetak A3+ Bahan PVC Tanpa finishing', 'set',     40,  10,  60000,  0),
+    ('A3HVS',    'HVS',             2, 'Cetak A3+ Bahan HVS',                 'lembar',  200, 50,  2500,   0),
+    ('A3KAL+',   'KALKIR',          2, 'Cetak A3+ Bahan KALKIR',              'lembar',  30,  10,  10000,  0),
+    ('CTPTOKO',  'Toko',            3, 'Pelat Toko',                          'pcs',     20,  5,   12000,  0),
+    ('CTPSORM',  'SORM',            3, 'Pelat SORM',                          'pcs',     15,  5,   20000,  0),
+    ('CTPP46',   'P46',             3, 'Pelat 46',                            'pcs',     10,  3,   15000,  0),
+    ('CTPP52',   'P52',             3, 'Pelat 52',                            'pcs',     8,   2,   35000,  0),
+    ('OFFTOKO',  'COFFTOKO',        5, 'Cetak Offset Toko',                   'set',     100, 25,  12000,  0),
+    ('OFFSORMF', 'COFFSORMF',       5, 'Cetak Offset SORM Full Color',        'set',     80,  20,  20000,  0),
+    ('OFFP46F',  'COFFP46F',        5, 'Cetak Offset P46 Full Color',         'set',     60,  15,  15000,  0),
+    ('OFFP52F',  'COFFP52F',        5, 'Cetak Offset P52 Full Color',         'set',     40,  10,  35000,  0);
 
 -- buat beberapa test data konsumen setelah price levels dibuat, karena ada foreign key reference ke price_levels
 INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_telp, alamat, kota, kode_pos, npwp, catatan, price_level_id) VALUES
-('CUST-001', 'PT. Sinar Jaya', 'Company', 'contact@sinarjaya.com', '021-12345678', 'Jl. Raya No. 123', 'Jakarta', '12345', '12.345.678.9-000.000', 'Pelanggan utama', 1),
-('CUST-002', 'Budi Santoso', 'Individual', 'budi.santoso@email.com', '021-87654321', 'Jl. Merdeka No. 456', 'Bandung', '45678', NULL, 'Pelanggan baru', 1),
-('CUST-003', 'CV. Maju Terus', 'Company', 'info@majuterus.com', '021-23456789', 'Jl. Pahlawan No. 789', 'Surabaya', '67890', '12.345.678.9-000.000', 'Pelanggan strategis', 1),
-('CUST-004', 'Siti Aminah', 'Individual', NULL, '021-34567890', 'Jl. Sudirman No. 321', 'Medan', '54321', NULL, 'Pelanggan dengan potensi besar', 1),
-('CUST-005', 'PT. Global Abadi', 'Company', 'info@globalabadi.com', '021-45678901', 'Jl. Diponegoro No. 567', 'Semarang', '78901', '12.345.678.9-000.000', 'Pelanggan utama', 1),
-('CUST-006', 'Ahmad Fauzi', 'Individual', 'ahmad.fauzi@email.com', '021-56789012', 'Jl. Gatot Subroto No. 678', 'Yogyakarta', '89012', NULL, 'Pelanggan loyal', 1);
+('Tamu', 'Guest', 'Individual', NULL, NULL, NULL, NULL, NULL, NULL, 'Semua Pelanggan Belum terdaftar', 1);
+
+-- buat akun transaksi default
+INSERT INTO akun_transaksi ( kode, nama, tipe, nama_bank, nomor_rekening, atas_nama, saldo, description ) VALUES 
+( 'CASH', 'Kas Admin', 'cash', NULL, NULL, NULL, 0, 'Akun trasaksi default' );
 
 -- buat inisiasi kas
 -- INSERT INTO transaksi ( transaction_number, admin_id, kategori_id, tipe, deskripsi, amount_before, amount, amount_after) VALUES 
@@ -963,7 +727,7 @@ INSERT INTO konsumen (customer_code, nama_lengkap, customer_type, email, nomor_t
 -- SELESAI
 -- ============================================================================
 
-COMMIT;
+-- COMMIT;
 
 -- Aktifkan kembali foreign keys
-PRAGMA foreign_keys = ON;
+-- PRAGMA foreign_keys = ON;

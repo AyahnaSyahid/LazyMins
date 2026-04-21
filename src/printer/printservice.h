@@ -11,6 +11,10 @@ public:
     static PrintService& instance();
 
 public slots:
+    // Menangani permintaan cetak lewat id invoice
+    void printInvoiceToSerial(int id);
+    // Menangani permintaan cetak lewat id payment
+    void onPaymentCreated(int id);
     // Menangani permintaan cetak umum
     void printReceiptRequested(const Receipt &rcp);
     // Menangani permintaan cetak khusus serial

@@ -4,6 +4,7 @@
 #include "src/dialogs/customerpickerdialog.h"
 #include "src/dialogs/paymentdialog.h"
 #include "src/utils/sessionmanager.h"
+#include "src/display/invoicebrowser.h"
 
 #include "src/managers/managers.h"
 
@@ -111,6 +112,16 @@ void InvoiceDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) 
   } 
   ctx.addMenu(dataBaruMenu);
   connect(ctx.addAction("Refresh"), &QAction::triggered, this, &DataViewer::refresh);
+
+  ctx.addSeparator();
+
+  auto browse = ctx.addAction("Browse");
+  connect(browse, &QAction::triggered, this, &InvoiceDataViewer::onBrowseInvoices);
+
+  auto printMenu = ctx.addMenu("Print");
+  auto serial = printMenu->addAction("Print to Thermal");
+  serial->setEnabled(false);
+
   ctx.exec(ui->dataView->viewport()->mapToGlobal(p));
 }
 
@@ -150,4 +161,11 @@ void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
   auto payment = *optPayment;
   
   emit paymentCreated(payment.value("id").toInt());
+}
+
+void InvoiceDataViewer::onBrowseInvoices() {
+  auto ib = new InvoiceBrowser();
+  ib->setAttribute(Qt::WA_DeleteOnClose);
+  connect(ib, &InvoiceBrowser::serialPrintRequested, this, &InvoiceDataViewer::printInvoiceToSerial);
+  ib->show();
 }

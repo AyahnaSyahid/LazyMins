@@ -26,6 +26,10 @@ class InvoiceDataViewer : public DataViewer
     // penerusan signal
     void invoiceCreated(int id);
     void paymentCreated(int id);
+    void printInvoiceToSerial(int id);
+  
+  private slots:
+    void onBrowseInvoices();
     
   private:
     void onPaymentGranted(const QVariantMap& vm);

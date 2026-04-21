@@ -1,6 +1,7 @@
 #include "printservice.h"
 #include "posprinter.h"
 #include "src/dialogs/configureserialposdialog.h"
+#include "src/managers/helpers.h"
 #include <QSettings>
 #include <QDebug>
 
@@ -80,5 +81,22 @@ void PrintService::printReceiptRequested(const Receipt &rcp)
 {
     // Placeholder untuk logika printer sistem (Windows/Linux Spooler)
     // Untuk saat ini diarahkan ke serial jika diperlukan
+    printToSerialRequested(rcp);
+}
+
+void PrintService::onPaymentCreated(int paymentId) {
+    auto result = DBOperationHelper::paymentHasCompletePaidInvoice(paymentId);
+    if (!result.ok) {
+        emit unableToPrint(result.error);
+        return ;
+    }
+    Receipt rcp;
+    DBOperationHelper::loadInvoiceDataFast(result.data["invoice_id"].toInt(), &rcp);
+    printToSerialRequested(rcp);
+}
+
+void PrintService::printInvoiceToSerial(int id) {
+    Receipt rcp;
+    DBOperationHelper::loadInvoiceDataFast(id, &rcp);
     printToSerialRequested(rcp);
 }

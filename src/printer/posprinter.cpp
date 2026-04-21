@@ -191,15 +191,28 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
   auto fontNormal = EscPosPrinter::PrintModeNone;
   auto fontBold   = EscPosPrinter::PrintModeEmphasized;
   
-  auto _drawItem   = [fontNormal, fontKecil, fontBold](EscPosPrinter& _p, const ReceiptItem& _i) {
+  auto _drawItem = [fontNormal, fontKecil, fontBold](EscPosPrinter& _p, const ReceiptItem& _i) {
       QString desc = _i.description.mid(0, 36);
-      QString info = QString(" %L1 %2 x %L3")
-                        .arg(_i.quantity)
-                        .arg(_i.unit.mid(0, 5))
-                        .arg(_i.unitPrice);
-      int spaces = 40;
+      QString info;
+      if (_i.areaBased) {
+        QString swidth = QString("%L1").arg(_i.sizeWidth);
+        QString sheight = QString("%L1").arg(_i.sizeHeight);
+        while(swidth.endsWith("0"))  swidth.chop(1);
+        while(sheight.endsWith("0")) sheight.chop(1);
+        if(swidth.endsWith("."))  swidth.chop(1);
+        if(sheight.endsWith(".")) sheight.chop(1);
+        info = QString("  %1x%2 %3 x %L4")
+                  .arg(swidth).arg(sheight)
+                  .arg(_i.unit.mid(0, 5))
+                  .arg(_i.unitPrice);
+      } else {
+        info = QString("  %L1 %2 x %L3")
+                  .arg(_i.quantity)
+                  .arg(_i.unit.mid(0, 5))
+                  .arg(_i.unitPrice);
+      }
       QString tstr = QString("%L1").arg(_i.totalPrice);
-      spaces -= tstr.size();
+      int spaces = 40 - tstr.size();
       info = info.mid(0, spaces);
       spaces -= info.size();
       info = info + QString(spaces, QChar(' '));
@@ -216,12 +229,10 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
         << "\n";    
   };
   
-  auto _drawFinishing = [fontNormal, fontKecil, fontBold] (EscPosPrinter& _p, const ReceiptFinishing& fin) {
-      QString finName = QString("[%1] %L2*%L3").arg(fin.name).arg(fin.qty).arg(fin.price).mid(0, 25);
+  auto _drawFinishing = [fontNormal, fontKecil, fontBold](EscPosPrinter& _p, const ReceiptFinishing& fin) {
+      QString finName = QString("+ [%1] %L2*%L3").arg(fin.name).arg(fin.qty).arg(fin.price).mid(0, 25);
       QString finCost = QString("%L1").arg(fin.cost);
-      int spaces = 40;
-      spaces    -= finCost.size();
-      spaces    -= finName.size();
+      int spaces = 40 - finCost.size() - finName.size();
      _p << EscPosPrinter::JustificationLeft
         << EscPosPrinter::PrintModes(fontKecil)
         << finName + QString(spaces, QChar(' '))
@@ -230,23 +241,25 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
         << EscPosPrinter::PrintModes(fontKecil)
         << "\n";
   };
-  // print header part
+
+  // ==================== HEADER ====================
   p << EscPosPrinter::init << EscPosPrinter::EncodingPC850
     << EscPosPrinter::PrintModes(fontKecil)
     << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::PrintModes(fontNormal | EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
-    << receipt.companyName << "\n" // company name
+    << receipt.companyName << "\n"
     << EscPosPrinter::PrintModes(fontKecil)
     << line('-')
     << EscPosPrinter::PrintModes(fontKecil | fontBold)
-    << receipt.companyAddress << "\n" // company name
-    << receipt.companyPhone << "\n" ; // nomor telpon1
-    if (!receipt.companyPhone2.isEmpty())
-       p << receipt.companyPhone2 << "\n" ; // nomor telpon2
-    if (!receipt.companyEmail.isEmpty())
-       p << receipt.companyEmail << "\n" ; // alamat email
-    // print header nota
+    << receipt.companyAddress << "\n"
+    << receipt.companyPhone << "\n";
+  if (!receipt.companyPhone2.isEmpty())
+     p << receipt.companyPhone2 << "\n";
+  if (!receipt.companyEmail.isEmpty())
+     p << receipt.companyEmail << "\n";
+
+  // ==================== INFO NOTA ====================
   p << EscPosPrinter::PrintModes(fontKecil)
     << EscPosPrinter::JustificationCenter
     << line('=')
@@ -259,7 +272,7 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << "\n"
     << "TGL   : "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
-    << receipt.date 
+    << receipt.date
     << EscPosPrinter::PrintModes(fontKecil)
     << "\n"
     << "KASIR : "
@@ -270,18 +283,17 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::JustificationLeft
-  // print header customer
     << EscPosPrinter::PrintModes(fontNormal)
     << "TN/NY/TK : "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << receipt.customerName
-    << EscPosPrinter::PrintModes(fontKecil) 
+    << EscPosPrinter::PrintModes(fontKecil)
     << "\n"
-    << EscPosPrinter::PrintModes(fontNormal) 
+    << EscPosPrinter::PrintModes(fontNormal)
     << "TELP/WA  : "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << receipt.customerPhone
-    << EscPosPrinter::PrintModes(fontKecil) 
+    << EscPosPrinter::PrintModes(fontKecil)
     << "\n"
     << EscPosPrinter::JustificationCenter
     << EscPosPrinter::PrintModes(fontKecil)
@@ -293,66 +305,99 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << "\n"
     << EscPosPrinter::JustificationCenter
     << line('-');
-  // items
-  for(auto const& item : receipt.items) {
+
+  // ==================== ITEMS ====================
+  for (auto const& item : receipt.items) {
     _drawItem(p, item);
-      for(auto const& fin : item.finishings) {
-        _drawFinishing(p, fin);
-      }
+    for (auto const& fin : item.finishings)
+      _drawFinishing(p, fin);
   }
-  // ==================== TOTALS SECTION ====================
+
+  // ==================== TOTALS ====================
   p << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::JustificationRight
     << EscPosPrinter::PrintModes(fontKecil)
     << fill("Subtotal", QString("%L1").arg(receipt.subtotal, 0, 'f', 0))
+    << EscPosPrinter::PrintModes(fontKecil)
+    << "\n"
     << fill(QString("PPN (%1%)").arg(receipt.taxRate * 100), QString("%L1").arg(receipt.tax))
-    << fill(QString("Diskon Total"), QString("%L1").arg(receipt.discount))
+    << EscPosPrinter::PrintModes(fontKecil)
+    << "\n"
+    << fill("Diskon Total", QString("%L1").arg(receipt.discount))
+    << EscPosPrinter::PrintModes(fontKecil)
+    << "\n"
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << fill("GRAND TOTAL", QString("%L1").arg(receipt.grandTotal, 0, 'f', 0), 33)
     << EscPosPrinter::PrintModes(fontKecil)
     << "\n"
     << line('-');
 
-  // ==================== PAYMENTS SECTION ====================
-  p << EscPosPrinter::JustificationLeft
-    << EscPosPrinter::PrintModes(fontKecil | fontBold)
-    << "RIWAYAT PEMBAYARAN:\n"
-    << EscPosPrinter::PrintModes(fontKecil);
-  
-  for(const auto& pay : receipt.payments) {
-      // Menampilkan: Tanggal - Nama Akun - Jumlah
+  // ==================== PAYMENTS ====================
+  p << EscPosPrinter::JustificationLeft;
+  if (receipt.payments.isEmpty()) {
+    // Belum ada pembayaran sama sekali
+    p << EscPosPrinter::PrintModes(fontKecil | fontBold)
+      << fill("BELUM ADA PEMBAYARAN", "", 40)
+      << EscPosPrinter::PrintModes(fontKecil)
+      << "\n";
+
+} else if (receipt.payments.size() == 1) {
+    // Satu pembayaran — langsung tampil tanpa header
+    const ReceiptPayment& pay = receipt.payments.first();
+    QString payInfo = QString("%1 %2").arg(pay.date).arg(pay.akunNama).mid(0, 25);
+    p << EscPosPrinter::PrintModes(fontKecil)
+      << fill(payInfo, QString("%L1").arg(pay.amount, 0, 'f', 0))
+      << "\n";
+    if (pay.cashChange > 0) {
+      p << fill("  Tunai",   QString("%L1").arg(pay.cashReceived, 0, 'f', 0))
+        << "\n"
+        << fill("  Kembali", QString("%L1").arg(pay.cashChange,   0, 'f', 0))
+        << "\n";
+    }
+} else {
+    // Lebih dari satu pembayaran — tampilkan riwayat
+    p << EscPosPrinter::PrintModes(fontKecil | fontBold)
+      << "RIWAYAT PEMBAYARAN:\n"
+      << EscPosPrinter::PrintModes(fontKecil);
+    for (const auto& pay : receipt.payments) {
       QString payInfo = QString("%1 %2").arg(pay.date).arg(pay.akunNama).mid(0, 25);
       p << fill(payInfo, QString("%L1").arg(pay.amount, 0, 'f', 0));
-      
-      // Jika pembayaran tunai, tampilkan detail cash & change
-      if(pay.akunNama == "Kas Admin") {
-        if (pay.cashChange > 0) {
-            p << fill("  Tunai", QString("%L1").arg(pay.cashReceived, 0, 'f', 0))
-              << fill("  Kembali", QString("%L1").arg(pay.cashChange, 0, 'f', 0));
-        }
+      if (pay.akunNama == "Kas Admin") {
+        p << fill("  Tunai", QString("%L1").arg(pay.cashReceived, 0, 'f', 0));
+        if (pay.cashChange > 0)
+          p << fill("  Kembali", QString("%L1").arg(pay.cashChange, 0, 'f', 0));
       }
-  }
+    }
+    p << line('-')
+      << EscPosPrinter::PrintModes(fontNormal | fontBold)
+      << fill("TOTAL BAYAR", QString("%L1").arg(receipt.paidAmount, 0, 'f', 0), 33)
+      << EscPosPrinter::PrintModes(fontKecil)
+      << "\n";
+}
 
   // ==================== SUMMARY & FOOTER ====================
-  p << line('-')
-    << EscPosPrinter::PrintModes(fontNormal | fontBold)
-    << fill("TOTAL BAYAR", QString("%L1").arg(receipt.paidAmount, 0, 'f', 0), 33)
-    << EscPosPrinter::PrintModes(fontKecil)
-    << "\n"
-    << EscPosPrinter::PrintModes(fontNormal | fontBold)
-    << fill("SISA TAGIHAN", QString("%L1").arg(receipt.remaining, 0, 'f', 0), 33)
-    << EscPosPrinter::PrintModes(fontKecil)
-    << "\n"
-    << EscPosPrinter::PrintModes(fontNormal)
+  // (selalu tercetak, di luar blok if/else)
+  if (receipt.remaining > 0) {
+    p << EscPosPrinter::PrintModes(fontNormal | fontBold)
+      << fill("SISA TAGIHAN", QString("%L1").arg(receipt.remaining, 0, 'f', 0), 33)
+      << EscPosPrinter::PrintModes(fontKecil)
+      << "\n";
+  }
+
+  // Timestamp cetak + status
+  QString printTime = QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss");
+  p << EscPosPrinter::PrintModes(fontNormal)
     << EscPosPrinter::JustificationCenter
     << "Status: "
     << EscPosPrinter::PrintModes(fontNormal | fontBold)
-    << receipt.status.toUpper() + "\n";
+    << receipt.status.toUpper() + "\n"
+    << EscPosPrinter::PrintModes(fontKecil)
+    << printTime + "\n";
 
   if (!receipt.notes.isEmpty()) {
-      p << EscPosPrinter::PrintModes(fontKecil)
-        << "Catatan: " << receipt.notes << "\n";
+    p << EscPosPrinter::PrintModes(fontKecil)
+      << "Catatan: " << receipt.notes << "\n";
   }
 
   p << "\n"
@@ -360,8 +405,8 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << "Terima Kasih Atas Kepercayaan Anda\n"
     << "Barang yang sudah dibeli tidak\n"
     << "dapat ditukar/dikembalikan.\n";
-  p.paperFeed(5);
-  p.partialCut(); // Perintah potong kertas
+  p.paperFeed(7);
+  p.partialCut();
   return true;
 }
 

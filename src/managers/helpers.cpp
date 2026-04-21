@@ -608,13 +608,11 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
             ReceiptItem rItem;
             rItem.description = QString("[%1] %2").arg(item.value("sku").toString().mid(0, 7), item.value("product_name").toString().mid(0, 23));
             rItem.quantity    = item.value("quantity").toDouble();
-            if (item.value("use_area").toInt() == 1) {
-                rItem.quantity = roundUpValue(item.value("size_width").toDouble() *
-                                              item.value("size_height").toDouble() *
-                                              rItem.quantity);
-            }
+            rItem.sizeHeight  = item.value("size_height").toDouble();
+            rItem.sizeWidth   = item.value("size_width").toDouble();
+            rItem.areaBased   = item.value("use_area").toBool();
             rItem.unitPrice  = item.value("sale_price").toInt();
-            rItem.totalPrice = rItem.quantity * rItem.unitPrice;
+            rItem.totalPrice = item.value("subtotal").toInt();
             rItem.unit       = item.value("unit").toString();
             rItem.finishings.clear();
             
@@ -651,4 +649,22 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(int in
     qDebug() << "=====================================================";
 
     return { true, "Data berhasil dimuat" };
+}
+
+DBOperationHelper::OperationResult DBOperationHelper::paymentHasCompletePaidInvoice(int payment_id)
+{
+    PaymentManager pm;
+    auto optPay = pm.getById(payment_id);
+    if(!optPay) return { false, "Data transaksi tidak ditemukan" };
+
+    InvoiceManager iman;
+    auto optInv = iman.getById(optPay->value("invoice_id").toInt());
+    if(!optInv) return { false, "Data invoice tidak ditemukan" };
+
+    if (optInv->value("settlement_status").toString() == "paid") {
+        return { true, "Invoice sudah lunas", {{"invoice_id", optInv->value("id")}} };
+    } else {
+        return { false, "Invoice belum lunas" };
+    }
+    return { false, "Data transaksi tidak ditemukan" };
 }

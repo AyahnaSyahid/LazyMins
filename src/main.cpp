@@ -3,7 +3,7 @@
 #include "src/managers/basemanager.h"
 #include "src/mainwindow/mainwindow.h"
 #include "src/setup/setupwindow.h"
-#include "src/printer/posprinter.h"
+#include "src/printer/printservice.h"
 
 #include <QtDebug>
 #include <QSqlRecord>
@@ -30,6 +30,8 @@ int main(int argc, char **argv)
     QSettings settings;
     QString dbPath = settings.value("Database/databasePath", ":memory:").toString();
     MainWindow *mainWindow = nullptr;
+    PrintService::instance().loadSettings();
+
     if (dbPath == ":memory:") {
         // === Mode Setup Pertama Kali ===
         SetupWindow *setupWindow = new SetupWindow();
@@ -68,6 +70,5 @@ int main(int argc, char **argv)
         QTimer::singleShot(0, mainWindow, &MainWindow::openLoginForm);
     }
 
-    auto &printer = PosPrinter::instance();
     return app.exec();
 }

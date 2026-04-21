@@ -14,6 +14,9 @@ struct ReceiptFinishing {
 
 struct ReceiptItem {
     QString description;
+    double sizeWidth  = 1.0;
+    double sizeHeight = 1.0;
+    bool   areaBased = false;
     double quantity = 1.0;
     double unitPrice = 0.0;
     double totalPrice = 0.0;

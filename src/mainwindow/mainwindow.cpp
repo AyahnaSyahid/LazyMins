@@ -22,6 +22,7 @@
 
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
+#include "src/printer/printservice.h"
 #include <QDockWidget>
 #include <QMessageBox>
 #include <QDate>
@@ -79,7 +80,6 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   fs1->setPageSize(100);
   fs1->refresh();
   ui->menuView->addAction(dsF->toggleViewAction());
-
 
   auto ord1 = new OrderDataViewer;
   auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
@@ -169,7 +169,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   AppSettingsManager apm;
   setWindowTitle(apm.getSettings("company_name").value("setting_value").toString() + "- LazyAdmins");
   
-  // Printer Test
+  // Printer Stuff
   ui->actionPrinterTest_2->setEnabled(false);
   connect(ui->actionPrinterTest_2, &QAction::triggered, [this](){
     PosPrinterTestDialog *pp = new PosPrinterTestDialog(this);
@@ -179,7 +179,15 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     auto *pp = new ConfigureSerialPosDialog(this);
     pp->exec();
   });
-  
+
+  auto &p_svc = PrintService::instance();
+  connect(idv, &InvoiceDataViewer::paymentCreated, &p_svc, &PrintService::onPaymentCreated); 
+  connect(idv, &InvoiceDataViewer::printInvoiceToSerial, &p_svc, &PrintService::printInvoiceToSerial); 
+  connect(pdv, &PaymentsDataViewer::paymentVerified, &p_svc, &PrintService::onPaymentCreated); 
+  connect(&p_svc, &PrintService::unableToPrint, [this](const QString& m) {
+    QMessageBox::warning(this, "Tidak dapat mencetak", m);
+  });
+
   // pengamanan
   auto app = qApp;
   if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd")) {

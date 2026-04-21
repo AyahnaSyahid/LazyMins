@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         mainWindow = new MainWindow();
         QTimer::singleShot(0, mainWindow, &MainWindow::openLoginForm);
     }
+
     auto &printer = PosPrinter::instance();
-    
     return app.exec();
 }

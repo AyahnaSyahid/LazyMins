@@ -136,10 +136,10 @@ target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)
 # ==================== 5. Printing Module ====================
 # Modul khusus printer [cite: 5]
 add_library(printing_module STATIC
-    src/printer/escpos.cpp
     src/printer/posprinter.cpp
     src/printer/posprintertestdialog.cpp
     src/printer/receipt_debug.cpp
+    src/printer/printservice.cpp
 )
 target_link_libraries(printing_module PUBLIC data_layer Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 

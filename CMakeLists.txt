@@ -126,6 +126,7 @@ add_library(ui_dialogs STATIC
     src/display/paymentsdataviewer.cpp
     src/dialogs/depositdialog.cpp
     src/display/invoicebrowser.cpp
+    src/dialogs/createfinishingservicedialog.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)

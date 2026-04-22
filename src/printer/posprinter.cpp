@@ -201,10 +201,11 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
         while(sheight.endsWith("0")) sheight.chop(1);
         if(swidth.endsWith("."))  swidth.chop(1);
         if(sheight.endsWith(".")) sheight.chop(1);
-        info = QString("  %1x%2 %3 x %L4")
+        info = QString("  %1x%2 %3 x %L4 x%L5")
                   .arg(swidth).arg(sheight)
                   .arg(_i.unit.mid(0, 5))
-                  .arg(_i.unitPrice);
+                  .arg(_i.unitPrice)
+                  .arg(_i.quantity);
       } else {
         info = QString("  %L1 %2 x %L3")
                   .arg(_i.quantity)

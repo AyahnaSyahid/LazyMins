@@ -59,7 +59,7 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
     auto opt_pay = getById(id);
     
     if (!opt_pay) {
-      setErrorString("Data transaksi tidak ditemukan");
+      setErrorString("Data pembayaran tidak ditemukan");
       return false;
     }
     

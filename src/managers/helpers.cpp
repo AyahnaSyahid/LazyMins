@@ -57,6 +57,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"discount_amount", header.discount_amount},
     {"price_level_id", header.price_level_id},
     {"priority", header.priority},
+    {"staging_status", "completed"},
     {"notes", header.notes},
     {"internal_notes", header.internal_notes}
   } );
@@ -314,6 +315,9 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
   int invoice_id = ires.data["invoice_id"].toInt();
   
   InvoiceManager invm;
+
+  invm.addOrders(invoice_id, oids);
+
   PaymentManager payman;
   QVariantMap copyPay(pay);
   copyPay["invoice_id"] = invoice_id;

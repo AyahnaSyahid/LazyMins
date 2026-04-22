@@ -18,6 +18,21 @@ public:
     bool update(int id, const QVariantMap& params) override;
     bool remove(int id) override;
 
+    std::optional<QSqlRecord> recordTransaksi(int akunId,
+                                              int adminId,
+                                              int kategoriId,
+                                              const QString& tipe,
+                                              const QString& deskripsi,
+                                              int amount,
+                                              const QString& paymentMethod = QString(),
+                                              const QString& referenceType = QString(),
+                                              int referenceId = -1 ,
+                                              const QDateTime& tanggal = QDateTime::currentDateTimeUtc());
+    
+    std::optional<QSqlRecord> recordPayment(int akunId,
+                                            int adminId,
+                                            int paymentId);
+
 protected:
     bool beforeCreate(QVariantMap& params) override;
 };

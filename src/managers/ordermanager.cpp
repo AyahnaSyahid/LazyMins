@@ -52,7 +52,7 @@ QList<QSqlRecord> OrderManager::getByInvoice(int invoiceId)
 
 bool OrderManager::updateStatus(int id, const QString& status)
 {
-    return update(id, {{ "staging_status", status }});
+    return update(id, {{ "staging_status", status }, {"updated_at", dateTimeToSql() }});
 }
 
 bool OrderManager::updateSubtotal(int id, int subtotal)

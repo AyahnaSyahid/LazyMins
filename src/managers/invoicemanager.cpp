@@ -112,15 +112,19 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
   
   QString sql(R"-(
       UPDATE orders SET ( invoice_id, invoice_number, updated_at ) =
-        ( :iid, :inum, CURRENT_TIMESTAMP ) WHERE id IN (%1))-");
+        ( :iid, :inum, CURRENT_TIMESTAMP ) WHERE id IN (%1)
+    )-");
   
   QSqlQuery q(BaseManager::connection);
   q.prepare(sql.arg(holders.join(", ")));
   q.bindValue(":iid", opt_inv->value("id"));
   q.bindValue(":inum", opt_inv->value("invoice_number"));
+  qDebug() << "[InvoiceManager::addOrders] value of :iid = " << opt_inv->value("id");   
+  qDebug() << "[InvoiceManager::addOrders] value of :inum = " << opt_inv->value("invoice_number");   
   
   int at = 0;
   for(int i = 0; i < oids.size(); ++i) {
+        qDebug() << "[InvoiceManager::addOrders] holder " << holders[i] << " = " << oids[i];   
         q.bindValue(holders[i], oids[i]); 
   }
   
@@ -128,6 +132,9 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
     setErrorString("Gagal menambahkan order" + q.lastError().text());
     return false;
   }
+
+  qDebug() << "[InvoiceManager::addOrders]" << q.lastQuery();;
+
   return recalculate(invoice_id);
 }
 

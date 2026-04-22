@@ -9,6 +9,9 @@
 #include <QTimeZone>
 
 namespace {
+  const QBrush processingBrush(QColor(255, 255, 200));
+  const QBrush pendingBrush(QColor(255, 200, 200));
+  const QBrush readyBrush(QColor(200, 255, 200));
   class Delegate : public QStyledItemDelegate
   {
     public:
@@ -39,9 +42,20 @@ namespace {
             option->text = date.toString("dd MMMM yyyy");
             break;
           }
+          case 8: {
+            option->displayAlignment = Qt::AlignCenter;
+            break;
+          }
           default:
             break;
         }
+        auto status = ix.data(Qt::UserRole + 8).toString();
+        if (status == "pending")
+          option->backgroundBrush = pendingBrush;
+        else if (status == "processing")
+          option->backgroundBrush = processingBrush;
+        else if (status == "ready")
+          option->backgroundBrush = readyBrush;
       }
   };
 }
@@ -59,9 +73,10 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
            o.subtotal AS subtotal,
            o.discount_amount AS discount,
            o.total_amount AS total_amount,
-           date(order_date, 'localtime')
+           date(order_date, 'localtime'),
+           o.staging_status AS status
       FROM orders o
-     WHERE o.invoice_id IS NULL
+     WHERE o.invoice_id IS NULL OR ( o.staging_status <> 'completed' AND o.staging_status <> 'cancelled' )
   )--");
   
   setFilterColumnNames( {"order_number", "customer_name"} );
@@ -74,6 +89,7 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
   mod->setHeaderData(5, Qt::Horizontal, "Diskon");
   mod->setHeaderData(6, Qt::Horizontal, "Total");
   mod->setHeaderData(7, Qt::Horizontal, "Tanggal");
+  mod->setHeaderData(8, Qt::Horizontal, "Status");
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
   ui->dataView->verticalHeader()->hide();
   adjustColumns();
@@ -82,22 +98,37 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
   connect(ui->dataView, &QTableView::customContextMenuRequested, this, &OrderDataViewer::on_dataView_customContextMenuRequested);
   
   connect(this, &DataViewer::refreshed, ui->dataView, &QTableView::resizeColumnsToContents);
-  
+
   // inisiasi actions
   m_createOrderAction = new QAction(this);
   m_createOrderAction->setObjectName("createOrderAction");
   m_createOrderAction->setToolTip("Buat order baru");
   m_createOrderAction->setText("Order Baru");
   connect(m_createOrderAction, &QAction::triggered, this, &OrderDataViewer::openCreateOrderDialog);
-  
 }
 
 OrderDataViewer::~OrderDataViewer(){}
 
+void OrderDataViewer::setOrderStatus(const QModelIndex &ix, const QString &status)
+{
+  auto &mod = DataViewer::model();
+  int paymentId = ix.siblingAtColumn(0).data().toInt();
+  PaymentManager paym;
+  
+}
+
+QString OrderDataViewer::orderStatus(const QModelIndex &index) const
+{
+    auto mod = index.model();
+    return mod->data(index.siblingAtColumn(8)).toString();
+}
+
 void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   QMenu ctx;
   ctx.setToolTipsVisible(true);
-
+  auto substatus = ctx.addMenu("Set Status");
+  auto setReadyAction = substatus->addAction("Ready");
+  auto setCompletedAction = substatus->addAction("Completed");
   auto submenu = ctx.addMenu("Data baru");
   submenu->setToolTipsVisible(true);
   submenu->addAction(m_createOrderAction);

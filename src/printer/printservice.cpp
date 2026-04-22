@@ -26,8 +26,10 @@ void PrintService::loadSettings()
 
 void PrintService::printToSerialRequested(const Receipt &rcp)
 {
-    if(m_serialPortDisabled) return;
-
+    if(m_serialPortDisabled) {
+        emit unableToPrint("Printer Serial di nonaktifkan.");
+        return ;
+    }
     // 1. Masukkan ke antrean
     m_printQueue << rcp;
 

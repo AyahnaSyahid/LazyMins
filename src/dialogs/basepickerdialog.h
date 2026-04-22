@@ -24,7 +24,7 @@ public:
 
     // Fungsi untuk menyesuaikan ukuran dialog dengan konten
     void adjustDialogSize();
-
+    void setVerticalHeaderShown(bool shown = true);
 signals:
     void idPicked(int id);
 

@@ -125,7 +125,7 @@ void ProdukDataViewer::on_dataView_customContextMenuRequested(const QPoint& pt)
   auto setPriceAction = menu.addAction("Harga");
   setPriceAction->setToolTip("Tetapkan Harga Minimal");
   menu.addSeparator();
-  auto refillAction = menu.addAction("Stok");
+  auto refillAction = menu.addAction("ReStok");
   refillAction->setToolTip("Tambahkan data stok saat masuk");
   auto opnameAction = menu.addAction("Opname");
   opnameAction->setToolTip("Sesuaikan data stok dengan gudang");

@@ -117,12 +117,11 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
   
   QSqlQuery q(BaseManager::connection);
   q.prepare(sql.arg(holders.join(", ")));
-  q.bindValue(":iid", opt_inv->value("id"));
+  q.bindValue(":iid", invoice_id);
   q.bindValue(":inum", opt_inv->value("invoice_number"));
-  qDebug() << "[InvoiceManager::addOrders] value of :iid = " << opt_inv->value("id");   
+  qDebug() << "[InvoiceManager::addOrders] value of :iid = " << invoice_id;   
   qDebug() << "[InvoiceManager::addOrders] value of :inum = " << opt_inv->value("invoice_number");   
   
-  int at = 0;
   for(int i = 0; i < oids.size(); ++i) {
         qDebug() << "[InvoiceManager::addOrders] holder " << holders[i] << " = " << oids[i];   
         q.bindValue(holders[i], oids[i]); 
@@ -133,7 +132,11 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
     return false;
   }
 
-  qDebug() << "[InvoiceManager::addOrders]" << q.lastQuery();;
+  if (q.numRowsAffected() != oids.size())
+  {
+    setErrorString("Sebagian order tidak ditemukan");
+    return false;
+  }
 
   return recalculate(invoice_id);
 }
@@ -180,6 +183,7 @@ bool InvoiceManager::recalculate(int id) {
   OrderManager om;
   
   q.prepare("SELECT id FROM orders WHERE invoice_id = :id");
+  
   q.bindValue(":iid", id);
   if (!q.exec()) {
     setErrorString(q.lastError().text());
@@ -194,34 +198,33 @@ bool InvoiceManager::recalculate(int id) {
   }
   
   q.prepare( R"-(
-UPDATE invoices SET 
-    (subtotal, discount_amount, paid_amount, settlement_status, updated_at) = (
-        SELECT 
-            total_sub,
-            total_disc,
-            total_paid,
-            CASE 
-                WHEN total_paid <= 0 THEN 'unpaid'
-                WHEN total_paid >= (total_sub - total_disc) THEN 'paid'
-                ELSE 'partial'
-            END,
-            CURRENT_TIMESTAMP
-        FROM (
-            SELECT 
-                COALESCE(SUM(o.subtotal), 0) as total_sub,
-                COALESCE(SUM(o.discount_amount), 0) as total_disc,
-                (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = :iid AND verification_status = 'verified') as total_paid
-            FROM orders o
-            WHERE o.invoice_id = :iid
-        )
-    )
-WHERE id = :iid
-)-");
+  UPDATE invoices SET 
+      (subtotal, discount_amount, paid_amount, settlement_status, updated_at) = (
+          SELECT 
+              total_sub,
+              total_disc,
+              total_paid,
+              CASE 
+                  WHEN total_paid <= 0 THEN 'unpaid'
+                  WHEN total_paid >= (total_sub - total_disc) THEN 'paid'
+                  ELSE 'partial'
+              END,
+              CURRENT_TIMESTAMP
+          FROM (
+              SELECT 
+                  COALESCE(SUM(o.subtotal), 0) as total_sub,
+                  COALESCE(SUM(o.discount_amount), 0) as total_disc,
+                  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = :iid AND verification_status = 'verified') as total_paid
+              FROM orders o
+              WHERE o.invoice_id = :iid
+          )
+      )
+  WHERE id = :iid
+  )-");
   q.bindValue(":iid", id);
   if (!q.exec()) {
     setErrorString("Tidak dapat memperbarui data finansial invoice :\n" + q.lastError().text());
     return false;
   }
-  
   return true;
 }

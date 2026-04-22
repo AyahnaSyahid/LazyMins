@@ -317,17 +317,20 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
   p << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::JustificationRight
-    << EscPosPrinter::PrintModes(fontKecil)
-    << fill("Subtotal", QString("%L1").arg(receipt.subtotal, 0, 'f', 0))
-    << EscPosPrinter::PrintModes(fontKecil)
-    << "\n"
-    << fill(QString("PPN (%1%)").arg(receipt.taxRate * 100), QString("%L1").arg(receipt.tax))
-    << EscPosPrinter::PrintModes(fontKecil)
-    << "\n"
-    << fill("Diskon Total", QString("%L1").arg(receipt.discount))
-    << EscPosPrinter::PrintModes(fontKecil)
-    << "\n"
-    << EscPosPrinter::PrintModes(fontNormal | fontBold)
+    << EscPosPrinter::PrintModes(fontKecil);
+    if (receipt.subtotal != receipt.grandTotal) {
+      p << fill("Subtotal", QString("%L1").arg(receipt.subtotal, 0, 'f', 0))
+        << "\n";
+    }
+    if (receipt.tax > 0) {
+      p << fill(QString("PPN (%1%)").arg(receipt.taxRate * 100), QString("%L1").arg(receipt.tax))
+        << "\n";
+    }
+    if (receipt.discount > 0) {
+      p << fill("Diskon Total", QString("%L1").arg(receipt.discount))
+        << "\n";    
+    }
+  p << EscPosPrinter::PrintModes(fontNormal | fontBold)
     << fill("GRAND TOTAL", QString("%L1").arg(receipt.grandTotal, 0, 'f', 0), 33)
     << EscPosPrinter::PrintModes(fontKecil)
     << "\n"

@@ -40,6 +40,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   }
   
   int _admin_id = currentAdminId();
+  
   OrderItemFinishingManager fm;
   OrderItemManager oim;
   OrderManager om;
@@ -162,7 +163,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     {"tax_amount", paymentInfo["tax_amount"]}
   });
 
-  auto operation_2 = internalCreateInvoice(inv_par, createdItems);
+  auto operation_2 = internalCreateInvoice(inv_par, {created_order_id});
   
   if (!operation_2.ok) {
     return operation_2;
@@ -291,18 +292,16 @@ DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(cons
 
 DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(const QVariantMap& param, QList<int> oids)
 {
-  if (!BaseManager::connection.transaction())
-    return { false, "Gagal membuat transaksi Database" };
+  SqlTransaction tr;
+  if(!tr.started()) return { false, "Gagal membuat transaksi Database" };
+  
   auto ires = internalCreateInvoice(param, oids);
   if (!ires.ok) {
-    BaseManager::connection.rollback();
     return ires;
   }
-  if (!BaseManager::connection.commit()) {
-    BaseManager::connection.rollback();
-    return { false, BaseManager::connection.lastError().text() };
-  }
-  return ires;
+  if (tr.commit())   return ires;
+  return { false, BaseManager::connection.lastError().text() };
+  
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(const QVariantMap& inv, const QVariantMap& pay, QList<int> oids)
@@ -321,14 +320,14 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
   PaymentManager payman;
   QVariantMap copyPay(pay);
   copyPay["invoice_id"] = invoice_id;
-  copyPay["admin_id"] = currentAdminId();
+  copyPay["admin_id"]   = currentAdminId();
   if (copyPay.contains("verified_at") && (!copyPay["verified_at"].isNull()))
     copyPay["verified_by"] = copyPay["admin_id"];
   
   auto opt_pay = payman.create(copyPay);
-  if (!opt_pay) return { false, payman.errorString() };
-  if (!invm.recalculate(invoice_id)) return {false, "Unable to recalculate invoices"};
-  if (!tr.commit()) return { false, BaseManager::connection.lastError().text() };
+  if (!opt_pay)                      return { false, payman.errorString() };
+  if (!invm.recalculate(invoice_id)) return { false, "Unable to recalculate invoices"};
+  if (!tr.commit())                  return { false, BaseManager::connection.lastError().text() };
   return { true, "", {{"invoice_id", invoice_id}, {"payment_id", opt_pay->value("id")}}};
 }
 

@@ -12,7 +12,7 @@ OrderItemManager::OrderItemManager()
 QList<QSqlRecord> OrderItemManager::getByOrder(int orderId)
 {
     return getWhere("order_id = :order_id",
-                    {{ ":order_id", orderId }},
+                    {{ "order_id", orderId }},
                     "id");
 }
 

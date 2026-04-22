@@ -129,7 +129,7 @@ add_library(ui_dialogs STATIC
     src/dialogs/createfinishingservicedialog.cpp
 )
 
-target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)
+target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)
 # Header tambahan jika diperlukan
 # set_target_properties(ui_dialogs PROPERTIES
     # SOURCES "src/dialogs/fieldmap.h"

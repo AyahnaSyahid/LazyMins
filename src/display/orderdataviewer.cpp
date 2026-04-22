@@ -5,6 +5,10 @@
 #include <QStyledItemDelegate>
 #include <QMenu>
 #include <QAction>
+#include <QPlainTextEdit>
+#include <QTextCursor>
+#include <QTextCharFormat>
+#include <QTextOption>
 
 #include <QTimeZone>
 
@@ -49,7 +53,7 @@ namespace {
           default:
             break;
         }
-        auto status = ix.data(Qt::UserRole + 8).toString();
+        auto status = ix.siblingAtColumn(8).data(Qt::DisplayRole).toString();
         if (status == "pending")
           option->backgroundBrush = pendingBrush;
         else if (status == "processing")
@@ -117,6 +121,66 @@ void OrderDataViewer::setOrderStatus(const QModelIndex &ix, const QString &statu
   
 }
 
+void OrderDataViewer::viewOrderItems(const QModelIndex &ix)
+{
+  auto dl = new QDialog(this);
+  dl->setWindowTitle("Detail Pesanan");
+  dl->setAttribute(Qt::WA_DeleteOnClose);
+  auto layout = new QVBoxLayout(dl);
+  auto pte = new QPlainTextEdit(dl);
+  layout->addWidget(pte);
+  OrderItemManager oim;
+  auto order_items = oim.getByOrder(ix.siblingAtColumn(0).data().toInt());
+  pte->setReadOnly(true);
+  pte->setWordWrapMode(QTextOption::NoWrap);
+  if (order_items.isEmpty()) {
+    pte->setPlainText("Error:\nData items tidak ditemukan");
+    dl->open();
+    return ;
+  }
+  OrderItemFinishingManager oifm;
+  QList<QList<QSqlRecord>> item_finishings_records;
+
+  for(int a=0; a<order_items.size(); a++) {
+    auto item = order_items.at(a);
+    auto fs = oifm.getByOrderItem(item.value("id").toInt());
+    item_finishings_records << fs;
+  }
+  auto formatBold = QTextCharFormat();
+  formatBold.setFontWeight(QFont::Bold);
+  auto formatThin = QTextCharFormat();
+  formatThin.setFontWeight(QFont::Normal);
+
+  for(int a=0; a<order_items.size(); a++) {
+    auto item = order_items.at(a);
+    QString itemString = QString("[%1] %2\n").arg(item.value("sku").toString(), item.value("product_name").toString());
+    QString itemInfo   = QString("%1 %2 x %3\n").arg(item.value("quantity").toInt())
+                                              .arg(item.value("unit").toString())
+                                              .arg(item.value("sale_price").toInt());
+    if (item.value("use_area").toBool()) {
+      itemInfo = QString("%L1x%L2 %L3 x%L4 x%L5\n").arg(item.value("size_width").toDouble(), 0, 'f', 2)
+                                         .arg(item.value("size_height").toDouble(), 0, 'f', 2)
+                                         .arg(item.value("unit").toString())
+                                         .arg(item.value("sale_price").toInt())
+                                         .arg(item.value("quantity").toInt());
+    }
+    auto cursor = pte->textCursor();
+    pte->setTextCursor(cursor);
+    cursor.insertText(itemString, formatBold);
+    cursor.insertText(itemInfo, formatThin);
+    auto finishings = item_finishings_records.at(a);
+    for(auto const& finishing : finishings) {
+      QString finishingString = QString(" - [%1] %L2x%L3\n").arg(finishing.value("finishing_name").toString())
+                                    .arg(finishing.value("quantity").toInt())
+                                    .arg(finishing.value("price").toInt());
+      cursor.insertText(finishingString, formatThin);
+      cursor.insertBlock();
+    }
+  }
+  dl->adjustSize();
+  dl->open();
+}
+
 QString OrderDataViewer::orderStatus(const QModelIndex &index) const
 {
     auto mod = index.model();
@@ -126,12 +190,24 @@ QString OrderDataViewer::orderStatus(const QModelIndex &index) const
 void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   QMenu ctx;
   ctx.setToolTipsVisible(true);
-  auto substatus = ctx.addMenu("Set Status");
-  auto setReadyAction = substatus->addAction("Ready");
-  auto setCompletedAction = substatus->addAction("Completed");
+
+  auto currentIndex = Ui()->dataView->indexAt(p);
+  if (currentIndex.isValid()) {
+    auto viewOrderItems = ctx.addAction("Lihat Pesanan");
+    auto substatus = ctx.addMenu("Set Status");
+    auto setReadyAction = substatus->addAction("Ready");
+    auto setCompletedAction = substatus->addAction("Completed");
+    ctx.addSeparator();
+
+    connect(viewOrderItems, &QAction::triggered, [this, currentIndex]() { this->viewOrderItems(currentIndex); });
+    connect(setReadyAction, &QAction::triggered, [this, currentIndex]() { setOrderStatus(currentIndex, "ready"); });
+    connect(setCompletedAction, &QAction::triggered, [this, currentIndex]() { setOrderStatus(currentIndex, "completed"); });
+  }
+
   auto submenu = ctx.addMenu("Data baru");
   submenu->setToolTipsVisible(true);
   submenu->addAction(m_createOrderAction);
+
   ctx.exec(Ui()->dataView->viewport()->mapToGlobal(p));
 }
 

@@ -135,6 +135,9 @@ target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)
     # SOURCES "src/dialogs/fieldmap.h"
 # )
 
+# Modul khusus laporan
+add_subdirectory(src/modul_laporan)
+
 # ==================== 5. Printing Module ====================
 # Modul khusus printer [cite: 5]
 add_library(printing_module STATIC

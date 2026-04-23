@@ -96,11 +96,11 @@ private:
         const qreal L = m_theme.marginLeft;
         QList<ColDef> cols = {
             { "No. order",        L,       100, Qt::AlignLeft  },
-            { "Pelanggan",        L+105,   110, Qt::AlignLeft  },
-            { "Produk",           L+220,   140, Qt::AlignLeft  },
-            { "Status produksi",  L+365,    80, Qt::AlignLeft  },
-            { "Total (Rp)",       L+450,    90, Qt::AlignRight },
-            { "Pembayaran",       L+545,    70, Qt::AlignLeft  },
+            { "Pelanggan",        L+155,   110, Qt::AlignLeft  },
+            { "Produk",           L+275,     120, Qt::AlignLeft  },
+            { "Status produksi",  L+380,   120, Qt::AlignLeft  },
+            { "Total (Rp)",       L+460,    90, Qt::AlignRight },
+            { "Pembayaran",       L+585,    70, Qt::AlignLeft  },
         };
         y = addTableHeader(cols, y);
 

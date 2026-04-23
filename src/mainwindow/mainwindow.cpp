@@ -23,6 +23,10 @@
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
 #include "src/printer/printservice.h"
+
+#include "src/modul_laporan/reportview.h"
+#include "src/modul_laporan/reportloader.h"
+
 #include <QDockWidget>
 #include <QMessageBox>
 #include <QDate>
@@ -200,8 +204,41 @@ ui(new Ui::MainWindow), QMainWindow(p) {
 
 MainWindow::~MainWindow() {delete ui;}
 
-void MainWindow::setupToolbarActions() {
-  // currently no dynamic action setup is needed, but this function can be used in the future if we want to enable/disable actions based on user role or other conditions
+#include <QVBoxLayout>
+
+void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
+{
+  auto dl = new QDialog(this);
+  auto l = new QVBoxLayout(dl);
+  auto rv = new ReportView(dl);
+  ReportLoader rl(BaseManager::connection);
+  auto de = rl.loadDailyExpense(QDate::currentDate());
+  rv->showExpenseReport(de);
+  dl->setLayout(l);
+  l->addWidget(rv);
+  dl->setAttribute(Qt::WA_DeleteOnClose);
+  rv->resetTransform();
+  dl->open();
+}
+
+void MainWindow::on_actionLaporanPenjualanHariIni_triggered() {
+  auto dl = new QDialog(this);
+  auto l = new QVBoxLayout(dl);
+  auto rv = new ReportView(dl);
+  ReportLoader rl(BaseManager::connection);
+  auto de = rl.loadDailySales(QDate::currentDate());
+  rv->showSalesReport(de);
+  dl->setLayout(l);
+  l->addWidget(rv);
+  dl->setAttribute(Qt::WA_DeleteOnClose);
+  rv->resetTransform();
+  dl->open();
+}
+
+
+void MainWindow::setupToolbarActions()
+{
+    // currently no dynamic action setup is needed, but this function can be used in the future if we want to enable/disable actions based on user role or other conditions
 }
 
 void MainWindow::openLoginForm() {

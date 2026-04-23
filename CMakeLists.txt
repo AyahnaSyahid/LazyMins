@@ -183,6 +183,7 @@ target_link_libraries(LazyMins PRIVATE
     ui_dialogs
     printing_module
     printer_setup_module
+    modul_laporan
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network

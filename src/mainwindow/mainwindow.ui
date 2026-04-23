@@ -64,7 +64,27 @@
      <addaction name="actionProdukAdd"/>
      <addaction name="actionAddKatProduk"/>
     </widget>
+    <widget class="QMenu" name="menuBuatLaporan">
+     <property name="title">
+      <string>Buat Laporan</string>
+     </property>
+     <widget class="QMenu" name="menuPenjualan">
+      <property name="title">
+       <string>Penjualan</string>
+      </property>
+      <addaction name="actionLaporanPenjualanHariIni"/>
+     </widget>
+     <widget class="QMenu" name="menuPengeluaran">
+      <property name="title">
+       <string>Pengeluaran</string>
+      </property>
+      <addaction name="actionLaporanPengeluaranHariIni"/>
+     </widget>
+     <addaction name="menuPenjualan"/>
+     <addaction name="menuPengeluaran"/>
+    </widget>
     <addaction name="menuTambah"/>
+    <addaction name="menuBuatLaporan"/>
    </widget>
    <addaction name="menuPengaturan"/>
    <addaction name="menuToolbar"/>
@@ -223,6 +243,16 @@
   <action name="actionPrinterTest_2">
    <property name="text">
     <string>Test Printer</string>
+   </property>
+  </action>
+  <action name="actionLaporanPenjualanHariIni">
+   <property name="text">
+    <string>Hari ini</string>
+   </property>
+  </action>
+  <action name="actionLaporanPengeluaranHariIni">
+   <property name="text">
+    <string>Hari ini</string>
    </property>
   </action>
  </widget>

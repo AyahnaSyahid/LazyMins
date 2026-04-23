@@ -8,7 +8,7 @@
 #include <QPushButton>
 #include <QTimeZone>
 
-#include "report_view.h"
+#include "reportview.h"
 
 // ---- helper: buat data dummy laporan penjualan ----
 DailySalesReport makeSampleSalesReport()

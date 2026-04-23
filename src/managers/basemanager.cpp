@@ -6,6 +6,7 @@ void debugMap(const QVariantMap&);
 QSqlDatabase BaseManager::connection;
 
 QMap<QString, QStringList> BaseManager::s_columnCache;
+QMap<QString, bool> BaseManager::s_dependencyCheckPassed;
 
 QSqlQuery BaseManager::baseQuery() {
   return QSqlQuery {connection};
@@ -13,7 +14,9 @@ QSqlQuery BaseManager::baseQuery() {
 
 BaseManager::BaseManager(const QString& tableName, bool useSoftDelete)
     : m_errorString {}, m_tableName(tableName), m_useSoftDelete(useSoftDelete)
-{}
+{
+    baseDependencyCheck();
+}
 
 BaseManager::~BaseManager()
 {}
@@ -549,6 +552,20 @@ bool BaseManager::afterDelete(int id, const QSqlRecord&)
     // Hook kosong - override di derived class jika perlu
     Q_UNUSED(id)
     return true;
+}
+
+void BaseManager::baseDependencyCheck()
+{
+    if (m_tableName.isEmpty()) return ;
+    if (!s_dependencyCheckPassed.contains(m_tableName)) {
+        bool passed = checkDependencies();
+        s_dependencyCheckPassed[m_tableName] = passed;
+        if (!passed) {
+            qWarning() << "[BaseManager] Dependency check failed for table:" << m_tableName;
+        } else {
+            qWarning() << "[BaseManager] Dependency check passed for table:" << m_tableName;
+        }
+    }
 }
 
 // ============================================================================

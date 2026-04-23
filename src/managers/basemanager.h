@@ -66,7 +66,8 @@ protected:
     virtual bool afterUpdate(int id, const QSqlRecord& recordBefore, const QSqlRecord& recordAfter);
     virtual bool beforeDelete(int id);
     virtual bool afterDelete(int id, const QSqlRecord& before);
-
+    virtual bool checkDependencies() { return true; }
+    void baseDependencyCheck();
     void resetErrorString();
     void setErrorString(const QString& err) { m_errorString = err; }
 
@@ -81,6 +82,7 @@ protected:
     static QString dateTimeToSql(const QDateTime& d = QDateTime::currentDateTimeUtc());
 private:
     static QMap<QString, QStringList> s_columnCache;
+    static QMap<QString, bool> s_dependencyCheckPassed;
     QVariant m_lastInsertId;
     QString m_errorString;
     QString m_tableName;

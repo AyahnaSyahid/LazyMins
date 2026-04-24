@@ -154,7 +154,10 @@ add_library(printer_setup_module STATIC
     
 target_link_libraries(printer_setup_module PUBLIC Qt6::Widgets Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 
+enable_testing()
+
 add_subdirectory(escpos-qt)
+add_subdirectory(tests)
 
 # ==================== Executable Utama ====================
 # Menggabungkan semua library dan file utama [cite: 1, 5, 6]

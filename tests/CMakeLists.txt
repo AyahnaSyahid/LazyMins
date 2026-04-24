@@ -1,13 +1,6 @@
-# qt_add_executable(test_am 
-        # test_adminmanager.h
-        # test_adminmanager.cpp 
-        # )
+qt_add_executable(tstDatabase tstDatabase.cpp ${PROJECT_SOURCE_DIR}/resources/database_resources.qrc)
 
-# target_include_directories(test_am PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-# target_link_libraries(test_am PRIVATE Mgr_LAdmins Ui_LAdmins Qt::Test)
+target_include_directories(tstDatabase PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(tstDatabase PRIVATE data_layer Qt6::Test)
 
-# add_test(NAME AdminManagerTest COMMAND test_am)
-
-qt_add_executable(db_test test_database.cpp)
-target_include_directories(db_test PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(db_test PRIVATE Mgr_LAdmins Ui_LAdmins)
+add_test(NAME DatabaseTest COMMAND tstDatabase)

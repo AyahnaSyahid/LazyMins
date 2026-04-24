@@ -3,6 +3,7 @@
 #include "actiongroup.h"
 #include "src/dialogs/konsumendialog.h"
 #include "src/dialogs/userdialog.h"
+#include "src/dialogs/edituserdialog.h"
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/instantorderdialog.h"
@@ -168,6 +169,18 @@ ui(new Ui::MainWindow), QMainWindow(p) {
     QMessageBox::warning(this, "Peringatan", m);
   });
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
+  auto actEditAkun = new QAction("Edit info", this);
+  actEditAkun->setObjectName("editAkunAction");
+  ui->menuAkun->insertAction(ui->actionKeluar, actEditAkun);
+  connect(actEditAkun, &QAction::triggered, [this, &sm]() {
+    if (sm.currentUser()->isEmpty()) {
+      QMessageBox::warning(this, "Kesalahan", "User tidak valid");
+      return ;
+    }
+    auto ud = new EditUserDialog(sm.currentUser()->value("username").toString(), this);
+    ud->setAttribute(Qt::WA_DeleteOnClose);
+    ud->open();
+  });
 
   // Window Title
   AppSettingsManager apm;

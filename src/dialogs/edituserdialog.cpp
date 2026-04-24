@@ -59,7 +59,12 @@ void EditUserDialog::on_simpanButton_clicked() {
   if(ui->emailEdit->isModified() && ui->emailEdit->text() != info.nomor_telp) {
     updateParams["email"] = ui->emailEdit->text().trimmed();
   }
-  
+  AdminManager aa;
+  if(!aa.update(info.id, updateParams)) {
+    QMessageBox::warning(this, "Update gagal", aa.errorString());
+    return ;
+  }
+  accept();
 }
 
 void EditUserDialog::userNotFound() {

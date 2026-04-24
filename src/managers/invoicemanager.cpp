@@ -182,7 +182,7 @@ bool InvoiceManager::recalculate(int id) {
   
   OrderManager om;
   
-  q.prepare("SELECT id FROM orders WHERE invoice_id = :id");
+  q.prepare("SELECT id FROM orders WHERE invoice_id = :iid");
   
   q.bindValue(":iid", id);
   if (!q.exec()) {

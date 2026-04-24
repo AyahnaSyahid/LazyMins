@@ -20,3 +20,12 @@ QueryComboBox(p)
 int RolesComboBox::currentRoleId() const {
   return qmodel->index(currentIndex(), 0).data(Qt::EditRole).toInt();
 };
+
+void RolesComboBox::setCurrentRoleId(int roleId) {
+  auto ilist = qmodel->match(qmodel->index(0,0), Qt::DisplayRole, roleId, 1, Qt::MatchExactly);
+  if (!ilist.isEmpty()) {
+    setCurrentIndex(ilist.first().row());
+    return ;
+  }
+  setCurrentIndex(-1);
+}

@@ -13,7 +13,12 @@ class EditUserDialog : public QDialog
   public:
     EditUserDialog(const QString& username, QWidget *p=nullptr);
     ~EditUserDialog();
-  
+    
+    bool userLoaded() const { return m_userLoaded; }
+    bool setUser(const QString& name);
+    
+    void setEditRoleDisabled(bool disable = true);
+
   private slots:
     void on_ubahButton_clicked();
     void on_simpanButton_clicked();
@@ -30,7 +35,7 @@ class EditUserDialog : public QDialog
               email,
               nomor_telp;
     };
-    
+    bool m_userLoaded = false;
     Ui::EditUserDialog *ui;
     UserInfo info;
 };

@@ -177,7 +177,15 @@ ui(new Ui::MainWindow), QMainWindow(p) {
       QMessageBox::warning(this, "Kesalahan", "User tidak valid");
       return ;
     }
-    auto ud = new EditUserDialog(sm.currentUser()->value("username").toString(), this);
+    auto ud = new EditUserDialog("", this);
+    if (!ud->setUser(sm.currentUser()->value("username").toString()) || !ud->userLoaded()) {
+      QMessageBox::warning( this, "Peringatan", "Username tidak ditemukan dalam database");
+      ud->deleteLater();
+      return ;
+    }
+    AdminManager aa;
+    if (!aa.userHasRole(sm.currentUser()->value("id").toInt(), "super_admin")) ud->setEditRoleDisabled();
+    
     ud->setAttribute(Qt::WA_DeleteOnClose);
     ud->open();
   });

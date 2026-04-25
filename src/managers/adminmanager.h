@@ -20,6 +20,7 @@ class AdminManager : public BaseManager
     bool changeLoginInfo(const QString& oldname, const QString& newName, const QString& newPass);
     bool userHasRole(int userId, const QString& roleName) const;
     std::optional<QSqlRecord> getRecord(const QString& name) const;
+    bool passwordMatch(const QString& user, const QString& pass);
     
   protected:
     bool beforeCreate(QVariantMap &m) override;

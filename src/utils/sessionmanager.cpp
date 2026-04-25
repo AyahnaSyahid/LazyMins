@@ -9,9 +9,8 @@ SessionManager &SessionManager::instance() {
 
 void SessionManager::login(const QString& name, const QString& pass) {
   emit userLogin();
-  auto &auth = AuthManager::instance();
-  if(auth.passwordMatch(name, pass)) {
-    AdminManager am;
+  AdminManager am;
+  if(am.passwordMatch(name, pass)) {
     auto orc = am.getRecord(name);
     if (orc) {
       auto rc = *orc;
@@ -44,6 +43,6 @@ std::optional<QSqlRecord> SessionManager::currentUser() const {
 bool SessionManager::currentUserPasswordMatch(const QString& pass) const {
   if(!m_optUserRecord) return false;
   QString username = (*m_optUserRecord).value("username").toString();
-  auto &auth = AuthManager::instance();
-  return auth.passwordMatch(username, pass);
+  AdminManager am;
+  return am.passwordMatch(username, pass);
 }

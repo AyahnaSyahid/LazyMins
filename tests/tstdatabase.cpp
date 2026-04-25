@@ -19,11 +19,12 @@ void tstDatabase::initTestCase()
         QFAIL("Database schema initialization failed");
     }
     BaseManager::connection = db;
+    
+
 }
 
 void tstDatabase::tstCreateRootUser() {
     AdminManager aman;
-    AuthManager &aum = AuthManager::instance();
     auto opt = aman.create({
         { "username",         "root2"},
         { "role_id",          1 },
@@ -35,7 +36,7 @@ void tstDatabase::tstCreateRootUser() {
     });
 
     QCOMPARE(opt.has_value(), true);
-    QCOMPARE(aum.passwordMatch("root2", "nahalakamarada"), true);
+    QCOMPARE(aman.passwordMatch("root2", "nahalakamarada"), true);
 }
 
 void tstDatabase::tstLoginWithRootUser()

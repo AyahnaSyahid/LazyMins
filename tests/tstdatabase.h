@@ -13,4 +13,5 @@ private slots:
     void tstLoginWithRootUser();
     void tstCreateKasirUser();
     void tstChangeCurrentUser();
+
 };

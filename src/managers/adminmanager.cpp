@@ -165,6 +165,21 @@ std::optional<QSqlRecord> AdminManager::getRecord(const QString &name) const
   return std::nullopt;
 }
 
+bool AdminManager::passwordMatch(const QString &user, const QString &pass)
+{
+  auto orec = getRecord(user);
+  if (orec)
+  {
+    auto rec = *orec;
+    auto hash = AuthManager::instance().generateHash(pass, rec.value("salt").toString());
+    if (hash == rec.value("password_hash").toString())
+    {
+      return true;
+    }
+  }
+    return false;
+}
+
 void AdminManager::setLastLog(std::optional<QSqlRecord> &opt)
 {
   if (!opt.has_value()) return ;

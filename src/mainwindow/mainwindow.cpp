@@ -164,10 +164,12 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   // UserSession
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this, &MainWindow::currentUserChanged);
+  connect(&sm, &SessionManager::userLogout, this, &MainWindow::hide);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
   connect(&sm, &SessionManager::loginFailed, [this](const QString& m) {
     QMessageBox::warning(this, "Peringatan", m);
   });
+
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
   auto actEditAkun = new QAction("Edit info", this);
   actEditAkun->setObjectName("editAkunAction");
@@ -221,6 +223,9 @@ ui(new Ui::MainWindow), QMainWindow(p) {
       qApp->quit();
     });
   }
+
+  // Login
+  openLoginForm();
 }
 
 MainWindow::~MainWindow() {delete ui;}
@@ -267,9 +272,15 @@ void MainWindow::openLoginForm() {
   if (cu.has_value()) {
     return ;
   }
-  hide();
+  // hide();
   auto ld = new LoginDialog();
   connect(ld, &LoginDialog::accepted, this, &QWidget::show);
+  connect(ld, &LoginDialog::rejected, [this](){
+    if (QMessageBox::question(this, "Batal Masuk", "Anda yakin membatalkan masuk ?\nIni akan menutup aplikasi", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) 
+      qApp->quit();
+    else
+      this->openLoginForm();
+  });
   ld->setAttribute(Qt::WA_DeleteOnClose);
   ld->open();
 }

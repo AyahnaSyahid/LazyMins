@@ -41,8 +41,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    MainWindow mainWindow;
-    mainWindow.show();
 
+    MainWindow mainWindow;
+    // show() called from login dialog
+    
     return app.exec();
 }

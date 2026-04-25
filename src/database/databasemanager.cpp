@@ -1,6 +1,7 @@
 #include "databasemanager.h"
 #include "initializeschema.h"
 #include "src/utils/authmanager.h"
+#include "src/managers/basemanager.h"
 
 #include <QSettings>
 #include <QSqlError>
@@ -21,21 +22,35 @@ bool DatabaseManager::initializeFromSetup(const QString &dbPath,
   QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "LMAdmins_db");
   db.setDatabaseName(dbPath);
 
-  if (!db.open()) return false;
+  if (!db.open()) {
+    qWarning() << "[DatabaseManager::initializeFromSetup] Database open failed:" << db.lastError().text();
+    db.close();
+    return false;
+  };
 
-  if (!initSchema(db)) return false;
+  if (!initSchema(db)) {
+    qWarning() << "[DatabaseManager::initializeFromSetup] Schema initialization failed:" << db.lastError().text(); 
+    db.close(); 
+    return false;
+  };
 
   // Insert super_user — sesuaikan query dengan skema tabel Anda
   auto &am = AuthManager::instance();
   auto salt = am.generateSalt();
   auto hash = am.generateHash(password, salt);
   QSqlQuery q(db);
-  q.prepare("INSERT INTO users (username, password, salt, role_id) VALUES (?, ?, ?, 1)");
-  q.addBindValue(superUser);
-  q.addBindValue(password);
-  q.addBindValue(salt);
+  qInfo() << "[DatabaseManager::initializeFromSetup] databaseConnection:" << db.connectionName();
+  qInfo() << "[DatabaseManager::initializeFromSetup] databaseName:" << db.databaseName();
+  q.prepare("INSERT INTO admins (username, password_hash, nama_lengkap, salt, role_id) VALUES (:un, :pw, :nl, :st, 1)");
+  q.bindValue(":un", superUser);
+  q.bindValue(":pw", hash);
+  q.bindValue(":nl", superUser);
+  q.bindValue(":st", salt);
   
-  if (!q.exec()) return false;
+  if (!q.exec()) {
+    qWarning() << "[DatabaseManager::initializeFromSetup] Super user creation failed:" << q.lastError().text();
+    return false;
+  };
 
   // Simpan path ke settings hanya jika semua berhasil
   QSettings settings;
@@ -45,6 +60,7 @@ bool DatabaseManager::initializeFromSetup(const QString &dbPath,
   m_databaseReady = true;
   m_isFirstRun = false;
 
+  settings.sync();
   return true;
 }
 
@@ -80,6 +96,7 @@ DatabaseManager::DatabaseManager() : m_databaseReady(false), m_isFirstRun(false)
 
   m_database = _db;
   m_databaseReady = true;
+  BaseManager::connection = m_database;
 }
 
 bool DatabaseManager::initSchema(QSqlDatabase &db) {

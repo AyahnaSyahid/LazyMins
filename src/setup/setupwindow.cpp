@@ -3,6 +3,7 @@
 #include "src/database/databasemanager.h"
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
+#include "src/utils/sessionmanager.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -109,7 +110,13 @@ void SetupWindow::on_installButton_clicked()
 
     // === 4. Inisialisasi Database ===
     auto &dbm = DatabaseManager::instance();
-    dbm.initializeFromSetup(dbFilePath, params["username"], params["password"]);
+    if (! dbm.initializeFromSetup(dbFilePath, params["username"], params["password"]) )
+    {
+        QMessageBox::critical(this, "Gagal Membuat Database", 
+                              "Tidak dapat membuat file database:\n" + dbm.lastError().text());
+        return;
+    }
+    
     QSqlDatabase db = dbm.database();
     if (!db.open()) {
         QMessageBox::critical(this, "Gagal Membuka Database", 
@@ -149,7 +156,8 @@ void SetupWindow::on_installButton_clicked()
       db.close();
       return ;
     }
-
+    // force login for this initial setup
+    SessionManager::instance().login(opt_adm->value("username").toString(), params["password"]);
     emit setupFinished();     // Signal yang sudah Anda definisikan
     // close() akan dilakukan di main() melalui lambda yang terhubung ke signal ini
 }

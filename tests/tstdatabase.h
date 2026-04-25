@@ -13,5 +13,9 @@ private slots:
     void tstLoginWithRootUser();
     void tstCreateKasirUser();
     void tstChangeCurrentUser();
-
+    void tstCreateCustomer();
+    void tstCreateProduct();
+    void tstCreateOrder();
+    void tstCreateInvoice();
+    void tstCreatePayment();
 };

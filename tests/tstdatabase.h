@@ -15,7 +15,8 @@ private slots:
     void tstChangeCurrentUser();
     void tstCreateCustomer();
     void tstCreateProduct();
-    void tstCreateOrder();
+    void tstItemFlowMechanism();
     void tstCreateInvoice();
-    void tstCreatePayment();
+    void tstCreateTransactionAccount();
+    void tstPaymentMechanism();
 };

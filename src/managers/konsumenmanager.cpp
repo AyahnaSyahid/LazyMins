@@ -18,7 +18,7 @@ std::optional<QSqlRecord> KonsumenManager::getByCode(const QString& customerCode
 {
     auto results = const_cast<KonsumenManager*>(this)->getWhere(
         "customer_code = :customer_code",
-        {{ ":customer_code", customerCode }}
+        {{ "customer_code", customerCode }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();

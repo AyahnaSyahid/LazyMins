@@ -18,7 +18,7 @@ std::optional<QSqlRecord> ProductManager::getBySku(const QString& sku) const
 {
     auto results = const_cast<ProductManager*>(this)->getWhere(
         "sku = :sku COLLATE NOCASE",
-        {{ ":sku", sku }}
+        {{ "sku", sku }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();
@@ -28,7 +28,7 @@ std::optional<QSqlRecord> ProductManager::getByName(const QString& name) const
 {
     auto results = const_cast<ProductManager*>(this)->getWhere(
         "name = :name COLLATE NOCASE",
-        {{ ":name", name }}
+        {{ "name", name }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();
@@ -37,7 +37,7 @@ std::optional<QSqlRecord> ProductManager::getByName(const QString& name) const
 QList<QSqlRecord> ProductManager::getByCategory(int categoryId)
 {
     return getWhere("category_id = :cat_id AND is_active = 1",
-                    {{ ":cat_id", categoryId }},
+                    {{ "cat_id", categoryId }},
                     "name");
 }
 

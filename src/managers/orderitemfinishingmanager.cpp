@@ -9,7 +9,7 @@ OrderItemFinishingManager::OrderItemFinishingManager()
 QList<QSqlRecord> OrderItemFinishingManager::getByOrderItem(int orderItemId)
 {
     return getWhere("order_item_id = :order_item_id",
-                    {{ ":order_item_id", orderItemId }},
+                    {{ "order_item_id", orderItemId }},
                     "id");
 }
 

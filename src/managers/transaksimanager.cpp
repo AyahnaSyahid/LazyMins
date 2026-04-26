@@ -77,14 +77,14 @@ std::optional<QSqlRecord> TransaksiManager::recordTransaksi(
 QList<QSqlRecord> TransaksiManager::getByAkun(int akunId, const QString& orderBy)
 {
     return getWhere("akun_id = :akun_id",
-                    {{ ":akun_id", akunId }},
+                    {{ "akun_id", akunId }},
                     orderBy);
 }
 
 QList<QSqlRecord> TransaksiManager::getByTipe(const QString& tipe, const QString& orderBy)
 {
     return getWhere("tipe = :tipe COLLATE NOCASE",
-                    {{ ":tipe", tipe }},
+                    {{ "tipe", tipe }},
                     orderBy);
 }
 
@@ -92,7 +92,7 @@ QList<QSqlRecord> TransaksiManager::getByReference(const QString& referenceType,
 {
     return getWhere(
         "reference_type = :ref_type AND reference_id = :ref_id",
-        {{ ":ref_type", referenceType }, { ":ref_id", referenceId }},
+        {{ "ref_type", referenceType }, { "ref_id", referenceId }},
         "tanggal DESC"
     );
 }
@@ -101,12 +101,12 @@ QList<QSqlRecord> TransaksiManager::getByDateRange(const QDate& from, const QDat
 {
     QString condition = "tanggal >= :from AND tanggal <= :to";
     QVariantMap bindings = {
-        { ":from", from.toString(Qt::ISODate) },
-        { ":to",   to.toString(Qt::ISODate) }
+        { "from", from.toString(Qt::ISODate) },
+        { "to",   to.toString(Qt::ISODate) }
     };
     if (akunId > 0) {
         condition += " AND akun_id = :akun_id";
-        bindings[":akun_id"] = akunId;
+        bindings["akun_id"] = akunId;
     }
     return getWhere(condition, bindings, "tanggal DESC");
 }

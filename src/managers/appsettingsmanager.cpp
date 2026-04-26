@@ -64,3 +64,15 @@ bool AppSettingsManager::saveSettings(const QString& name, const QVariantMap& ma
   }
   return true;
 }
+
+QVariant AppSettingsManager::getValue(const QString &name, bool publicOnly) const
+{
+  auto q = BaseManager::baseQuery();
+  q.prepare("SELECT setting_value FROM app_settings WHERE setting_key = :name AND is_public = :pub");
+  q.bindValue(":name", name);
+  q.bindValue(":pub", publicOnly ? 1 : 0);
+  if (q.exec() && q.next()) {
+    return q.value("setting_value");
+  }
+  return QVariant();
+}

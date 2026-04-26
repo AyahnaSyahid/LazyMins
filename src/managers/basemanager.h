@@ -50,9 +50,11 @@ public:
     virtual QString errorString() const { return m_errorString; }
     virtual QSqlRecord empty() const;
     
-    QVariant lastInsertId() const;
+    QVariant lastInsertId() const {return m_lastInsertId; }
 
 protected:
+    bool qexec(QSqlQuery& query);
+    
     QString tableName() const { return m_tableName; }
     bool useSoftDelete() const { return m_useSoftDelete; }
     

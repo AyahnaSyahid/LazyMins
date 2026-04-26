@@ -13,10 +13,5 @@ public:
     static QString nextNumber();
 
 protected:
-
-    // Hook utama: setelah payment dibuat,
-    // catat transaksi kas hanya jika verification_status = 'verified'
     bool beforeCreate(QVariantMap& params) override;
-    bool afterCreate(const QSqlRecord& record) override;
-    
 };

@@ -34,20 +34,20 @@ bool OrderManager::afterCreate(const QSqlRecord& record)
 QList<QSqlRecord> OrderManager::getByCustomer(int customerId, const QString& orderBy)
 {
     return getWhere("customer_id = :cid",
-                    {{ ":cid", customerId }},
+                    {{ "cid", customerId }},
                     orderBy);
 }
 
 QList<QSqlRecord> OrderManager::getByStatus(const QString& status, const QString& orderBy)
 {
     return getWhere("staging_status = :status COLLATE NOCASE",
-                    {{ ":status", status }},
+                    {{ "status", status }},
                     orderBy);
 }
 
 QList<QSqlRecord> OrderManager::getByInvoice(int invoiceId)
 {
-    return getWhere("invoice_id = :inv_id", {{ ":inv_id", invoiceId }});
+    return getWhere("invoice_id = :inv_id", {{ "inv_id", invoiceId }});
 }
 
 bool OrderManager::updateStatus(int id, const QString& status)

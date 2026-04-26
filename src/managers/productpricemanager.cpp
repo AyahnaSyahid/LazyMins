@@ -30,7 +30,7 @@ bool ProductPriceManager::upsert(int productId, int priceLevelId, int price)
 QList<QSqlRecord> ProductPriceManager::getByProduct(int productId)
 {
     return getWhere("product_id = :product_id",
-                    {{ ":product_id", productId }},
+                    {{ "product_id", productId }},
                     "price_level_id");
 }
 
@@ -38,7 +38,7 @@ std::optional<QSqlRecord> ProductPriceManager::getPrice(int productId, int price
 {
     auto results = getWhere(
         "product_id = :product_id AND price_level_id = :price_level_id",
-        {{ ":product_id", productId }, { ":price_level_id", priceLevelId }}
+        {{ "product_id", productId }, { "price_level_id", priceLevelId }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();

@@ -22,24 +22,6 @@ bool PaymentManager::beforeCreate(QVariantMap& params)
     return true;
 }
 
-bool PaymentManager::afterCreate(const QSqlRecord& record)
-{
-    int invoiceId       = record.value("invoice_id").toInt();
-    int amount          = record.value("amount").toInt();
-    int akunId          = record.value("akun_transaksi_id").toInt();
-    int adminId         = record.value("admin_id").toInt();
-    int paymentId       = record.value("id").toInt();
-    
-    // 1. Hitung total paid dari semua payment verified/pending pada invoice ini
-    QSqlQuery q = baseQuery();
-    
-    // tidak perlu mencatat jika belum verified
-    if (record.value("verification_status").toString() != "verified") return true; 
-    
-    if (!verify(paymentId, adminId)) return false;
-    return true;
-}
-
 QList<QSqlRecord> PaymentManager::getByInvoice(int invoiceId)
 {
     return getWhere("invoice_id = :invoice_id",
@@ -127,5 +109,21 @@ bool PaymentManager::verify(int id, int verifiedByAdminId)
 
 bool PaymentManager::cancel(int id, int admin_id)
 {
-    return update(id, {{ "verification_status", "cancelled" }, {"updated_at", dateTimeToSql()}, {"verified_by", admin_id}});
+    QSqlQuery q(BaseManager::connection);
+    q.prepare(R"-(
+    UPDATE payments 
+        SET verification_status = 'cancelled',
+            updated_at = :updated_at, 
+            verified_by = :verified_by 
+      WHERE id = :id AND 
+            verification_status <> 'cancelled'; )-"
+    );
+    q.bindValue(":updated_at", dateTimeToSql());
+    q.bindValue(":verified_by", admin_id);
+    q.bindValue(":id", id);
+    if(!q.exec()) {
+        setErrorString(q.lastError().text());
+        return false;
+    }
+    return q.numRowsAffected() > 0;
 }

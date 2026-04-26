@@ -53,14 +53,14 @@ bool ActivityLogManager::remove(int id)
 QList<QSqlRecord> ActivityLogManager::getByAdmin(int adminId, const QString& orderBy, int limit)
 {
     return getWhere("admin_id = :admin_id",
-                    {{ ":admin_id", adminId }},
+                    {{ "admin_id", adminId }},
                     orderBy, limit);
 }
 
 QList<QSqlRecord> ActivityLogManager::getByAction(const QString& action, int limit)
 {
     return getWhere("action = :action",
-                    {{ ":action", action }},
+                    {{ "action", action }},
                     "created_at DESC", limit);
 }
 
@@ -70,7 +70,7 @@ QList<QSqlRecord> ActivityLogManager::getByTable(const QString& tableName, int r
     QVariantMap bindings = {{ ":table_name", tableName }};
     if (recordId > 0) {
         condition += " AND record_id = :record_id";
-        bindings[":record_id"] = recordId;
+        bindings["record_id"] = recordId;
     }
     return getWhere(condition, bindings, "created_at DESC");
 }

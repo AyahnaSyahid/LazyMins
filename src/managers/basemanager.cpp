@@ -588,6 +588,15 @@ QSqlRecord BaseManager::empty() const {
   return QSqlRecord();
 }
 
+bool BaseManager::qexec(QSqlQuery &query)
+{
+    if(!query.exec()) {
+        m_errorString = query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 QString BaseManager::generateCode(const QString& tableName,
                                    const QString& numberColumn,
                                    const QString& prefix,

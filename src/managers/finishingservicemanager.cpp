@@ -17,7 +17,7 @@ std::optional<QSqlRecord> FinishingServiceManager::getByCode(const QString& code
 {
     auto results = const_cast<FinishingServiceManager*>(this)->getWhere(
         "code = :code COLLATE NOCASE",
-        {{ ":code", code }}
+        {{ "code", code }}
     );
     if (results.isEmpty()) return std::nullopt;
     return results.first();

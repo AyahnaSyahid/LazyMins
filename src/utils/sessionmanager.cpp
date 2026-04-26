@@ -1,6 +1,7 @@
 #include "src/utils/sessionmanager.h"
 #include "src/utils/authmanager.h"
 #include "src/managers/adminmanager.h"
+#include "sessionmanager.h"
 
 SessionManager &SessionManager::instance() {
   static SessionManager sm;
@@ -19,7 +20,7 @@ void SessionManager::login(const QString& name, const QString& pass) {
         return ;
       }
     }
-    m_optUserRecord = orc;
+    m_currentUserRecord = orc;
     emit loginSuccess();
     emit userChanged();
     return ;
@@ -28,21 +29,27 @@ void SessionManager::login(const QString& name, const QString& pass) {
 }
 
 void SessionManager::logout() {
-  if (m_optUserRecord.has_value()) {
+  if (m_currentUserRecord.has_value()) {
     AdminManager am;
-    am.setLastLog(m_optUserRecord);
-    m_optUserRecord = std::nullopt;
+    am.setLastLog(m_currentUserRecord);
+    m_currentUserRecord = std::nullopt;
   }
   emit userLogout();
 }
 
 std::optional<QSqlRecord> SessionManager::currentUser() const {
-  return m_optUserRecord;
+  return m_currentUserRecord;
 }
 
 bool SessionManager::currentUserPasswordMatch(const QString& pass) const {
-  if(!m_optUserRecord) return false;
-  QString username = (*m_optUserRecord).value("username").toString();
+  if(!m_currentUserRecord) return false;
+  QString username = (*m_currentUserRecord).value("username").toString();
   AdminManager am;
   return am.passwordMatch(username, pass);
+}
+
+int SessionManager::currentUserId() const
+{
+  if(!m_currentUserRecord) return -1;
+  return (*m_currentUserRecord).value("id").toInt();
 }

@@ -59,6 +59,8 @@ add_library(data_layer STATIC
     src/managers/stockmovementmanager.cpp
     src/managers/transaksimanager.cpp
     src/managers/helpers.cpp
+    src/managers/itemflowservice.cpp
+    src/managers/financialledgerservice.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 

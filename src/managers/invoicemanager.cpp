@@ -118,12 +118,10 @@ bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
   QSqlQuery q(BaseManager::connection);
   q.prepare(sql.arg(holders.join(", ")));
   q.bindValue(":iid", invoice_id);
-  q.bindValue(":inum", opt_inv->value("invoice_number"));
-  qDebug() << "[InvoiceManager::addOrders] value of :iid = " << invoice_id;   
-  qDebug() << "[InvoiceManager::addOrders] value of :inum = " << opt_inv->value("invoice_number");   
+  q.bindValue(":inum", opt_inv->value("invoice_number")); 
   
   for(int i = 0; i < oids.size(); ++i) {
-        qDebug() << "[InvoiceManager::addOrders] holder " << holders[i] << " = " << oids[i];   
+        qDebug() << "[InvoiceManager::addOrders] holder:" << holders[i] << " = " << oids[i];   
         q.bindValue(holders[i], oids[i]); 
   }
   

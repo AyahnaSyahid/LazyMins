@@ -15,11 +15,25 @@ struct CompanyInfo {
     QString email;
 };
 
+// Range tanggal — dipakai oleh meta laporan periode
+struct DateRange {
+    QDate from;
+    QDate to;
+    bool isSingleDay() const { return from == to; }
+    int  days()        const { return from.daysTo(to) + 1; }
+    QString toString() const {
+        if (isSingleDay())
+            return from.toString("d MMMM yyyy");
+        return from.toString("d MMMM yyyy") + " – " + to.toString("d MMMM yyyy");
+    }
+};
+
 struct ReportMeta {
-    QString documentNumber;   // e.g. RPT-H-20260423-001
-    QDateTime printedAt;      // waktu cetak (UTC), render dalam WIB
-    QString printedBy;        // nama + role admin
-    QDate   periodDate;       // tanggal laporan (WIB)
+    QString   documentNumber;   // e.g. RPT-H-20260423-001
+    QDateTime printedAt;        // waktu cetak (UTC), render dalam WIB
+    QString   printedBy;        // nama + role admin
+    QDate     periodDate;       // untuk laporan harian
+    DateRange periodRange;      // untuk laporan periode (range)
 };
 
 // ============================================================
@@ -56,13 +70,37 @@ struct TopProductRow {
 };
 
 struct DailySalesReport {
-    CompanyInfo         company;
-    ReportMeta          meta;
-    SalesSummary        summary;
-    QList<OrderRow>     orders;
+    CompanyInfo             company;
+    ReportMeta              meta;
+    SalesSummary            summary;
+    QList<OrderRow>         orders;
     QList<PaymentMethodRow> paymentMethods;
     QList<TopProductRow>    topProducts;
-    QString             notes;
+    QString                 notes;
+};
+
+// ============================================================
+//  LAPORAN PENJUALAN PERIODE (RANGE)
+// ============================================================
+
+// Rekap omzet per hari — untuk grafik/tabel tren
+struct DailySalesTrendRow {
+    QDate   date;
+    int     orderCount  = 0;
+    qint64  revenue     = 0;
+};
+
+struct RangeSalesReport {
+    CompanyInfo             company;
+    ReportMeta              meta;           // meta.periodRange diisi
+    SalesSummary            summary;        // agregat seluruh periode
+    QList<OrderRow>         topOrders;      // top 10 by revenue
+    int                     otherOrderCount = 0;   // sisa order di luar top 10
+    qint64                  otherOrderTotal = 0;   // total revenue sisa
+    QList<PaymentMethodRow> paymentMethods;
+    QList<TopProductRow>    topProducts;
+    QList<DailySalesTrendRow> trend;        // omzet per hari
+    QString                 notes;
 };
 
 // ============================================================
@@ -99,11 +137,24 @@ struct ExpenseAccountRow {
 };
 
 struct DailyExpenseReport {
-    CompanyInfo              company;
-    ReportMeta               meta;
-    ExpenseSummary           summary;
-    QList<ExpenseRow>        expenses;
+    CompanyInfo               company;
+    ReportMeta                meta;
+    ExpenseSummary            summary;
+    QList<ExpenseRow>         expenses;
     QList<ExpenseCategoryRow> byCategory;
     QList<ExpenseAccountRow>  byAccount;
-    QString                  notes;
+    QString                   notes;
+};
+
+// ============================================================
+//  LAPORAN BELANJA PERIODE (RANGE)
+// ============================================================
+
+struct RangeExpenseReport {
+    CompanyInfo               company;
+    ReportMeta                meta;           // meta.periodRange diisi
+    ExpenseSummary            summary;        // agregat seluruh periode
+    QList<ExpenseCategoryRow> byCategory;
+    QList<ExpenseAccountRow>  byAccount;
+    QString                   notes;
 };

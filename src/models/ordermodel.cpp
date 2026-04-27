@@ -2,6 +2,7 @@
 
 #include "src/managers/productmanager.h"
 #include "src/managers/orderitemfinishingmanager.h"
+#include "src/utils/sqltransaction.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -330,15 +331,15 @@ bool OrderModel::isDirty() const
 bool OrderModel::commit(QSqlDatabase &db)
 {
     if (!isDirty())
-        return true;
-
+    return true;
+    
     // Validate before touching the DB at all.
     if (!m_header.isValid()) {
         qWarning() << "OrderModel::commit – header is invalid"
-                      " (admin_id or customer_name missing)";
+        " (admin_id or customer_name missing)";
         return false;
     }
-
+    
     if (!db.transaction()) {
         qWarning() << "OrderModel::commit – could not begin transaction:"
                    << db.lastError().text();

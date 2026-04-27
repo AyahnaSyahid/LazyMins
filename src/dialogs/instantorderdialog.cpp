@@ -5,11 +5,46 @@
 #include "src/customs/orderitemdelegate.h"
 #include "src/dialogs/orderitemdialog.h"
 #include "src/managers/helpers.h"
+#include "src/utils/sqltransaction.h"
 #include <QSqlQueryModel>
 #include <QSqlError>
 #include <QTableView>
 #include <QHeaderView>
 #include <QMessageBox>
+
+namespace {
+  class executor {
+    public:
+    QString errorString;
+    bool saveToDB(Ui::InstantOrderDialog *ui, OrderModel &omod, const QVariantMap& paymentInfo);
+    OrderHeader generateOrderHeader( Ui::InstantOrderDialog *ui , const QVariantMap& customerSet) const;
+  };
+  bool executor::saveToDB(Ui::InstantOrderDialog *ui, OrderModel &omod, const QVariantMap &paymentInfo)
+  {
+    OrderHeader oh = generateOrderHeader(ui, paymentInfo);
+    if (!omod.commit()) {
+      errorString = BaseManager::connection.lastError().text();
+    }
+    SqlTransaction tr;
+    if(!tr.started()) errorString = "Gagal membuat transaksi Database"; return false;
+    
+  }
+  OrderHeader executor::generateOrderHeader(Ui::InstantOrderDialog *ui, const QVariantMap &cs) const
+  {
+      OrderHeader oh;
+      oh.customer_name = ui->nameLineEdit->text();
+      oh.customer_phone = ui->phoneLineEdit->text();
+      oh.price_level_id = cs["price_level"].toInt();
+      
+      if(cs["name"].toString() != ui->nameLineEdit->text()) {
+        oh.customer_id = -1;    
+      } else {
+        oh.customer_id = cs["id"].toInt();
+      }
+      oh.discount_amount = ui->discountSpinBox->value();
+      return oh;
+  }
+}
 
 InstantOrderDialog::InstantOrderDialog(QWidget *p):
   ui(new Ui::InstantOrderDialog), 
@@ -25,7 +60,7 @@ InstantOrderDialog::InstantOrderDialog(QWidget *p):
   ui->lHargaComboBox->blockSignals(true);
   auto tm = new QTableView;
   auto qm = new QSqlQueryModel(this);
-  qm->setQuery("SELECT id, level_name, description FROM price_levels");
+  qm->setQuery("SELECT id, level_name, description FROM price_levels", BaseManager::connection);
   ui->lHargaComboBox->setModel(qm);
   ui->lHargaComboBox->setModelColumn(1);  
   ui->lHargaComboBox->setView(tm);
@@ -144,26 +179,30 @@ bool InstantOrderDialog::checkInput() {
 void InstantOrderDialog::on_bayarButton_clicked() {
   if(!checkInput()) return;
   auto inv_code = ui->labelInvoiceCode->text();
-
-  OrderHeader oh;
-  oh.order_number = oman.nextNumber();
-  // oh.admin_id = 1;// current admin id set by helper
-  oh.customer_name = ui->nameLineEdit->text();
-  oh.customer_phone = ui->phoneLineEdit->text();
-  oh.price_level_id = customerSet.price_level;
-  
-  if(customerSet.name != ui->nameLineEdit->text()) {
-    oh.customer_id = -1;    
-  } else {
-    oh.customer_id = customerSet.id;
-  }
+  QVariantMap cparam {
+    {"name", customerSet.name},
+    {"phone", customerSet.phone},
+    {"price_level", customerSet.price_level}
+  };
   auto p_amount = calculatedSubtotal();
   auto p_disc = ui->discountSpinBox->value();
+  
+  const QVariantMap payments{
+    {"payment_amount", p_amount - p_disc }, 
+    {"tax_amount", ui->ppnSpinBox->value()}, 
+    {"cash_received", ui->bayarSpinBox->value()}, 
+    {"cash_change", ui->bayarSpinBox->value() - (p_amount + p_disc)},
+    {"invoice_code", inv_code},
+    {"name", customerSet.name},
+    {"phone", customerSet.phone},
+    {"price_level", customerSet.price_level}
+  };
+  
+  executor exc;
+  book ok = exc.saveToDB
+  
   auto res = DBOperationHelper::createInstantOrder( oh, omod.items(), inv_code, 
-                { {"payment_amount", p_amount - p_disc }, 
-                  {"tax_amount", ui->ppnSpinBox->value()}, 
-                  {"cash_received", ui->bayarSpinBox->value()}, 
-                  {"cash_change", ui->bayarSpinBox->value() - (p_amount + p_disc)} } );
+                {  } );
   if(!res.ok) {
     QMessageBox::warning(this, "Operasi Gagal", QString("Transaksi Error:%1").arg(res.error));
     return ;

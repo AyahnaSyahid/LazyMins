@@ -1,49 +1,64 @@
 #include "orderitemmanager.h"
-#include "ordermanager.h"
-#include "stockmovementmanager.h"
+#include "orderitemfinishingmanager.h"
 #include "productmanager.h"
 #include "src/utils/sessionmanager.h"
+#include "stockmovementmanager.h"
 
-OrderItemManager::OrderItemManager()
-    : BaseManager("order_items", false)
-{
+OrderItemManager::OrderItemManager() : BaseManager("order_items", false) {}
+
+QList<QSqlRecord> OrderItemManager::getByOrder(int orderId) {
+  return getWhere("order_id = :order_id", {{"order_id", orderId}}, "id");
 }
 
-QList<QSqlRecord> OrderItemManager::getByOrder(int orderId)
-{
-    return getWhere("order_id = :order_id",
-                    {{ "order_id", orderId }},
-                    "id");
-}
-
-bool OrderItemManager::updateFinishingTotal(int id, int finishingTotal)
-{
-    return update(id, {{ "finishing_total", finishingTotal }});
-}
-
-bool OrderItemManager::recalculate(int item_id)
-{
-  // mengumpulkan semua harga finishing
+bool OrderItemManager::updateFinishingTotal(int id) {
   QSqlQuery q(BaseManager::connection);
-  
-  q.prepare(R"-(
-UPDATE order_items
-   SET finishing_total = cte.new_value,
-       updated_at = CURRENT_TIMESTAMP
-  FROM (
-           SELECT COALESCE(SUM(subtotal), 0) AS new_value
-             FROM order_item_finishings
-            WHERE order_item_id = :itid
-       )
-       AS cte
- WHERE order_items.id = :itid AND
-       order_items.finishing_total <> cte.new_value
-  )-");
-  
-  q.bindValue(":itid", item_id);
+
+  // COALESCE memastikan jika hasil SUM adalah NULL, maka akan diubah menjadi 0
+  q.prepare(
+      "UPDATE order_items "
+      "SET finishing_total = COALESCE("
+      "  (SELECT SUM(subtotal) "
+      "   FROM order_item_finishings "
+      "   WHERE order_item_id = :id1), "
+      "  0) "
+      "WHERE id = :id2");
+
+  // Kita bind ID dua kali karena muncul di subquery dan clause WHERE
+  q.bindValue(":id1", id);
+  q.bindValue(":id2", id);
+
   if (!q.exec()) {
-    setErrorString(q.lastError().text());
+    qDebug() << "Update Error:" << q.lastError().text();
     return false;
+  }
+
+  return true;
+}
+
+bool OrderItemManager::addFinishings(int id, QList<int> finishingIds) {
+  OrderItemFinishingManager oifm;
+  for (int finishingId : finishingIds) {
+    oifm.setOrderItem(finishingId, id);
+  }
+  return updateFinishingTotal(id);
+}
+
+bool OrderItemManager::setOrderId(int id, int orderId) { 
+  return update(id, {{"order_id", orderId}});
+}
+
+bool OrderItemManager::beforeCreate(QVariantMap& params) { 
+  if (params.contains("use_area") && params["use_area"].toInt() == 0) {
+    params["size_width"] = 1;
+    params["size_height"] = 1;
+  }
+  return true; 
+}
+
+bool OrderItemManager::beforeUpdate(int id, QVariantMap& params) {
+  if (params.contains("use_area") && params["use_area"].toInt() == 0) {
+    params["size_width"] = 1;
+    params["size_height"] = 1;
   }
   return true;
 }

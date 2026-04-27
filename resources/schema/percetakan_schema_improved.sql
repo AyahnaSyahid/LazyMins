@@ -222,8 +222,7 @@ CREATE TABLE order_items (
                     CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) VIRTUAL,
     finishing_total INTEGER NOT NULL DEFAULT 0,
     total INTEGER GENERATED ALWAYS AS (
-                    (CAST(((quantity * sale_price * size_width * size_height) + 99.99999) / 100 AS INT) * 100) + 
-                        COALESCE(finishing_total, 0) - COALESCE(discount_amount,0) ) VIRTUAL,              -- Total =  Subtotal - ( discount + finishing )
+                    subtotal + COALESCE(finishing_total, 0) - COALESCE(discount_amount,0) ) VIRTUAL,              -- Total =  Subtotal - ( discount + finishing )
     notes TEXT,                          -- TAMBAHAN: Catatan khusus item
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

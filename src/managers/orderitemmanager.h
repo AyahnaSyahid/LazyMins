@@ -7,7 +7,11 @@ public:
     explicit OrderItemManager();
 
     QList<QSqlRecord> getByOrder(int orderId);
-    bool updateFinishingTotal(int id, int finishingTotal);
-    bool recalculate(int item_id);
+    bool updateFinishingTotal(int id);
+    bool addFinishings(int id, QList<int> finishingIds);
+    bool setOrderId(int id, int orderId);
 
+protected:
+    bool beforeCreate(QVariantMap& params) override;
+    bool beforeUpdate(int id, QVariantMap& params) override;
 };

@@ -1,5 +1,6 @@
 #include "financialledgerservice.h"
 #include "src/managers/transaksimanager.h"
+#include "src/managers/invoicemanager.h"
 #include "src/utils/sessionmanager.h"
 
 namespace {
@@ -48,10 +49,10 @@ bool FinancialLedgerService::handlePayment(int paymentId)
         return false;
     }
     
+
     QString deskripsi;
     QString vstat = q.value("verification_status").toString();
     bool cancel = false;
-
     // Gunakan pengecekan eksplisit
     if (vstat == "cancelled") {
         deskripsi = "[SystemLOG] Pembatalan Pembayaran Invoice #" + q.value("invoice_id").toString();
@@ -62,6 +63,62 @@ bool FinancialLedgerService::handlePayment(int paymentId)
         qInfo() << "[FinancialLedgerService] Pembayaran belum terverifikasi log di skip";
         return true;
     }
+
+    { // Update paid_amount & settlement_status pada tabel invoice
+        InvoiceManager im;
+        auto optInv = im.getById(q.value("invoice_id").toInt());
+        if (!optInv) {
+            m_errorString = "[FinancialLedgerService] Invoice not found";
+            qWarning() << m_errorString;
+            return false;
+        }
+
+        // Ambil data dari record invoice saat ini
+        qint64 currentPaid = optInv->value("paid_amount").toLongLong();
+        qint64 totalInvoice = optInv->value("total_amount").toLongLong();
+        qint64 paymentAmount = q.value("amount").toLongLong();
+
+        // 1. Kalkulasi Paid Amount Baru
+        // Jika cancel: kurangi saldo terbayar. Jika verified: tambah saldo terbayar.
+        qint64 newPaid = cancel ? (currentPaid - paymentAmount) : (currentPaid + paymentAmount);
+
+        // Safety check agar tidak terjadi underflow (paid_amount < 0)
+        if (newPaid < 0) {
+            m_errorString = "Invalid calculation: Paid amount cannot be less than zero";
+            qWarning() << m_errorString;
+            return false;
+        }
+
+        // 2. Tentukan Settlement Status secara manual berdasarkan perbandingan nilai
+        QString newStatus;
+        if (newPaid <= 0) {
+            newStatus = "unpaid";
+        } else if (newPaid >= totalInvoice) {
+            newStatus = "paid";
+        } else {
+            newStatus = "partial";
+        }
+
+        // 3. Eksekusi Update ke Database
+        QSqlQuery iup(BaseManager::connection);
+        iup.prepare(R"-(
+            UPDATE invoices 
+            SET paid_amount = :paid, 
+                settlement_status = :status,
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = :id
+        )-");
+
+        iup.bindValue(":paid", newPaid);
+        iup.bindValue(":status", newStatus);
+        iup.bindValue(":id", q.value("invoice_id").toInt());
+
+        if (!exec(iup)) {
+            m_errorString = "[FinancialLedgerService] Update Invoice Error: " + iup.lastError().text();
+            return false;
+        }
+    }
+
 
     auto optTr = trm.create( {
         {"akun_id", q.value("akun_id")},

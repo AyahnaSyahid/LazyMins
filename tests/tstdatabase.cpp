@@ -283,13 +283,26 @@ void tstDatabase::tstCreateInvoice()
     bool addOk = iman.addOrders(opti->value("id").toInt(), { opto->value("id").toInt() });
     QVERIFY2(addOk, "Gagal menambahkan Order ke Invoice");
     
+    // --- Pengujian Rekalkulasi Pertama ---
     bool recalOk = iman.recalculate(opti->value("id").toInt());
-    QVERIFY2(recalOk, "Gagal rekalkulasi Invoice");
-
-    opti = iman.getById(opti->value("id").toInt());
-    opto = om.getById(opto->value("id").toInt());
-    QCOMPARE(opti->value("total_amount").toInt(), opto->value("subtotal").toInt());
+    QVERIFY2(recalOk, "Gagal rekalkulasi Invoice pertama");
     
+    auto opti1 = iman.getById(opti->value("id").toInt());
+    int totalAwal = opti1->value("total_amount").toInt();
+
+    // --- Pengujian Rekalkulasi Kedua (Harusnya Nilai Tetap Sama) ---
+    bool recalOk2 = iman.recalculate(opti->value("id").toInt());
+    QVERIFY2(recalOk2, "Gagal rekalkulasi Invoice kedua");
+    
+    auto opti2 = iman.getById(opti->value("id").toInt());
+    int totalAkhir = opti2->value("total_amount").toInt();
+
+    // VERIFIKASI: Nilai tidak boleh berubah/bertambah ganda
+    QCOMPARE(totalAkhir, totalAwal);
+    
+    // Bandingkan dengan subtotal order
+    opto = om.getById(opto->value("id").toInt());
+    QCOMPARE(totalAkhir, opto->value("subtotal").toInt());
 }
 
 void tstDatabase::tstCreateTransactionAccount()

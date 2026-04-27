@@ -4,8 +4,11 @@
 #include "customerpickerdialog.h"
 #include "src/customs/orderitemdelegate.h"
 #include "src/dialogs/orderitemdialog.h"
-#include "src/managers/helpers.h"
+#include "src/managers/managers.h"
+#include "src/managers/itemflowservice.h"
+#include "src/managers/financialledgerservice.h"
 #include "src/utils/sqltransaction.h"
+#include "src/utils/sessionmanager.h"
 #include <QSqlQueryModel>
 #include <QSqlError>
 #include <QTableView>
@@ -22,26 +25,125 @@ namespace {
   bool executor::saveToDB(Ui::InstantOrderDialog *ui, OrderModel &omod, const QVariantMap &paymentInfo)
   {
     OrderHeader oh = generateOrderHeader(ui, paymentInfo);
-    if (!omod.commit()) {
-      errorString = BaseManager::connection.lastError().text();
-    }
+    QList<OrderItem> ois = omod.items();
+
     SqlTransaction tr;
-    if(!tr.started()) errorString = "Gagal membuat transaksi Database"; return false;
+    ItemFlowService ifs;
+    FinancialLedgerService fls;
+
+    if(!tr.started()) {
+      errorString = "Gagal membuat transaksi Database"; 
+      return false;
+    }
+
+    OrderManager om;
+    QVariantMap omParams {{"order_number", om.nextNumber()},
+      {"customer_name", oh.customer_name},
+      {"customer_phone", oh.customer_phone},
+      {"price_level_id", oh.price_level_id},
+      {"discount_amount", oh.discount_amount},
+      {"staging_status", "completed"},
+      {"completion_date", QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")},
+      {"internal_notes", "instant orders"},
+      {"admin_id", SessionManager::instance().currentUserId()}
+    };
+
+    if(oh.customer_id > 0) omParams["customer_id"] = oh.customer_id;
     
+    auto optOrder = om.create(omParams);
+
+    if (!optOrder.has_value()) {
+      qWarning() << "Pembuatan Order Gagal" << om.errorString();
+      errorString = om.errorString();
+      return false;
+    }
+
+    for(auto item : ois) {
+      item.order_id = optOrder->value("id").toInt();
+      if (!item.save(BaseManager::connection)) {
+        qWarning() << "Pembuatan Order Item Gagal" << BaseManager::connection.lastError().text();
+        errorString = BaseManager::connection.lastError().text();
+        return false;
+      }
+      if (!ifs.handleItemSold(item.id)) {
+        errorString = ifs.errorString();
+        qWarning() << "Pendaftaran Item Flow Gagal" << BaseManager::connection.lastError().text();
+        return false;
+      };
+    }
+
+    InvoiceManager iman;
+    auto optInvoice = iman.create({
+      {"invoice_number", paymentInfo["invoice_number"]},
+      {"customer_id", optOrder->value("customer_id")},
+      {"customer_name", optOrder->value("customer_name")},
+      {"customer_phone", optOrder->value("customer_phone")},
+      {"price_level_id", optOrder->value("price_level_id")},
+      {"admin_id", SessionManager::instance().currentUserId()},
+      {"price_level_id", SessionManager::instance().currentUserId()},
+      {"tax_amount", ui->ppnSpinBox->value()}
+    });
+
+    if (!optInvoice.has_value()) {
+      qWarning() << "Pembuatan Invoice Gagal" << iman.errorString();
+      errorString = iman.errorString();
+      return false;
+    }
+
+    if(!iman.addOrders(optInvoice->value("id").toInt(), {optOrder->value("id").toInt()})) {
+      qWarning() << "Penadaftaran Order ke Invoice Gagal" << iman.errorString();
+      errorString = iman.errorString();
+      return false;
+    }
+
+    optInvoice = iman.getById(optInvoice->value("id").toInt());
+
+    if (!optInvoice.has_value()) {
+      qWarning() << "Pembuatan Invoice Gagal" << iman.errorString();
+      errorString = "Data invoice tidak ditemukan";
+      return false;
+    }
+
+    PaymentManager pm;
+    auto optPay = pm.create({
+      {"invoice_id", optInvoice->value("id")},
+      {"payment_number", pm.nextNumber()},
+      {"amount", paymentInfo["payment_amount"]},
+      {"cash_received", paymentInfo["cash_received"]},
+      {"cash_change", paymentInfo["cash_change"]},
+      {"akun_transaksi_id", 1}, // for cash
+      {"verification_status", "verified"}, // for cash
+      {"verified_by", SessionManager::instance().currentUserId()}, // for cash
+      {"verified_at", QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss")}, // for cash
+      {"admin_id", SessionManager::instance().currentUserId()},
+      {"notes", "Added by instant order"}
+    });
+
+    if (!optPay.has_value()) {
+      qWarning() << "Pembuatan Payment Gagal" << pm.errorString();
+      errorString = pm.errorString();
+      return false;
+    }
+
+    if(!fls.handlePayment(optPay->value("id").toInt())) {
+      qWarning() << "Pembuatan Financial Ledger Gagal" << fls.errorString();
+      errorString = fls.errorString();
+      return false;
+    }
+    errorString = "Gagal commit database";
+    return tr.commit();
   }
+
   OrderHeader executor::generateOrderHeader(Ui::InstantOrderDialog *ui, const QVariantMap &cs) const
   {
       OrderHeader oh;
-      oh.customer_name = ui->nameLineEdit->text();
-      oh.customer_phone = ui->phoneLineEdit->text();
+      oh.customer_name = cs["name"].toString();
+      oh.customer_phone = cs["phone"].toString(); // Gunakan dari map
       oh.price_level_id = cs["price_level"].toInt();
-      
-      if(cs["name"].toString() != ui->nameLineEdit->text()) {
-        oh.customer_id = -1;    
-      } else {
-        oh.customer_id = cs["id"].toInt();
-      }
       oh.discount_amount = ui->discountSpinBox->value();
+      
+      // Pastikan jika customer_id tidak ada di map, berikan nilai default -1 atau 0
+      oh.customer_id = cs.contains("customer_id") ? cs["customer_id"].toInt() : -1;
       return oh;
   }
 }
@@ -178,33 +280,33 @@ bool InstantOrderDialog::checkInput() {
 
 void InstantOrderDialog::on_bayarButton_clicked() {
   if(!checkInput()) return;
+  
   auto inv_code = ui->labelInvoiceCode->text();
-  QVariantMap cparam {
-    {"name", customerSet.name},
-    {"phone", customerSet.phone},
-    {"price_level", customerSet.price_level}
-  };
   auto p_amount = calculatedSubtotal();
   auto p_disc = ui->discountSpinBox->value();
   
-  const QVariantMap payments{
+  QVariantMap payments{
     {"payment_amount", p_amount - p_disc }, 
     {"tax_amount", ui->ppnSpinBox->value()}, 
     {"cash_received", ui->bayarSpinBox->value()}, 
-    {"cash_change", ui->bayarSpinBox->value() - (p_amount + p_disc)},
-    {"invoice_code", inv_code},
-    {"name", customerSet.name},
-    {"phone", customerSet.phone},
-    {"price_level", customerSet.price_level}
+    {"cash_change", ui->bayarSpinBox->value() - (p_amount - p_disc)}, // Perbaikan logika kurang
+    {"invoice_number", inv_code},
+    {"name", ui->nameLineEdit->text()},
+    {"phone", ui->phoneLineEdit->text()}, // Ambil langsung dari UI
+    {"price_level", ui->lHargaComboBox->model()->index(ui->lHargaComboBox->currentIndex(), 0).data().toInt()}
   };
-  
+
+  // 2. Logika: Gunakan customer_id HANYA JIKA nama di inputan SAMA dengan nama di customerSet
+  // Jika user mengubah nama secara manual di lineEdit, kita anggap ini pelanggan baru (tanpa ID)
+  if (!ui->nameLineEdit->text().isEmpty() && ui->nameLineEdit->text() == customerSet.name) {
+    payments["customer_id"] = customerSet.id;
+  }
+
   executor exc;
-  book ok = exc.saveToDB
-  
-  auto res = DBOperationHelper::createInstantOrder( oh, omod.items(), inv_code, 
-                {  } );
-  if(!res.ok) {
-    QMessageBox::warning(this, "Operasi Gagal", QString("Transaksi Error:%1").arg(res.error));
+  bool ok = exc.saveToDB(ui, omod, payments);
+ 
+  if(!ok) {
+    QMessageBox::warning(this, "Operasi Gagal", QString("Transaksi Error:%1").arg(exc.errorString));
     return ;
   }
   accept();

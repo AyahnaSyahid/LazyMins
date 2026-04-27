@@ -7,7 +7,6 @@
 bool ItemFlowService::handleItemSold(int orderItemId)
 {
     resetError();
-    SqlTransaction tr;
     ProductManager pm;
     StockMovementManager sm;
     OrderItemManager oim;
@@ -22,13 +21,12 @@ bool ItemFlowService::handleItemSold(int orderItemId)
         return false;
     }
     if (!sm.orderItemLog(orderItemId, sm.SALE)) return false;
-    return tr.commit();
+    return true;
 }
 
 bool ItemFlowService::handleItemCanceled(int orderItemId, bool restock)
 {
     resetError();
-    SqlTransaction tr;
     ProductManager pm;
     StockMovementManager sm;
     OrderItemManager oim;
@@ -45,5 +43,5 @@ bool ItemFlowService::handleItemCanceled(int orderItemId, bool restock)
     if (restock) {
         if (!sm.orderItemLog(orderItemId, sm.RETURN_RESTOCK)) return false;
     }
-    return tr.commit();
+    return true;
 }

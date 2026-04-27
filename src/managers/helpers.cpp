@@ -6,6 +6,7 @@
 #include "src/managers/invoicemanager.h"
 #include "src/managers/stockmovementmanager.h"
 #include "src/managers/appsettingsmanager.h"
+#include "src/managers/financialledgerservice.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
 #include "src/printer/receipt.h"
@@ -326,7 +327,10 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(con
   
   auto opt_pay = payman.create(copyPay);
   if (!opt_pay)                      return { false, payman.errorString() };
-  if (!invm.recalculate(invoice_id)) return { false, "Unable to recalculate invoices"};
+
+  FinancialLedgerService fls;
+  if (!fls.handlePayment(opt_pay->value("id").toInt())) return { false, fls.errorString() };
+
   if (!tr.commit())                  return { false, BaseManager::connection.lastError().text() };
   return { true, "", {{"invoice_id", invoice_id}, {"payment_id", opt_pay->value("id")}}};
 }

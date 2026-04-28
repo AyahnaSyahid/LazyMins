@@ -1,11 +1,41 @@
 #include "financialledgerservice.h"
-#include "src/managers/transaksimanager.h"
 #include "src/managers/invoicemanager.h"
+#include "src/managers/paymentmanager.h"
+#include "src/managers/transaksimanager.h"
 #include "src/utils/sessionmanager.h"
 
-namespace {
-    bool exq(QSqlQuery &q, QString &setError) {
-        if(!q.exec()) {
+namespace
+{
+    void debugSqlRecord(const QSqlRecord &record)
+    {
+        if (record.isEmpty())
+        {
+            qDebug() << "[DebugRecord] Record is empty.";
+            return;
+        }
+
+        qDebug() << "--- [QSqlRecord Debug] ---";
+        for (int i = 0; i < record.count(); ++i)
+        {
+            QString fieldName = record.fieldName(i);
+            QVariant value = record.value(i);
+            QString typeName = value.typeName();
+
+            // Menangani tampilan jika nilainya NULL
+            QString displayValue = value.isNull() ? "NULL" : value.toString();
+
+            qDebug().noquote() << QString("[%1] %2 (%3) : %4")
+                                      .arg(i, 2)
+                                      .arg(fieldName, -20)
+                                      .arg(typeName, -10)
+                                      .arg(displayValue);
+        }
+        qDebug() << "---------------------------";
+    }
+    bool exq(QSqlQuery &q, QString &setError)
+    {
+        if (!q.exec())
+        {
             setError = q.lastError().text();
             qWarning() << setError;
             return false;
@@ -18,8 +48,21 @@ bool FinancialLedgerService::handlePayment(int paymentId)
 {
     TransaksiManager trm;
     QSqlQuery q(BaseManager::connection);
+    
+    if (true)
+    {
+        PaymentManager pym;
+        auto opt_pay = pym.getById(paymentId);
+        if (opt_pay)
+            debugSqlRecord(*opt_pay);
+        InvoiceManager iman;
+        auto opt_inv = iman.getById(opt_pay->value("invoice_id").toInt());
+        if (opt_inv)
+            debugSqlRecord(*opt_inv);
+    }
 
-    auto exec = [this](QSqlQuery &q) { return exq(q, this->m_errorString) ; };
+    auto exec = [this](QSqlQuery &q)
+    { return exq(q, this->m_errorString); };
     QString query = R"-(
     SELECT py.akun_transaksi_id AS akun_id,
            py.invoice_id,
@@ -28,7 +71,9 @@ bool FinancialLedgerService::handlePayment(int paymentId)
            py.verified_at,
            at.saldo AS before,
            py.amount,
-           CASE WHEN py.verification_status = 'cancelled' THEN at.saldo - py.amount WHEN py.verification_status = 'verified' THEN at.saldo + py.amount ELSE at.saldo END AS after
+           CASE WHEN py.verification_status = 'cancelled' THEN at.saldo - py.amount 
+                WHEN py.verification_status = 'verified' THEN at.saldo + py.amount 
+                ELSE at.saldo END AS after
       FROM payments py
            JOIN
            akun_transaksi at ON at.id = py.akun_transaksi_id
@@ -38,28 +83,34 @@ bool FinancialLedgerService::handlePayment(int paymentId)
            inv.settlement_status <> 'paid' AND
            inv.is_active = 1 AND
            ( py.verification_status = 'cancelled' OR inv.remaining_amount >= py.amount); )-";
-    
+
     q.prepare(query);
     q.bindValue(":payment_id", paymentId);
 
-    if (!exec(q)) return false;
-    if (!q.next()) {
+    if (!exec(q))
+        return false;
+    if (!q.next())
+    {
         m_errorString = "[FinancialLedgerService] Payment condition not satisfied";
         qWarning() << m_errorString;
         return false;
     }
-    
 
     QString deskripsi;
     QString vstat = q.value("verification_status").toString();
     bool cancel = false;
     // Gunakan pengecekan eksplisit
-    if (vstat == "cancelled") {
+    if (vstat == "cancelled")
+    {
         deskripsi = "[SystemLOG] Pembatalan Pembayaran Invoice #" + q.value("invoice_id").toString();
         cancel = true;
-    } else if (vstat == "verified") {
+    }
+    else if (vstat == "verified")
+    {
         deskripsi = "[SystemLOG] Pembayaran Invoice #" + q.value("invoice_id").toString();
-    } else {
+    }
+    else
+    {
         qInfo() << "[FinancialLedgerService] Pembayaran belum terverifikasi log di skip";
         return true;
     }
@@ -67,11 +118,14 @@ bool FinancialLedgerService::handlePayment(int paymentId)
     { // Update paid_amount & settlement_status pada tabel invoice
         InvoiceManager im;
         auto optInv = im.getById(q.value("invoice_id").toInt());
-        if (!optInv) {
+        if (!optInv)
+        {
             m_errorString = "[FinancialLedgerService] Invoice not found";
             qWarning() << m_errorString;
             return false;
         }
+
+        if (true) { debugSqlRecord(*optInv); }
 
         // Ambil data dari record invoice saat ini
         qint64 currentPaid = optInv->value("paid_amount").toLongLong();
@@ -83,7 +137,8 @@ bool FinancialLedgerService::handlePayment(int paymentId)
         qint64 newPaid = cancel ? (currentPaid - paymentAmount) : (currentPaid + paymentAmount);
 
         // Safety check agar tidak terjadi underflow (paid_amount < 0)
-        if (newPaid < 0) {
+        if (newPaid < 0)
+        {
             m_errorString = "Invalid calculation: Paid amount cannot be less than zero";
             qWarning() << m_errorString;
             return false;
@@ -91,11 +146,16 @@ bool FinancialLedgerService::handlePayment(int paymentId)
 
         // 2. Tentukan Settlement Status secara manual berdasarkan perbandingan nilai
         QString newStatus;
-        if (newPaid <= 0) {
+        if (newPaid <= 0)
+        {
             newStatus = "unpaid";
-        } else if (newPaid >= totalInvoice) {
+        }
+        else if (newPaid >= totalInvoice)
+        {
             newStatus = "paid";
-        } else {
+        }
+        else
+        {
             newStatus = "partial";
         }
 
@@ -113,29 +173,30 @@ bool FinancialLedgerService::handlePayment(int paymentId)
         iup.bindValue(":status", newStatus);
         iup.bindValue(":id", q.value("invoice_id").toInt());
 
-        if (!exec(iup)) {
+        if (!exec(iup))
+        {
             m_errorString = "[FinancialLedgerService] Update Invoice Error: " + iup.lastError().text();
             return false;
         }
     }
 
-
-    auto optTr = trm.create( {
+    auto optTr = trm.create({
         {"akun_id", q.value("akun_id")},
-        {"admin_id", SessionManager::instance().currentUserId() },
-        {"kategori_id", FinancialLedgerService::KategoriTransaksi::PembayaranInvoice },
+        {"admin_id", SessionManager::instance().currentUserId()},
+        {"kategori_id", FinancialLedgerService::KategoriTransaksi::PembayaranInvoice},
         {"tipe", cancel ? "pengeluaran" : "pemasukan"},
         {"deskripsi", deskripsi},
-        {"amount", cancel ? -q.value("amount").toLongLong() : q.value("amount").toLongLong() },
+        {"amount", cancel ? -q.value("amount").toLongLong() : q.value("amount").toLongLong()},
         {"payment_method", "AkunID #" + q.value("akun_id").toString()},
         {"reference_type", "payments"},
-        {"reference_id", paymentId },
+        {"reference_id", paymentId},
         {"tanggal", q.value("verified_at")},
         {"amount_before", q.value("before").toLongLong()},
         {"amount_after", q.value("after").toLongLong()},
     });
-    
-    if (!optTr.has_value()) {
+
+    if (!optTr.has_value())
+    {
         m_errorString = trm.errorString();
         qWarning() << m_errorString;
         return false;
@@ -146,8 +207,9 @@ bool FinancialLedgerService::handlePayment(int paymentId)
     q2.prepare("UPDATE akun_transaksi SET saldo = :after, updated_at = CURRENT_TIMESTAMP WHERE id = :akun_id");
     q2.bindValue(":after", q.value("after").toLongLong());
     q2.bindValue(":akun_id", q.value("akun_id").toInt());
-    
-    if (!exec(q2)) return false;
+
+    if (!exec(q2))
+        return false;
 
     return true;
 }

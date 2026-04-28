@@ -5,8 +5,9 @@
 class ItemFlowService {
 public:
     ItemFlowService() = default;
-    bool handleItemSold(int orderItemId); 
-    bool handleItemCanceled(int orderItemId, bool restock = true);
+    bool processItemSold(int orderItemId); 
+    bool processItemCancel(int orderItemId, bool restock = true);
+    bool stockIn(int productId, qreal stockIn, const QString& supplier, const QString& notes);
     
     inline const QString &errorString() const { return m_errorString; }
 

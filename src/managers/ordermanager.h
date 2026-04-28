@@ -11,7 +11,13 @@ public:
     QList<QSqlRecord> getByInvoice(int invoiceId);
     bool updateStagingStatus(int id, const QString& status);
     bool setInvoiceId(int id, int invoiceId);
+    
+    // Menambahkan item ke order
+    // Return true jika memang ada perubahan
     bool addItems(int id, QList<int> itemIds);
+    
+    // Rekalkulasi subtotal dari semua item
+    // Return true jika memang ada perubahan
     bool recalculate(int oid);
 
 protected:

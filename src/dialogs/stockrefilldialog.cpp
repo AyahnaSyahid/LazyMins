@@ -1,7 +1,6 @@
 #include "stockrefilldialog.h"
 #include "ui_stockrefilldialog.h"
-
-#include "src/managers/helpers.h"
+#include "src/managers/itemflowservice.h"
 
 #include <QMessageBox>
 #include <QTimer>
@@ -48,9 +47,11 @@ void StockRefillDialog::on_simpanButton_clicked()
     return ;
   }
   
-  auto result = DBOperationHelper::refillProductStock(m_productId, qty, dari, notes);
-  if(!result.ok) {
-    QMessageBox::warning(this, "Kesalahan", QString("Pesan kesalahan:\n%1\n").arg(result.error));
+  ItemFlowService ifs;
+  // Melakukan refill
+  auto result = ifs.stockIn(m_productId, qty, dari, notes);
+  if(!result) {
+    QMessageBox::warning(this, "Kesalahan", QString("Pesan kesalahan:\n%1\n").arg(ifs.errorString()));
     return ;
   }
   accept();

@@ -4,58 +4,71 @@
 
 InvoiceManager::InvoiceManager() : BaseManager("invoices", false) {}
 
-QString InvoiceManager::nextNumber() {
+QString InvoiceManager::nextNumber()
+{
   return generateCode("invoices", "invoice_number", "INV-", 5, true);
 }
 
-bool InvoiceManager::beforeCreate(QVariantMap& params) {
+bool InvoiceManager::beforeCreate(QVariantMap &params)
+{
   if (!params.contains("invoice_number") ||
-      params["invoice_number"].toString().isEmpty()) {
+      params["invoice_number"].toString().isEmpty())
+  {
     params["invoice_number"] = nextNumber();
   }
   return true;
 }
 
 std::optional<QSqlRecord> InvoiceManager::getByNumber(
-    const QString& invoiceNumber) const {
-  auto results = const_cast<InvoiceManager*>(this)->getWhere(
+    const QString &invoiceNumber) const
+{
+  auto results = const_cast<InvoiceManager *>(this)->getWhere(
       "invoice_number = :invoice_number", {{":invoice_number", invoiceNumber}});
-  if (results.isEmpty()) return std::nullopt;
+  if (results.isEmpty())
+    return std::nullopt;
   return results.first();
 }
 
 QList<QSqlRecord> InvoiceManager::getByCustomer(int customerId,
-                                                const QString& orderBy) {
+                                                const QString &orderBy)
+{
   return getWhere("customer_id = :cid AND is_active = 1",
                   {{":cid", customerId}}, orderBy);
 }
 
-QList<QSqlRecord> InvoiceManager::getByStagingStatus(const QString& status) {
+QList<QSqlRecord> InvoiceManager::getByStagingStatus(const QString &status)
+{
   return getWhere("staging_status = :status COLLATE NOCASE AND is_active = 1",
                   {{":status", status}}, "created_at DESC");
 }
 
-QList<QSqlRecord> InvoiceManager::getBySettlementStatus(const QString& status) {
+QList<QSqlRecord> InvoiceManager::getBySettlementStatus(const QString &status)
+{
   return getWhere(
       "settlement_status = :status COLLATE NOCASE AND is_active = 1",
       {{":status", status}}, "due_date");
 }
 
-QList<QSqlRecord> InvoiceManager::getActive(const QString& orderBy, int limit) {
+QList<QSqlRecord> InvoiceManager::getActive(const QString &orderBy, int limit)
+{
   return getWhere("is_active = 1", {}, orderBy, limit);
 }
 
-bool InvoiceManager::updateStagingStatus(int id, const QString& status) {
+bool InvoiceManager::updateStagingStatus(int id, const QString &status)
+{
   return update(id, {{"staging_status", status}});
 }
 
-bool InvoiceManager::updateSettlementStatus(int id, const QString& status) {
+bool InvoiceManager::updateSettlementStatus(int id, const QString &status)
+{
   return update(id, {{"settlement_status", status}});
 }
 
-bool InvoiceManager::updatePaidAmount(int id, int paidAmount) {
+bool InvoiceManager::updatePaidAmount(int id, int paidAmount)
+{
   auto record = getById(id);
-  if (!record) {
+  if (!record)
+  {
     setErrorString("Invoice tidak ditemukan");
     return false;
   }
@@ -74,30 +87,37 @@ bool InvoiceManager::updatePaidAmount(int id, int paidAmount) {
                      {"settlement_status", newSettlementStatus}});
 }
 
-bool InvoiceManager::deactivate(int id) {
+bool InvoiceManager::deactivate(int id)
+{
   return update(id, {{"is_active", 0}});
 }
 
-bool InvoiceManager::addOrders(int invoice_id, QList<int> oids) {
-  if (oids.isEmpty()) {
+bool InvoiceManager::addOrders(int invoice_id, QList<int> oids)
+{
+  if (oids.isEmpty())
+  {
     setErrorString("List Order kosong");
     return false;
   }
 
   OrderManager om;
-  for (int oid : oids) {
+  for (int oid : oids)
+  {
     om.setInvoiceId(oid, invoice_id);
   }
 
   return recalculate(invoice_id);
 }
 
-bool InvoiceManager::addOrder(int invoice_id, int oid) {
+bool InvoiceManager::addOrder(int invoice_id, int oid)
+{
   return addOrders(invoice_id, {oid});
 }
 
-bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids) {
-  if (oids.isEmpty()) return true;
+bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids)
+{
+  if (oids.isEmpty())
+    return true;
 
   QStringList holders;
   for (int i = 0; i < oids.size(); ++i)
@@ -112,11 +132,13 @@ bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids) {
   q.prepare(sql.arg(holders.join(", ")));
   q.bindValue(":iid", invoice_id);
 
-  for (int i = 0; i < oids.size(); ++i) {
+  for (int i = 0; i < oids.size(); ++i)
+  {
     q.bindValue(holders[i], oids[i]);
   }
 
-  if (!q.exec()) {
+  if (!q.exec())
+  {
     setErrorString("Gagal memisahkan orders dari invoice" +
                    q.lastError().text());
     return false;
@@ -124,26 +146,32 @@ bool InvoiceManager::removeOrders(int invoice_id, QList<int> oids) {
   return recalculate(invoice_id);
 }
 
-bool InvoiceManager::removeOrder(int invoice_id, int oid) {
+bool InvoiceManager::removeOrder(int invoice_id, int oid)
+{
   return removeOrders(invoice_id, {oid});
 }
 
-bool InvoiceManager::recalculate(int id) {
+bool InvoiceManager::recalculate(int id)
+{
   // Recusive Recalculate all_order
   QSqlQuery q(BaseManager::connection);
   q.prepare(R"-(
-    UPDATE invoices
-      SET subtotal = (
-              SELECT COALESCE(SUM(total_amount), 0) 
-                FROM orders
-                WHERE invoice_id = :id AND
-                      staging_status <> 'cancelled'
-          )
-    WHERE id = :id2;  
-  )-");
+WITH rct AS (
+    SELECT COALESCE(SUM(total_amount), 0) AS ct
+      FROM orders
+     WHERE invoice_id = :id AND 
+           staging_status IS NOT 'cancelled'
+)
+UPDATE invoices
+   SET subtotal = rct.ct,
+       updated_at = CURRENT_TIMESTAMP
+  FROM rct
+ WHERE invoices.id = :id AND 
+       invoices.subtotal IS NOT rct.ct;
+)-");
   q.bindValue(":id", id);
-  q.bindValue(":id2", id);
-  if (!q.exec()) {
+  if (!q.exec())
+  {
     setErrorString(q.lastError().text());
     return false;
   }

@@ -26,6 +26,8 @@ void tstDatabase::initTestCase()
     BaseManager::connection = db;
     QSqlQuery q(db);
     q.exec("PRAGMA foreign_keys = ON;");
+    q.exec("SELECT sqlite_version();") && q.next();
+    qInfo() << "SQLite version:" << q.value(0).toString();
 }
 
 void tstDatabase::tstCreateRootUser() {
@@ -166,7 +168,7 @@ void tstDatabase::tstItemFlowMechanism()
     });
     QVERIFY(optItem1.has_value());
 
-    QVERIFY2(its.handleItemSold(optItem1->value("id").toInt()), qPrintable(its.errorString()));
+    QVERIFY2(its.processItemSold(optItem1->value("id").toInt()), qPrintable(its.errorString()));
     
     // Verifikasi Stok
     auto pAfter1 = pm.getById(prodId1);
@@ -198,7 +200,7 @@ void tstDatabase::tstItemFlowMechanism()
         { "size_height", h }
     });
 
-    QVERIFY2(its.handleItemSold(optItemArea->value("id").toInt()), qPrintable(its.errorString()));
+    QVERIFY2(its.processItemSold(optItemArea->value("id").toInt()), qPrintable(its.errorString()));
     
     // Verifikasi Stok (Harus berkurang sesuai luas, bukan sekadar quantity)
     auto pAfterArea = pm.getById(prodArea.value("id").toInt());
@@ -213,7 +215,7 @@ void tstDatabase::tstItemFlowMechanism()
     double stockSatuanBeforeCancel = pm.getById(prodId1)->value("stock").toDouble();
 
     // Batalkan item pertama (Produk Satuan: qty 10) dengan restock = true
-    QVERIFY2(its.handleItemCanceled(optItem1->value("id").toInt(), true), qPrintable(its.errorString()));
+    QVERIFY2(its.processItemCancel(optItem1->value("id").toInt(), true), qPrintable(its.errorString()));
 
     // VERIFIKASI: Harus dibandingkan dengan prodId1, bukan prodArea
     auto pAfterRestockSatuan = pm.getById(prodId1);
@@ -227,7 +229,7 @@ void tstDatabase::tstItemFlowMechanism()
     double stockAreaBeforeCancel = pm.getById(prodArea.value("id").toInt())->value("stock").toDouble();
 
     // Batalkan item area dengan restock = false
-    QVERIFY2(its.handleItemCanceled(optItemArea->value("id").toInt(), false), qPrintable(its.errorString()));
+    QVERIFY2(its.processItemCancel(optItemArea->value("id").toInt(), false), qPrintable(its.errorString()));
 
     // VERIFIKASI: Stok area tidak boleh berubah karena restock = false
     auto pFinalArea = pm.getById(prodArea.value("id").toInt());
@@ -249,7 +251,7 @@ void tstDatabase::tstItemFlowMechanism()
         { "size_height", 1 }
     });
     
-    QVERIFY2(its.handleItemSold(optItemMinus->value("id").toInt()), "Harusnya tetap bisa jual meski stok minus");
+    QVERIFY2(its.processItemSold(optItemMinus->value("id").toInt()), "Harusnya tetap bisa jual meski stok minus");
     
     auto pMinus = pm.getById(prodId1);
     QVERIFY2(pMinus->value("stock").toDouble() < 0, "Stok seharusnya bernilai negatif sekarang");
@@ -258,7 +260,7 @@ void tstDatabase::tstItemFlowMechanism()
 
     // Simulasi panggil handleItemCanceled untuk kedua kalinya
     // Harusnya tetap return true (karena handleItemLog return true saat affected 0)
-    QVERIFY2(its.handleItemCanceled(optItemArea->value("id").toInt(), true), "Harusnya silent success");
+    QVERIFY2(its.processItemCancel(optItemArea->value("id").toInt(), true), "Harusnya silent success");
 
     // Pastikan stok TIDAK berubah lagi (tetap sama dengan pFinalArea)
     auto pDoubleCheck = pm.getById(prodArea.value("id").toInt());

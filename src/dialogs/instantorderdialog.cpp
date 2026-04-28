@@ -62,6 +62,7 @@ namespace
       return false;
     }
 
+    QList<int> itemIds;
     for (auto item : ois)
     {
       item.order_id = optOrder->value("id").toInt();
@@ -71,12 +72,20 @@ namespace
         errorString = BaseManager::connection.lastError().text();
         return false;
       }
-      if (!ifs.handleItemSold(item.id))
+      if (!ifs.processItemSold(item.id))
       {
         errorString = ifs.errorString();
         qWarning() << "Pendaftaran Item Flow Gagal" << BaseManager::connection.lastError().text();
         return false;
       };
+      itemIds << item.id;
+    }
+
+    if (!om.addItems(optOrder->value("id").toInt(), itemIds))
+    {
+      qWarning() << "Pendaftaran Item ke Order Gagal" << om.errorString();
+      errorString = om.errorString();
+      return false;
     }
 
     InvoiceManager iman;
@@ -96,7 +105,7 @@ namespace
       return false;
     }
 
-    if (!iman.addOrders(optInvoice->value("id").toInt(), {optOrder->value("id").toInt()}))
+    if (!iman.addOrders(optInvoice->value("id").toInt(), { optOrder->value("id").toInt() }))
     {
       qWarning() << "Penadaftaran Order ke Invoice Gagal" << iman.errorString();
       errorString = iman.errorString();

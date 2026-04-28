@@ -154,7 +154,7 @@ void OrderDataViewer::viewOrderItems(const QModelIndex &ix)
   for(int a=0; a<order_items.size(); a++) {
     auto item = order_items.at(a);
     QString itemString = QString("[%1] %2\n").arg(item.value("sku").toString(), item.value("product_name").toString());
-    QString itemInfo   = QString("%1 %2 x %3\n").arg(item.value("quantity").toInt())
+    QString itemInfo   = QString("%1 %2 x %L3\n").arg(item.value("quantity").toInt())
                                               .arg(item.value("unit").toString())
                                               .arg(item.value("sale_price").toInt());
     if (item.value("use_area").toBool()) {
@@ -172,7 +172,7 @@ void OrderDataViewer::viewOrderItems(const QModelIndex &ix)
     for(auto const& finishing : finishings) {
       QString finishingString = QString(" - [%1] %L2x%L3\n").arg(finishing.value("finishing_name").toString())
                                     .arg(finishing.value("quantity").toInt())
-                                    .arg(finishing.value("price").toInt());
+                                    .arg(finishing.value("finishing_price").toInt());
       cursor.insertText(finishingString, formatThin);
       cursor.insertBlock();
     }

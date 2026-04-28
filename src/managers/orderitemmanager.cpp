@@ -6,11 +6,13 @@
 
 OrderItemManager::OrderItemManager() : BaseManager("order_items", false) {}
 
-QList<QSqlRecord> OrderItemManager::getByOrder(int orderId) {
+QList<QSqlRecord> OrderItemManager::getByOrder(int orderId)
+{
   return getWhere("order_id = :order_id", {{"order_id", orderId}}, "id");
 }
 
-bool OrderItemManager::updateFinishingTotal(int id) {
+bool OrderItemManager::updateFinishingTotal(int id)
+{
   QSqlQuery q(BaseManager::connection);
 
   // COALESCE memastikan jika hasil SUM adalah NULL, maka akan diubah menjadi 0
@@ -27,7 +29,8 @@ bool OrderItemManager::updateFinishingTotal(int id) {
   q.bindValue(":id1", id);
   q.bindValue(":id2", id);
 
-  if (!q.exec()) {
+  if (!q.exec())
+  {
     qDebug() << "Update Error:" << q.lastError().text();
     return false;
   }
@@ -35,28 +38,45 @@ bool OrderItemManager::updateFinishingTotal(int id) {
   return true;
 }
 
-bool OrderItemManager::addFinishings(int id, QList<int> finishingIds) {
+bool OrderItemManager::addFinishings(int id, QList<int> finishingIds)
+{
   OrderItemFinishingManager oifm;
-  for (int finishingId : finishingIds) {
+  for (int finishingId : finishingIds)
+  {
     oifm.setOrderItem(finishingId, id);
   }
   return updateFinishingTotal(id);
 }
 
-bool OrderItemManager::setOrderId(int id, int orderId) { 
+bool OrderItemManager::setOrderId(int id, int orderId)
+{
   return update(id, {{"order_id", orderId}});
 }
 
-bool OrderItemManager::beforeCreate(QVariantMap& params) { 
-  if (params.contains("use_area") && params["use_area"].toInt() == 0) {
+bool OrderItemManager::removeFinishings(int id, QList<int> finishingIds)
+{
+  OrderItemFinishingManager oifm;
+  for (int finishingId : finishingIds)
+  {
+    oifm.remove(finishingId);
+  }
+  return updateFinishingTotal(id);
+}
+
+bool OrderItemManager::beforeCreate(QVariantMap &params)
+{
+  if (params.contains("use_area") && params["use_area"].toInt() == 0)
+  {
     params["size_width"] = 1;
     params["size_height"] = 1;
   }
-  return true; 
+  return true;
 }
 
-bool OrderItemManager::beforeUpdate(int id, QVariantMap& params) {
-  if (params.contains("use_area") && params["use_area"].toInt() == 0) {
+bool OrderItemManager::beforeUpdate(int id, QVariantMap &params)
+{
+  if (params.contains("use_area") && params["use_area"].toInt() == 0)
+  {
     params["size_width"] = 1;
     params["size_height"] = 1;
   }

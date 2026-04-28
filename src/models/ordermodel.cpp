@@ -622,7 +622,7 @@ int OrderItem::subtotal() const
                      * static_cast<double>(sale_price)
                      * (use_area ? size_width  : 1.0)
                      * (use_area ? size_height : 1.0);
-    return static_cast<int>((raw + 99.99999) / 100.0) * 100;
+    return qCeil((raw * 100.0)) / 100;
 }
 
 int OrderItem::total() const

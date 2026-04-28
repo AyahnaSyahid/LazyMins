@@ -35,4 +35,6 @@ public:
     bool orderItemLog(int orderItemId, ItemLogType type, int adminId= -1);
     bool orderItemSold(int orderItemId, int adminId= -1) { return orderItemLog(orderItemId, SALE, adminId); };    
     bool orderItemCancelled(int orderItemId, int adminId= -1) { return orderItemLog(orderItemId, RETURN_RESTOCK, adminId); };
+protected:
+    bool beforeCreate(QVariantMap& params) override;
 };

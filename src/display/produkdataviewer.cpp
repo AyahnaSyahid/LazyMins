@@ -170,7 +170,6 @@ void ProdukDataViewer::openRefillDialog(int produkId)
 {
   StockRefillDialog dl(this);
   if(!dl.setProductId(produkId)) {
-    dl.reject();
     return ;
   }
   connect(&dl, &QDialog::accepted, this, &DataViewer::refresh);

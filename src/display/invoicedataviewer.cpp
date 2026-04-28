@@ -133,6 +133,35 @@ void InvoiceDataViewer::openPaymentForInvoice(int invoiceId)
   pd.exec();
 }
 
+void InvoiceDataViewer::createInvoiceForOrder(int orderId) {
+  OrderManager oman;
+  auto optOrder = oman.getById(orderId);
+  if(!optOrder) {
+    QMessageBox::information(this, "Kesalahan", "Sistem tidak dapat menemukan order");
+    return ;
+  }
+  if (!(optOrder->value("invoice_id").isNull())) {
+    QMessageBox::information(this, "Kesalahan", "Order ini sudah memiliki invoice");
+    return ;
+  }
+  KonsumenManager km;
+  auto optCustomer = km.getById(optOrder->value("customer_id").toInt());
+  if(!optCustomer) {
+    QMessageBox::information(this, "Kesalahan", "Sistem tidak dapat menemukan konsumen");
+    return ;
+  }
+  
+  InvoiceComposerDialog ids(this);
+  ids.setCustomer(*optCustomer);
+  ids.importOrders({orderId});
+  connect(&ids, &QDialog::accepted, this, &DataViewer::refresh);
+  
+  // Signal Forwarding
+  connect(&ids, &InvoiceComposerDialog::invoiceCreated, this, &InvoiceDataViewer::invoiceCreated);
+  connect(&ids, &InvoiceComposerDialog::paymentCreated, this, &InvoiceDataViewer::paymentCreated);
+  ids.exec();
+}
+
 void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
 {
   if (!vm.contains("invoice_id")) {

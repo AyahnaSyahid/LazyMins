@@ -21,6 +21,7 @@ class InvoiceDataViewer : public DataViewer
     void openContextMenu(const QPoint& pt);
     void on_dataView_customContextMenuRequested(const QPoint& p);
     void openPaymentForInvoice(int);
+    void createInvoiceForOrder(int);
     
   signals:
     // penerusan signal

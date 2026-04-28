@@ -25,6 +25,7 @@ private:
 
 signals:
   void orderCreated(int id);
+  void createInvoiceRequested(int id);
   
 private:
   QAction *m_createOrderAction;

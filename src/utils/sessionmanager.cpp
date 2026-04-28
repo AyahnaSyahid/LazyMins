@@ -48,6 +48,12 @@ bool SessionManager::currentUserPasswordMatch(const QString& pass) const {
   return am.passwordMatch(username, pass);
 }
 
+bool SessionManager::isSuperAdminSession() const { 
+  AdminManager am;
+  if(!m_currentUserRecord) return false;
+  return am.userHasRole(m_currentUserRecord->value("id").toInt(), "super_admin");
+}
+
 int SessionManager::currentUserId() const
 {
   if(!m_currentUserRecord) return -1;

@@ -103,6 +103,7 @@ ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuView->addAction(dsI->toggleViewAction());
   connect(ui->actionInvoiceCreate, &QAction::triggered, idv, &InvoiceDataViewer::onCreateInvoice);
   connect(idv, &DataViewer::refreshed, ord1, &DataViewer::refresh); // Hati2 jangan sampai circular
+  connect(ord1, &OrderDataViewer::createInvoiceRequested, idv, &InvoiceDataViewer::createInvoiceForOrder);
   
   auto atdv = new AkunTransaksiDataViewer;
   auto dsAT = dockSetup(new QDockWidget(this), "Akun Transaksi", atdv);
@@ -260,7 +261,6 @@ void MainWindow::on_actionLaporanPenjualanHariIni_triggered() {
   rv->resetTransform();
   dl->open();
 }
-
 
 void MainWindow::setupToolbarActions()
 {

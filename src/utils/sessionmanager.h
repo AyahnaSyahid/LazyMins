@@ -11,6 +11,7 @@ public:
   static SessionManager &instance();
   std::optional<QSqlRecord> currentUser() const;
   bool currentUserPasswordMatch(const QString& ) const;
+  bool isSuperAdminSession() const;
   int currentUserId() const;
 
 public slots:

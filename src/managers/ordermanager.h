@@ -11,7 +11,8 @@ public:
     QList<QSqlRecord> getByInvoice(int invoiceId);
     bool updateStagingStatus(int id, const QString& status);
     bool setInvoiceId(int id, int invoiceId);
-    
+    std::optional<int> getInvoiceId(int id) const;
+
     // Menambahkan item ke order
     // Return true jika memang ada perubahan
     bool addItems(int id, QList<int> itemIds);

@@ -3,6 +3,7 @@
 #include "src/managers/paymentmanager.h"
 #include "src/managers/transaksimanager.h"
 #include "src/utils/sessionmanager.h"
+#include "src/utils/sqltransaction.h"
 
 namespace
 {
@@ -47,54 +48,24 @@ namespace
 bool FinancialLedgerService::handlePayment(int paymentId)
 {
     TransaksiManager trm;
-    QSqlQuery q(BaseManager::connection);
-    
-    if (true)
-    {
-        PaymentManager pym;
-        auto opt_pay = pym.getById(paymentId);
-        if (opt_pay)
-            debugSqlRecord(*opt_pay);
-        InvoiceManager iman;
-        auto opt_inv = iman.getById(opt_pay->value("invoice_id").toInt());
-        if (opt_inv)
-            debugSqlRecord(*opt_inv);
-    }
-
     auto exec = [this](QSqlQuery &q)
     { return exq(q, this->m_errorString); };
-    QString query = R"-(
-    SELECT py.akun_transaksi_id AS akun_id,
-           py.invoice_id,
-           py.verification_status,
-           py.verified_by,
-           py.verified_at,
-           at.saldo AS before,
-           py.amount,
-           CASE WHEN py.verification_status = 'cancelled' THEN at.saldo - py.amount 
-                WHEN py.verification_status = 'verified' THEN at.saldo + py.amount 
-                ELSE at.saldo END AS after
-      FROM payments py
-           JOIN
-           akun_transaksi at ON at.id = py.akun_transaksi_id
-           JOIN
-           invoices inv ON inv.id = py.invoice_id
-     WHERE py.id = :payment_id AND
-           inv.settlement_status <> 'paid' AND
-           inv.is_active = 1 AND
-           ( py.verification_status = 'cancelled' OR inv.remaining_amount >= py.amount); )-";
-
-    q.prepare(query);
-    q.bindValue(":payment_id", paymentId);
-
-    if (!exec(q))
-        return false;
-    if (!q.next())
+    if (!canBeHandled(paymentId)) 
     {
         m_errorString = "[FinancialLedgerService] Payment condition not satisfied";
         qWarning() << m_errorString;
         return false;
     }
+
+    PaymentManager pm;
+    auto optPay = pm.getById(paymentId);
+    if (!optPay)
+    {
+        m_errorString = "[FinancialLedgerService] Payment not found";
+        qWarning() << m_errorString;
+        return false;
+    }
+    auto &q = *optPay;
 
     QString deskripsi;
     QString vstat = q.value("verification_status").toString();
@@ -181,13 +152,13 @@ bool FinancialLedgerService::handlePayment(int paymentId)
     }
 
     auto optTr = trm.create({
-        {"akun_id", q.value("akun_id")},
+        {"akun_id", q.value("akun_transaksi_id")},
         {"admin_id", SessionManager::instance().currentUserId()},
         {"kategori_id", FinancialLedgerService::KategoriTransaksi::PembayaranInvoice},
         {"tipe", cancel ? "pengeluaran" : "pemasukan"},
         {"deskripsi", deskripsi},
         {"amount", cancel ? -q.value("amount").toLongLong() : q.value("amount").toLongLong()},
-        {"payment_method", "AkunID #" + q.value("akun_id").toString()},
+        {"payment_method", "AkunID #" + q.value("akun_transaksi_id").toString()},
         {"reference_type", "payments"},
         {"reference_id", paymentId},
         {"tanggal", q.value("verified_at")},
@@ -211,5 +182,67 @@ bool FinancialLedgerService::handlePayment(int paymentId)
     if (!exec(q2))
         return false;
 
+    return true;
+}
+
+bool FinancialLedgerService::canBeHandled(int paymentId)
+{
+    QSqlQuery q(BaseManager::connection);
+    auto exec = [this](QSqlQuery &q)
+    { return exq(q, this->m_errorString); };
+    QString query = R"-(
+    SELECT py.akun_transaksi_id AS akun_id,
+           py.invoice_id,
+           py.verification_status,
+           py.verified_by,
+           py.verified_at,
+           at.saldo AS before,
+           py.amount,
+           CASE WHEN py.verification_status = 'cancelled' THEN at.saldo - py.amount 
+                WHEN py.verification_status = 'verified' THEN at.saldo + py.amount 
+                ELSE at.saldo END AS after
+      FROM payments py
+           JOIN
+           akun_transaksi at ON at.id = py.akun_transaksi_id
+           JOIN
+           invoices inv ON inv.id = py.invoice_id
+     WHERE py.id = :payment_id AND
+           inv.settlement_status <> 'paid' AND
+           inv.is_active = 1 AND
+           ( py.verification_status = 'cancelled' OR inv.remaining_amount >= py.amount); )-";
+
+    q.prepare(query);
+    q.bindValue(":payment_id", paymentId);
+
+    if (!exec(q)) return false;
+    return q.next();
+}
+
+bool FinancialLedgerService::createPayment(const QVariantMap &params, int *paymentId)
+{
+    SqlTransaction t;
+    if (!t.started()) {
+        m_errorString = "Gagal membuat transaksi Database";
+        return false;
+    }
+    PaymentManager pm;
+    auto optPayment = pm.create(params);
+    if (!optPayment.has_value())
+    {
+        m_errorString = pm.errorString();
+        qWarning() << m_errorString;
+        return false;
+    }
+
+    if (!handlePayment(optPayment->value("id").toInt()))
+    {
+        m_errorString = "Gagal membuat transaksi ke akun : " + m_errorString;
+        return false;
+    }
+    if (!t.commit()) {
+        m_errorString = "Gagal membuat transaksi Database";
+        return false;
+    }
+    if (paymentId) *paymentId = optPayment->value("id").toInt();
     return true;
 }

@@ -14,6 +14,10 @@ public:
     // - Wrapping in a database transaction (commit/rollback)
     // - Ensuring no concurrent calls with the same paymentId
     bool handlePayment(int paymentId);
+    bool canBeHandled(int paymentId);
+
+    // Transaction Locked
+    bool createPayment(const QVariantMap& params, int *paymentId = nullptr);
 
 private:
     void resetError() { m_errorString = ""; }

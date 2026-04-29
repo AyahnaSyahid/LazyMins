@@ -7,6 +7,7 @@
 #include "src/display/invoicebrowser.h"
 
 #include "src/managers/managers.h"
+#include "src/managers/financialledgerservice.h"
 
 #include <QMenu>
 #include <QAction>
@@ -164,11 +165,11 @@ void InvoiceDataViewer::createInvoiceForOrder(int orderId) {
 
 void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
 {
+  qDebug() << "Payment Processed by InvoiceDataViewer";
   if (!vm.contains("invoice_id")) {
     qDebug() << "Invoice ID tidak ada dalam parameter";
     return ;
   }
-  
   auto user = SessionManager::instance().currentUser();
   if (!user.has_value()) {
     QMessageBox::critical(this, "Akses ditolak", "Error:\nTidak ada aktif user dalam sesi ini\nTapi mengapa anda bisa masuk sampai sini ??");
@@ -176,20 +177,18 @@ void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
   }
   auto userRec = *user;
   int invoiceId = vm["invoice_id"].toInt();
-  PaymentManager paymentManager;
-  
+
   QVariantMap withUser(vm);
   withUser["admin_id"] = userRec.value("id");
   
-  auto optPayment = paymentManager.create(withUser);
-  if(!optPayment.has_value()) {
-    QMessageBox::warning(this, "Pembayaran Gagal", "Error:\n" + paymentManager.errorString());
+  FinancialLedgerService flc;
+  int createdPaymentId = -1;
+  if (!flc.createPayment(withUser, &createdPaymentId)) {
+    QMessageBox::critical(this, "Pembayaran gagal", "Error:\n" + flc.errorString());
     return ;
   }
+  emit paymentCreated(createdPaymentId);
   refresh();
-  auto payment = *optPayment;
-  
-  emit paymentCreated(payment.value("id").toInt());
 }
 
 void InvoiceDataViewer::onBrowseInvoices() {

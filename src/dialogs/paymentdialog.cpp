@@ -56,7 +56,7 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   
   // m_paymentModel
   m_paymentModel->setColumnCount(2);
-
+  m_paymentModel->setHorizontalHeaderLabels({"Tanggal", "Nilai"});
   ui->tableView->setModel(m_paymentModel);
   ui->tableView->horizontalHeader()->setStretchLastSection(true);
   ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -92,7 +92,6 @@ void PaymentDialog::setInvoiceId(int iid)
   auto rem = m_invoiceRecord.value("remaining_amount").toInt();
   auto sumItem = new QStandardItem(QString("Terbayar : %L1").arg(sumVal));
   m_paymentModel->appendRow(sumItem);
-  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );
   ui->tableView->setSpan(m_paymentModel->rowCount() -1, 0, 1, 2);
   ui->tableView->resizeColumnsToContents();
   ui->belumBayarSpinBox->setValue(rem);

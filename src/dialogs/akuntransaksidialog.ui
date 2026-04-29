@@ -195,6 +195,9 @@
          <height>73</height>
         </size>
        </property>
+       <property name="tabChangesFocus">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
     </layout>
@@ -233,6 +236,7 @@
   <tabstop>rekeningLineEdit</tabstop>
   <tabstop>atasNamaLineEdit</tabstop>
   <tabstop>aktifComboBox</tabstop>
+  <tabstop>plainTextEdit</tabstop>
   <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>

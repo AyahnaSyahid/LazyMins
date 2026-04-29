@@ -388,8 +388,10 @@
   <tabstop>nameLineEdit</tabstop>
   <tabstop>pilihButton</tabstop>
   <tabstop>phoneLineEdit</tabstop>
+  <tabstop>lHargaComboBox</tabstop>
   <tabstop>orderListView</tabstop>
   <tabstop>discountSpinBox</tabstop>
+  <tabstop>ppnSpinBox</tabstop>
   <tabstop>bayarSpinBox</tabstop>
   <tabstop>bayarButton</tabstop>
  </tabstops>

@@ -60,6 +60,12 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>portNameBox</tabstop>
+  <tabstop>baudRateBox</tabstop>
+  <tabstop>testButton</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

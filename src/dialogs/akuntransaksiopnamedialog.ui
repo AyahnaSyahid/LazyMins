@@ -114,7 +114,11 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QPlainTextEdit" name="notesEdit"/>
+         <widget class="QPlainTextEdit" name="notesEdit">
+          <property name="tabChangesFocus">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -158,6 +162,13 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>currentBox</tabstop>
+  <tabstop>realBox</tabstop>
+  <tabstop>adjustBox</tabstop>
+  <tabstop>notesEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

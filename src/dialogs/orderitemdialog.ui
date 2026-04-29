@@ -247,6 +247,9 @@
             <height>66</height>
            </size>
           </property>
+          <property name="tabChangesFocus">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="8" column="0">
@@ -362,6 +365,8 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>produkComboBox</tabstop>
+  <tabstop>pilihButton</tabstop>
   <tabstop>namaLineEdit</tabstop>
   <tabstop>widthBox</tabstop>
   <tabstop>heightBox</tabstop>
@@ -371,6 +376,9 @@
   <tabstop>diskonRpSpinBox</tabstop>
   <tabstop>notesTextEdit</tabstop>
   <tabstop>totalSpinBox</tabstop>
+  <tabstop>tambahButton</tabstop>
+  <tabstop>hapusButton</tabstop>
+  <tabstop>finishingView</tabstop>
   <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>

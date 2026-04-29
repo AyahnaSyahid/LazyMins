@@ -220,6 +220,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>costSpinBox</tabstop>
+  <tabstop>tableView</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

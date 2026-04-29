@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>668</width>
+    <width>531</width>
     <height>573</height>
    </rect>
   </property>
@@ -243,6 +243,9 @@ Konsumen</string>
             <height>63</height>
            </size>
           </property>
+          <property name="tabChangesFocus">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="1" column="0">
@@ -263,6 +266,9 @@ Internal</string>
             <width>16777215</width>
             <height>63</height>
            </size>
+          </property>
+          <property name="tabChangesFocus">
+           <bool>true</bool>
           </property>
          </widget>
         </item>

@@ -235,8 +235,6 @@ void InstantOrderDialog::on_pilihButton_clicked()
 
 void InstantOrderDialog::on_orderListView_customContextMenuRequested(const QPoint &p)
 {
-  if (!checkInput())
-    return;
   auto global_point = ui->orderListView->viewport()->mapToGlobal(p);
   QMenu context;
   auto add = context.addAction("Tambah");

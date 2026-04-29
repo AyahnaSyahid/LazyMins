@@ -36,7 +36,6 @@ bool EditUserDialog::setUser(const QString& name) {
   ui->emailEdit->setText(info.email);
   ui->roleBox->setCurrentRoleId(info.role_id);
   
-
   setWindowTitle("Edit User : " + name);
   setProperty("editUsername", name);
   m_userLoaded = true;

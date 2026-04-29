@@ -286,7 +286,7 @@ int OrderItemDialog::calculatedPrice() const
     // FIX: actually use the use_area flag to decide the multiplier
     bool use_area = model->index(ui->produkComboBox->currentIndex(), 3).data(Qt::EditRole).toBool();
     double areaMultiplier = (use_area && width > 0 && height > 0) ? (width * height) : 1.0;
-    int pr = static_cast<int>(std::ceil((harga * areaMultiplier * qty) / 100.0)) * 100;
+    int pr = qCeil((harga * areaMultiplier * qty) * 100.0) / 100;
     return pr + m_finishingListModel.total();
 }
 

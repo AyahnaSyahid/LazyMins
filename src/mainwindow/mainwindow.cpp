@@ -14,6 +14,7 @@
 #include "src/dialogs/logindialog.h"
 #include "src/dialogs/orderdialog.h"
 #include "src/dialogs/productdialog.h"
+#include "src/dialogs/revokepassworddialog.h"
 #include "src/dialogs/userdialog.h"
 #include "src/display/akuntransaksidataviewer.h"
 #include "src/display/finishingservicesviewer.h"
@@ -244,6 +245,16 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
     });
   }
 
+  QTimer* pwRevoker = new QTimer(this);
+  pwRevoker->setInterval(180000);
+  connect(pwRevoker, &QTimer::timeout, [this, pwRevoker]() {
+    auto rpoke = new RevokePasswordDialog();
+    rpoke->setAttribute(Qt::WA_DeleteOnClose);
+    rpoke->exec();
+    this->connect(rpoke, &QDialog::accepted, pwRevoker,
+            &QTimer::start);
+  });
+  
   // Login
   openLoginForm();
 }

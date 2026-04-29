@@ -32,6 +32,7 @@ CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
            nomor_telp
       FROM konsumen k
            JOIN price_levels pl ON k.price_level_id = pl.id
+     ORDER BY nama_lengkap ASC
     )--", BaseManager::connection);
     
     while(model->canFetchMore()) model->fetchMore();

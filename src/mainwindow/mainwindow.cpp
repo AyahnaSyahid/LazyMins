@@ -32,39 +32,45 @@
 #include "src/utils/sessionmanager.h"
 #include "ui_mainwindow.h"
 
-namespace {
-void connectCreateActionToFormDialog(QAction* action, const QString& formTitle,
-                                     std::function<FormDialog*()> formOpener,
-                                     QObject* me = nullptr) {
-  me->connect(action, &QAction::triggered, [me, formTitle, formOpener]() {
+namespace
+{
+  void connectCreateActionToFormDialog(QAction *action, const QString &formTitle,
+                                       std::function<FormDialog *()> formOpener,
+                                       QObject *me = nullptr)
+  {
+    me->connect(action, &QAction::triggered, [me, formTitle, formOpener]()
+                {
     auto dd = formOpener();
     dd->prepareCreate();
     dd->setWindowTitle(formTitle);
     dd->setAttribute(Qt::WA_DeleteOnClose);
-    dd->open();
-  });
-}
-void connectModifyActionToFormDialog(QAction* action, const QString& formTitle,
-                                     std::function<FormDialog*()> formOpener,
-                                     std::function<QSqlRecord()> recordProvider,
-                                     QObject* me = nullptr) {
-  me->connect(action, &QAction::triggered,
-              [me, formTitle, formOpener, recordProvider]() {
-                auto dd = formOpener();
-                dd->prepareModify(recordProvider());
-                dd->setWindowTitle(formTitle);
-                dd->setAttribute(Qt::WA_DeleteOnClose);
-                dd->open();
-              });
-}
-}  // namespace
+    dd->open(); });
+  }
+  void connectModifyActionToFormDialog(QAction *action, const QString &formTitle,
+                                       std::function<FormDialog *()> formOpener,
+                                       std::function<QSqlRecord()> recordProvider,
+                                       QObject *me = nullptr)
+  {
+    me->connect(action, &QAction::triggered,
+                [me, formTitle, formOpener, recordProvider]()
+                {
+                  auto dd = formOpener();
+                  dd->prepareModify(recordProvider());
+                  dd->setWindowTitle(formTitle);
+                  dd->setAttribute(Qt::WA_DeleteOnClose);
+                  dd->open();
+                });
+  }
+} // namespace
 
-MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
+MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
+{
   ui->setupUi(this);
   ui->menuToolbar->addAction(ui->addDataToolbar->toggleViewAction());
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
-  auto dockSetup = [](QDockWidget* dw, const QString& title,
-                      QWidget* widget) -> QDockWidget* {
+  auto dockSetup = [](QDockWidget *dw, const QString &title,
+                      QWidget *widget) -> QDockWidget *
+  {
     dw->setWidget(widget);
     dw->setWindowTitle(title);
     return dw;
@@ -107,7 +113,7 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
   connect(ui->actionInvoiceCreate, &QAction::triggered, idv,
           &InvoiceDataViewer::onCreateInvoice);
   connect(idv, &DataViewer::refreshed, ord1,
-          &DataViewer::refresh);  // Hati2 jangan sampai circular
+          &DataViewer::refresh); // Hati2 jangan sampai circular
   connect(ord1, &OrderDataViewer::createInvoiceRequested, idv,
           &InvoiceDataViewer::createInvoiceForOrder);
 
@@ -140,25 +146,27 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
   // PaymentsDataViewer bisa memverifikasi pembayaran
   connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
 
-  tabifyDockWidget(dsP, dsF);  // products, finishings
+  tabifyDockWidget(dsP, dsF); // products, finishings
   dsP->raise();
 
-  tabifyDockWidget(dsO, dsI);   // orders, invoices
-  tabifyDockWidget(dsI, dsPy);  // invoices, payments
+  tabifyDockWidget(dsO, dsI);  // orders, invoices
+  tabifyDockWidget(dsI, dsPy); // invoices, payments
   dsO->raise();
 
-  tabifyDockWidget(dsK, dsAT);  // AkunTransaksi, konsumen
+  tabifyDockWidget(dsK, dsAT); // AkunTransaksi, konsumen
   dsK->raise();
 
   connectCreateActionToFormDialog(
       ui->actionAdminAdd, "Tambah data admin baru",
-      [this]() {
+      [this]()
+      {
         auto ud = new UserDialog(this);
         return ud;
       },
       this);
   connect(ui->actionInstantOrderCreate, &QAction::triggered,
-          [this, dv1, idv]() {
+          [this, dv1, idv]()
+          {
             auto dialog = new InstantOrderDialog(this);
             dialog->setAttribute(Qt::WA_DeleteOnClose);
             connect(dialog, &QDialog::accepted, dv1, &DataViewer::refresh);
@@ -174,20 +182,20 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
   ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
 
   // UserSession
-  auto& sm = SessionManager::instance();
+  auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this,
           &MainWindow::currentUserChanged);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::hide);
   connect(&sm, &SessionManager::userLogout, this, &MainWindow::openLoginForm);
-  connect(&sm, &SessionManager::loginFailed, [this](const QString& m) {
-    QMessageBox::warning(this, "Peringatan", m);
-  });
+  connect(&sm, &SessionManager::loginFailed, [this](const QString &m)
+          { QMessageBox::warning(this, "Peringatan", m); });
 
   connect(ui->actionKeluar, &QAction::triggered, &sm, &SessionManager::logout);
   auto actEditAkun = new QAction("Edit info", this);
   actEditAkun->setObjectName("editAkunAction");
   ui->menuAkun->insertAction(ui->actionKeluar, actEditAkun);
-  connect(actEditAkun, &QAction::triggered, [this, &sm]() {
+  connect(actEditAkun, &QAction::triggered, [this, &sm]()
+          {
     if (sm.currentUser()->isEmpty()) {
       QMessageBox::warning(this, "Kesalahan", "User tidak valid");
       return;
@@ -202,8 +210,7 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
     }
     if (!sm.isSuperAdminSession()) ud->setEditRoleDisabled();
     ud->setAttribute(Qt::WA_DeleteOnClose);
-    ud->open();
-  });
+    ud->open(); });
 
   // Window Title
   AppSettingsManager apm;
@@ -213,48 +220,50 @@ MainWindow::MainWindow(QWidget* p) : ui(new Ui::MainWindow), QMainWindow(p) {
 
   // Printer Stuff
   ui->actionPrinterTest_2->setEnabled(false);
-  connect(ui->actionPrinterTest_2, &QAction::triggered, [this]() {
+  connect(ui->actionPrinterTest_2, &QAction::triggered, [this]()
+          {
     PosPrinterTestDialog* pp = new PosPrinterTestDialog(this);
-    pp->open();
-  });
-  connect(ui->actionEscPosConfig, &QAction::triggered, [this]() {
+    pp->open(); });
+  connect(ui->actionEscPosConfig, &QAction::triggered, [this]()
+          {
     auto* pp = new ConfigureSerialPosDialog(this);
-    pp->exec();
-  });
+    pp->exec(); });
 
-  auto& p_svc = PrintService::instance();
+  auto &p_svc = PrintService::instance();
   connect(idv, &InvoiceDataViewer::paymentCreated, &p_svc,
           &PrintService::onPaymentCreated);
   connect(idv, &InvoiceDataViewer::printInvoiceToSerial, &p_svc,
           &PrintService::printInvoiceToSerial);
   connect(pdv, &PaymentsDataViewer::paymentVerified, &p_svc,
           &PrintService::onPaymentCreated);
-  connect(&p_svc, &PrintService::unableToPrint, [this](const QString& m) {
-    QMessageBox::warning(this, "Tidak dapat mencetak", m);
-  });
+  connect(&p_svc, &PrintService::unableToPrint, [this](const QString &m)
+          { QMessageBox::warning(this, "Tidak dapat mencetak", m); });
 
   // pengamanan
   auto app = qApp;
-  if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd")) {
-    QTimer::singleShot(60000, [app]() {
+  if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd"))
+  {
+    QTimer::singleShot(60000, [app]()
+                       {
       QMessageBox::information(
           nullptr, "Aplikasi Kadaluarsa",
           "Ini adalah versi Pengembang\ndan telah dijadwalkan kadaluarsa "
           "tanggal pada 20 Juni 2026");
-      qApp->quit();
-    });
+      qApp->quit(); });
   }
 
-  QTimer* pwRevoker = new QTimer(this);
-  pwRevoker->setInterval(180000);
-  connect(pwRevoker, &QTimer::timeout, [this, pwRevoker]() {
-    auto rpoke = new RevokePasswordDialog();
-    rpoke->setAttribute(Qt::WA_DeleteOnClose);
-    rpoke->exec();
-    this->connect(rpoke, &QDialog::accepted, pwRevoker,
-            &QTimer::start);
-  });
-  
+  // Session
+  connect(&sm, &SessionManager::idleTimeout, [this]()
+          {
+    auto &csm = SessionManager::instance();
+    if (csm.currentUserId() > 0) {
+      RevokePasswordDialog rv(this);
+      if (QDialog::Accepted == rv.exec())
+        {csm.restartIdleTimer();}
+      else
+        {csm.logout();}
+    } });
+
   // Login
   openLoginForm();
 }
@@ -263,7 +272,8 @@ MainWindow::~MainWindow() { delete ui; }
 
 #include <QVBoxLayout>
 
-void MainWindow::on_actionLaporanPengeluaranHariIni_triggered() {
+void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
+{
   auto dl = new QDialog(this);
   auto l = new QVBoxLayout(dl);
   auto rv = new ReportView(dl);
@@ -277,7 +287,8 @@ void MainWindow::on_actionLaporanPengeluaranHariIni_triggered() {
   dl->open();
 }
 
-void MainWindow::on_actionLaporanPenjualanHariIni_triggered() {
+void MainWindow::on_actionLaporanPenjualanHariIni_triggered()
+{
   auto dl = new QDialog(this);
   auto l = new QVBoxLayout(dl);
   auto rv = new ReportView(dl);
@@ -291,37 +302,42 @@ void MainWindow::on_actionLaporanPenjualanHariIni_triggered() {
   dl->open();
 }
 
-void MainWindow::setupToolbarActions() {
+void MainWindow::setupToolbarActions()
+{
   // currently no dynamic action setup is needed, but this function can be used
   // in the future if we want to enable/disable actions based on user role or
   // other conditions
 }
 
-void MainWindow::openLoginForm() {
+void MainWindow::openLoginForm()
+{
   auto cu = SessionManager::instance().currentUser();
-  if (cu.has_value()) {
+  if (cu.has_value())
+  {
     return;
   }
   // hide();
   auto ld = new LoginDialog();
   connect(ld, &LoginDialog::accepted, this, &QWidget::show);
-  connect(ld, &LoginDialog::rejected, [this]() {
+  connect(ld, &LoginDialog::rejected, [this]()
+          {
     if (QMessageBox::question(
             this, "Batal Masuk",
             "Anda yakin membatalkan masuk ?\nIni akan menutup aplikasi",
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
       qApp->quit();
     else
-      this->openLoginForm();
-  });
+      this->openLoginForm(); });
   ld->setAttribute(Qt::WA_DeleteOnClose);
   ld->open();
 }
 
-void MainWindow::currentUserChanged() {
-  auto& sm = SessionManager::instance();
+void MainWindow::currentUserChanged()
+{
+  auto &sm = SessionManager::instance();
   auto opt_user = sm.currentUser();
-  if (!opt_user) {
+  if (!opt_user)
+  {
     QMessageBox::critical(
         this, "Fatal Error",
         "Tidak dapat mendeteksi user valid !!\nApplikasi akan di terminasi");

@@ -162,11 +162,31 @@ void KonsumenDataViewer::on_dataView_customContextMenuRequested(
 
   auto clickedIndex = ui->dataView->indexAt(pt);
   const bool hasSelection = clickedIndex.isValid();
-
+  
   auto editAction = menu.addAction("Edit");
   editAction->setToolTip("Edit data konsumen");
   editAction->setEnabled(hasSelection);
-
+  
+  auto deleteAction = menu.addAction("Hapus");
+  deleteAction->setEnabled(hasSelection);
+  deleteAction->setObjectName("delete");
+  deleteAction->setToolTip("Hapus");
+  menu.setStyleSheet(".delete { color: red; }");
+  connect(deleteAction, &QAction::triggered,[this, clickedIndex] {
+    if (clickedIndex.isValid())
+    {
+      KonsumenManager konsumenManager;
+      if (konsumenManager.hasAnyRef(clickedIndex.siblingAtColumn(0).data().toInt()))
+      {
+        QMessageBox::warning(this, "Tidak diizinkan", "Data konsumen terkait dengan beberapa penjualan / invoice");
+        return ;
+      }
+      if (QMessageBox::Yes != QMessageBox::question(this, "Konfirmasi", "Yakin menghapus data konsumen ini ?")) return ;
+      model().removeRow(clickedIndex.row());
+      model().submitAll();
+    }
+  });
+  
   menu.addSeparator();
 
   auto submenu = menu.addMenu("Data baru");

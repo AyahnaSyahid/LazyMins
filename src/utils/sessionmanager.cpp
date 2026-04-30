@@ -1,11 +1,26 @@
-#include "src/utils/sessionmanager.h"
+#include "sessionmanager.h"
+
+#include <QTimer>
+
 #include "src/utils/authmanager.h"
 #include "src/managers/adminmanager.h"
-#include "sessionmanager.h"
 
 SessionManager &SessionManager::instance() {
   static SessionManager sm;
   return sm;
+}
+
+SessionManager::SessionManager() : QObject() {
+  m_idleTimer = new QTimer(this);
+  m_idleTimer->setInterval(SESSION_MAX_IDLE_TIME);
+  connect(m_idleTimer, &QTimer::timeout, this, &SessionManager::idleTimeout);
+  connect(this, &SessionManager::loginSuccess, this, &SessionManager::restartIdleTimer);
+}
+
+SessionManager::~SessionManager() {
+  logout();
+  m_idleTimer->stop();
+  delete m_idleTimer;
 }
 
 void SessionManager::login(const QString& name, const QString& pass) {
@@ -37,6 +52,11 @@ void SessionManager::logout() {
   emit userLogout();
 }
 
+void SessionManager::restartIdleTimer()
+{
+  m_idleTimer->start();
+}
+
 std::optional<QSqlRecord> SessionManager::currentUser() const {
   return m_currentUserRecord;
 }
@@ -59,3 +79,4 @@ int SessionManager::currentUserId() const
   if(!m_currentUserRecord) return -1;
   return (*m_currentUserRecord).value("id").toInt();
 }
+

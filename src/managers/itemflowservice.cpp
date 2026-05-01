@@ -102,3 +102,9 @@ bool ItemFlowService::stockIn(int productId, qreal stockIn, const QString &suppl
     }
     return tr.commit();
 }
+
+bool ItemFlowService::stockAdjust(int productId, qreal stockOut,
+                                  const QString& supplier,
+                                  const QString& notes) {
+  return false;
+}

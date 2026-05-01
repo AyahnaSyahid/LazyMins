@@ -26,12 +26,6 @@ namespace DBOperationHelper {
   OperationResult createInvoiceForOrders(const QVariantMap& iPar,  QList<int> orderIds);
   OperationResult createPaymentForOrders(const QVariantMap& iPar,  const QVariantMap& pPar, QList<int> orderIds);
 
-  // tanpa transaction
-  OperationResult stockUpdate( const OrderItem& it, 
-                               const QString& tipe, 
-                               const QString& notes,
-                               int   adminId  = 1 );
-
   // digunakan di StockOpnameDialog
   // menggunakan transaction
   OperationResult adjustProductStock( int product_id, qreal _final, const QString& notes);

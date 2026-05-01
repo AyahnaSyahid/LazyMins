@@ -2,6 +2,7 @@
 #include "ui_expensedialog.h"
 
 #include "src/dialogs/basepickerdialog.h"
+#include "src/customs/buttonguard.h"
 
 #include <QMessageBox>
 
@@ -56,5 +57,6 @@ void ExpenseDialog::on_pilihAkun_clicked() {
 }
 
 void ExpenseDialog::on_simpanButton_clicked() {
+  ButtonGuard guard(ui->simpanButton);
   
 }

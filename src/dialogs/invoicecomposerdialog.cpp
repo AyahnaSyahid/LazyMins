@@ -1,6 +1,7 @@
 #include "invoicecomposerdialog.h"
 #include "ui_invoicecomposerdialog.h"
 
+#include "src/customs/buttonguard.h"
 #include "src/customs/invoicecomposerdelegate.h"
 #include "src/models/invoicecomposermodel.h"
 #include "src/dialogs/orderpickerdialog.h"
@@ -87,6 +88,7 @@ bool InvoiceComposerDialog::makeInvoice() {
 
 void InvoiceComposerDialog::on_simpanButton_clicked()
 {
+  ButtonGuard guard(ui->simpanButton);
   if (!checkInput()) return;
   if (makeInvoice()) {
     accept();
@@ -95,6 +97,7 @@ void InvoiceComposerDialog::on_simpanButton_clicked()
 
 void InvoiceComposerDialog::on_bayarButton_clicked()
 { 
+  ButtonGuard guard(ui->bayarButton);
   if (!checkInput()) return;
   makePayment();
 }

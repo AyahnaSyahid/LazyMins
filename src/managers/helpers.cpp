@@ -6,40 +6,35 @@
 #include "src/managers/appsettingsmanager.h"
 #include "src/managers/financialledgerservice.h"
 #include "src/managers/invoicemanager.h"
+#include "src/managers/itemflowservice.h"
 #include "src/managers/orderitemfinishingmanager.h"
 #include "src/managers/orderitemmanager.h"
 #include "src/managers/ordermanager.h"
-#include "src/managers/itemflowservice.h"
 #include "src/models/ordermodel.h"
 #include "src/printer/receipt.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
 
-namespace
-{
-  int getAdminId()
-  {
-    auto &sm = SessionManager::instance();
-    auto cu = sm.currentUser();
-    return cu.has_value() ? (*cu).value("id").toInt() : 1;
-  }
+namespace {
+int getAdminId() {
+  auto& sm = SessionManager::instance();
+  auto cu = sm.currentUser();
+  return cu.has_value() ? (*cu).value("id").toInt() : 1;
+}
 
-  qreal roundUpValue(double v, double prec = 100.0)
-  {
-    return qCeil(v * prec) / prec;
-  }
-} // namespace
+qreal roundUpValue(double v, double prec = 100.0) {
+  return qCeil(v * prec) / prec;
+}
+}  // namespace
 const DBOperationHelper::OperationResult failResult{false, ""};
 
 int DBOperationHelper::currentAdminId() { return getAdminId(); }
 
 DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
-    const OrderHeader &header, const QList<OrderItem> &items,
-    const QString &invoiceCode, const QVariantMap &paymentInfo)
-{
+    const OrderHeader& header, const QList<OrderItem>& items,
+    const QString& invoiceCode, const QVariantMap& paymentInfo) {
   SqlTransaction tr;
-  if (!tr.started())
-  {
+  if (!tr.started()) {
     return {false, "Gagal membuat transaksi Database :" +
                        BaseManager::connection.lastError().text()};
   }
@@ -69,8 +64,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
                  {"notes", header.notes},
                  {"internal_notes", header.internal_notes}});
 
-  if (!opt_ord)
-  {
+  if (!opt_ord) {
     return {false, "Gagal mendaftarkan order : " + om.errorString()};
   }
 
@@ -80,8 +74,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
   QList<int> createdItems;
 
   // Write Item to database
-  for (auto const &order_item : items)
-  {
+  for (auto const& order_item : items) {
     auto opt_oitem =
         oim.create({{"order_id", opt_ord->value("id")},
                     {"product_id", order_item.product_id},
@@ -96,8 +89,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
                     {"base_price", order_item.base_price},
                     {"discount_amount", order_item.discount_amount}});
 
-    if (!opt_oitem)
-    {
+    if (!opt_oitem) {
       lastError = oim.errorString();
       break;
     }
@@ -106,8 +98,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
     createdItems << current_item_id;
 
     // Write each finishings Item
-    for (auto const &finishing_item : order_item.finishings)
-    {
+    for (auto const& finishing_item : order_item.finishings) {
       auto opt_finitem =
           fm.create({{"order_item_id", current_item_id},
                      {"finishing_id", finishing_item.finishing_id},
@@ -115,36 +106,29 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
                      {"quantity", finishing_item.quantity},
                      {"finishing_price", finishing_item.finishing_price}});
 
-      if (!opt_finitem)
-      {
+      if (!opt_finitem) {
         lastError = fm.errorString();
         break;
       }
     }
-    if (!lastError.isEmpty())
-      break;
+    if (!lastError.isEmpty()) break;
   }
 
-  if (!lastError.isEmpty())
-  {
+  if (!lastError.isEmpty()) {
     return {false, "Gagal menyimpan data" + lastError};
   }
 
-  for (auto item : createdItems)
-  {
-    if (!oim.updateFinishingTotal(item))
-    {
+  for (auto item : createdItems) {
+    if (!oim.updateFinishingTotal(item)) {
       return {false, "Unable to update item finishings total"};
     }
 
-    if (!ifs.processItemSold(item))
-    {
+    if (!ifs.processItemSold(item)) {
       return {false, "Unable to process item sold"};
     }
   }
 
-  if (!om.addItems(created_order_id, createdItems))
-  {
+  if (!om.addItems(created_order_id, createdItems)) {
     return {false, "Unable to add items to order"};
   }
 
@@ -161,8 +145,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
 
   auto operation_2 = internalCreateInvoice(inv_par, {created_order_id});
 
-  if (!operation_2.ok)
-  {
+  if (!operation_2.ok) {
     return operation_2;
   }
 
@@ -170,8 +153,7 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
 
   AkunTransaksiManager atm;
   auto opt_acc = atm.getByKode("CASH");
-  if (!opt_acc)
-  {
+  if (!opt_acc) {
     return {false,
             QString("Tidak dapat menemukan akun_transaksi_id dengan kode '%1'")
                 .arg("CASH")};
@@ -189,20 +171,17 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
        {"notes", "Pembayaran Instant Order"},
        {"admin_id", getAdminId()},
        {"akun_transaksi_id", opt_acc->value("id")}});
-  
-   if (!opt_pay.has_value())
-  {
+
+  if (!opt_pay.has_value()) {
     return {false, "Gagal membuat pembayaran : " + pym.errorString()};
   }
 
   FinancialLedgerService fls;
-  if (!fls.handlePayment(opt_pay->value("id").toInt()))
-  {
+  if (!fls.handlePayment(opt_pay->value("id").toInt())) {
     return {false, fls.errorString()};
   }
 
-  if (!tr.commit())
-  {
+  if (!tr.commit()) {
     QString err = BaseManager::connection.lastError().text();
     return {false, "Tidak dapat melakukan commit : " + err};
   }
@@ -213,19 +192,10 @@ DBOperationHelper::OperationResult DBOperationHelper::createInstantOrder(
            {"payment_id", opt_pay->value("id")}}};
 }
 
-DBOperationHelper::OperationResult DBOperationHelper::stockUpdate(
-    const OrderItem &item, const QString &tipe, const QString &notes,
-    int adminId)
-{
-  return {false, ""};
-}
-
 DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock(
-    int product_id, qreal _final, const QString &notes)
-{
+    int product_id, qreal _final, const QString& notes) {
   SqlTransaction tr;
-  if (!tr.started())
-  {
+  if (!tr.started()) {
     return {false, "Gagal membuat transaksi Database :" +
                        BaseManager::connection.lastError().text()};
   }
@@ -234,8 +204,7 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock(
   StockMovementManager smm;
 
   auto opt_pro = pm.getById(product_id);
-  if (!opt_pro)
-  {
+  if (!opt_pro) {
     return {false, "Tidak dapat menemukan data Produk"};
   }
 
@@ -246,8 +215,7 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock(
       smm.recordMovement(product_id, "adjustment", delta, current_stock,
                          currentAdminId(), "", 0, notes);
 
-  if (!opt_sm)
-  {
+  if (!opt_sm) {
     return {false, smm.errorString()};
   }
 
@@ -256,12 +224,10 @@ DBOperationHelper::OperationResult DBOperationHelper::adjustProductStock(
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::refillProductStock(
-    int productId, qreal stockIn, const QString &supplier,
-    const QString &notes)
-{
+    int productId, qreal stockIn, const QString& supplier,
+    const QString& notes) {
   SqlTransaction tr;
-  if (!tr.started())
-  {
+  if (!tr.started()) {
     return {false, "Gagal membuat transaksi Database :" +
                        BaseManager::connection.lastError().text()};
   }
@@ -270,8 +236,7 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock(
   StockMovementManager smm;
 
   auto opt_pro = pm.getById(productId);
-  if (!opt_pro)
-  {
+  if (!opt_pro) {
     return {false, "Tidak dapat menemukan data Produk"};
   }
 
@@ -281,8 +246,7 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock(
                                    currentAdminId(), "", 0,
                                    "Supplier : " + supplier + "\n" + notes);
 
-  if (!opt_sm)
-  {
+  if (!opt_sm) {
     return {false, smm.errorString()};
   }
 
@@ -291,57 +255,48 @@ DBOperationHelper::OperationResult DBOperationHelper::refillProductStock(
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::internalCreateInvoice(
-    const QVariantMap &param, QList<int> oids)
-{
+    const QVariantMap& param, QList<int> oids) {
   QVariantMap paramCopy(param);
   InvoiceManager iman;
   paramCopy["admin_id"] = getAdminId();
   auto opt_inv = iman.create(paramCopy);
-  if (!opt_inv.has_value())
-  {
+  if (!opt_inv.has_value()) {
     qDebug() << "internalCreateInvoice::Gagal" << iman.errorString();
     return {false, iman.errorString()};
   }
 
-  if (!iman.addOrders(opt_inv->value("id").toInt(), oids))
-  {
+  if (!iman.addOrders(opt_inv->value("id").toInt(), oids)) {
     return {false, iman.errorString()};
   }
 
   {
     OrderManager om;
-    qDebug() << "[Order ADDED]" << om.getByInvoice(opt_inv->value("id").toInt()).count();
+    qDebug() << "[Order ADDED]"
+             << om.getByInvoice(opt_inv->value("id").toInt()).count();
   }
 
   return {true, "", {{"invoice_id", opt_inv->value("id")}}};
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createInvoiceForOrders(
-    const QVariantMap &param, QList<int> oids)
-{
+    const QVariantMap& param, QList<int> oids) {
   SqlTransaction tr;
-  if (!tr.started())
-    return {false, "Gagal membuat transaksi Database"};
+  if (!tr.started()) return {false, "Gagal membuat transaksi Database"};
 
   auto ires = internalCreateInvoice(param, oids);
-  if (!ires.ok)
-  {
+  if (!ires.ok) {
     return ires;
   }
-  if (tr.commit())
-    return ires;
+  if (tr.commit()) return ires;
   return {false, BaseManager::connection.lastError().text()};
 }
 
 DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(
-    const QVariantMap &inv, const QVariantMap &pay, QList<int> oids)
-{
+    const QVariantMap& inv, const QVariantMap& pay, QList<int> oids) {
   SqlTransaction tr;
-  if (!tr.started())
-    return {false, "Gagal membuat transaksi Database"};
+  if (!tr.started()) return {false, "Gagal membuat transaksi Database"};
   auto ires = internalCreateInvoice(inv, oids);
-  if (!ires.ok)
-    return {false, BaseManager::connection.lastError().text()};
+  if (!ires.ok) return {false, BaseManager::connection.lastError().text()};
 
   int invoice_id = ires.data["invoice_id"].toInt();
 
@@ -357,15 +312,13 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(
     copyPay["verified_by"] = copyPay["admin_id"];
 
   auto opt_pay = payman.create(copyPay);
-  if (!opt_pay)
-    return {false, payman.errorString()};
+  if (!opt_pay) return {false, payman.errorString()};
 
   FinancialLedgerService fls;
   if (!fls.handlePayment(opt_pay->value("id").toInt()))
     return {false, fls.errorString()};
 
-  if (!tr.commit())
-    return {false, BaseManager::connection.lastError().text()};
+  if (!tr.commit()) return {false, BaseManager::connection.lastError().text()};
   return {true,
           "",
           {{"invoice_id", invoice_id}, {"payment_id", opt_pay->value("id")}}};
@@ -374,12 +327,10 @@ DBOperationHelper::OperationResult DBOperationHelper::createPaymentForOrders(
 #include <QDebug>
 
 DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
-    int invoice_id, Receipt *rec)
-{
+    int invoice_id, Receipt* rec) {
   qDebug() << "[DB] Loading invoice data for ID:" << invoice_id;
 
-  if (!rec)
-  {
+  if (!rec) {
     qWarning() << "[DB] Load failed: Receipt pointer is null";
     return {false, "Pointer Receipt tidak valid"};
   }
@@ -387,15 +338,13 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
   SqlTransaction tr;
 
   auto c_user = SessionManager::instance().currentUser();
-  if (!c_user)
-  {
+  if (!c_user) {
     qWarning() << "[DB] Load failed: No active session user";
     return {false, "Admin tidak dikenal"};
   }
 
   QString adminName = c_user->value("nama_lengkap").toString();
-  if (adminName.size() < 3)
-  {
+  if (adminName.size() < 3) {
     adminName = c_user->value("username").toString();
   }
 
@@ -406,15 +355,13 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
   PaymentManager paym;
 
   auto opt_inv = invm.getById(invoice_id);
-  if (!opt_inv)
-  {
+  if (!opt_inv) {
     qWarning() << "[DB] Invoice ID" << invoice_id << "not found in database";
     return {false, "Invoice tidak ditemukan"};
   }
 
   auto order_list = orm.getByInvoice(invoice_id);
-  if (order_list.isEmpty())
-  {
+  if (order_list.isEmpty()) {
     qWarning() << "[DB] No orders found for Invoice ID:" << invoice_id;
     return {false, "Data order tidak ditemukan"};
   }
@@ -449,10 +396,8 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
   qDebug() << "[DB] Found" << payment_list.size() << "payment records";
 
   rec->change = 0.0;
-  for (auto const &pay : payment_list)
-  {
-    if (pay.value("verification_status").toString().toLower() == "cancelled")
-    {
+  for (auto const& pay : payment_list) {
+    if (pay.value("verification_status").toString().toLower() == "cancelled") {
       qDebug() << "[DB] Skipping cancelled payment:"
                << pay.value("payment_number").toString();
       continue;
@@ -465,8 +410,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
         pay.value("payment_date").toDateTime().toString("dd/MM/yyyy HH:mm");
     rPay.notes = pay.value("notes").toString();
 
-    if (!pay.value("cash_change").isNull())
-    {
+    if (!pay.value("cash_change").isNull()) {
       rPay.cashReceived = pay.value("cash_received").toDouble();
       rPay.cashChange = pay.value("cash_change").toDouble();
       rec->change = rPay.cashChange;
@@ -475,28 +419,24 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
     rec->payments.append(rPay);
   }
 
-  if (!rec->payments.isEmpty())
-  {
+  if (!rec->payments.isEmpty()) {
     rec->amountPaid = rec->paidAmount;
   }
 
   // 3 & 4. Items & Finishings
   rec->items.clear();
-  for (auto const &order : order_list)
-  {
+  for (auto const& order : order_list) {
     auto items = oim.getByOrder(order.value("id").toInt());
     qDebug() << "[DB] Processing Order ID:" << order.value("id").toInt()
              << "with" << items.size() << "items";
 
-    for (auto const &item : items)
-    {
+    for (auto const& item : items) {
       ReceiptItem rItem;
       rItem.description = item.value("product_name").toString();
       rItem.quantity = item.value("quantity").toDouble();
 
       auto price = item.value("sale_price").toInt();
-      if (item.value("use_area").toInt() == 1)
-      {
+      if (item.value("use_area").toInt() == 1) {
         price = roundUpValue(item.value("size_width").toDouble() *
                              item.value("size_height").toDouble() * price);
       }
@@ -507,8 +447,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
       // 5. Finishings
       auto finishings = oifm.getByOrderItem(item.value("id").toInt());
       rItem.finishings.clear();
-      for (auto const &fin : finishings)
-      {
+      for (auto const& fin : finishings) {
         ReceiptFinishing rFin;
         rFin.name = fin.value("finishing_name").toString();
         rFin.cost = fin.value("subtotal").toInt();
@@ -533,39 +472,33 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceData(
 #include <QSqlError>
 
 DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
-    int invoice_id, Receipt *rec)
-{
+    int invoice_id, Receipt* rec) {
   qDebug() << "[FAST-DB] Starting fast load for Invoice ID:" << invoice_id;
 
-  if (!rec)
-  {
+  if (!rec) {
     qWarning() << "[FAST-DB] Failed: Receipt pointer is null";
     return {false, "Pointer Receipt tidak valid"};
   }
 
   SqlTransaction tr;
-  if (!tr.started())
-  {
+  if (!tr.started()) {
     qWarning() << "[FAST-DB] Transaction failed to start";
     return {false, "Tidak dapat memulai transaksi database"};
   }
 
   auto c_user = SessionManager::instance().currentUser();
-  if (!c_user)
-  {
+  if (!c_user) {
     qWarning() << "[FAST-DB] Failed: User session not found";
     return {false, "Admin tidak dikenal"};
   }
 
   QString adminName = c_user->value("nama_lengkap").toString();
-  if (adminName.size() < 3)
-  {
+  if (adminName.size() < 3) {
     adminName = c_user->value("username").toString();
   }
 
   QSqlQuery q(BaseManager::connection);
-  auto executor = [](QSqlQuery &x)
-  { return x.exec() && x.next(); };
+  auto executor = [](QSqlQuery& x) { return x.exec() && x.next(); };
 
   AppSettingsManager aps;
 
@@ -582,8 +515,7 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
   q.prepare(
       "SELECT * FROM invoices WHERE id = :id AND staging_status <> 'canceled'");
   q.bindValue(":id", invoice_id);
-  if (!executor(q))
-  {
+  if (!executor(q)) {
     qWarning() << "[FAST-DB] Invoice not found or canceled. SQL Error:"
                << q.lastError().text();
     return {false, "Data Invoice tidak ditemukan"};
@@ -613,15 +545,13 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
       "SELECT * FROM orders WHERE invoice_id = :iid AND staging_status <> "
       "'canceled'");
   q.bindValue(":iid", invoice_id);
-  if (!q.exec())
-  {
+  if (!q.exec()) {
     qWarning() << "[FAST-DB] Orders query error:" << q.lastError().text();
     return {false, "Error: " + q.lastError().text()};
   }
 
   QList<QSqlRecord> rec_orderList;
-  while (q.next())
-  {
+  while (q.next()) {
     rec_orderList << q.record();
   };
   qDebug() << "[FAST-DB] Found" << rec_orderList.size() << "orders";
@@ -636,42 +566,36 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
          WHERE p.invoice_id = :iid AND p.verification_status = 'verified'
     )-");
   q.bindValue(":iid", invoice_id);
-  if (!q.exec())
-  {
+  if (!q.exec()) {
     qWarning() << "[FAST-DB] Payments query error:" << q.lastError().text();
     return {false, "Error: " + q.lastError().text()};
   }
 
   rec->payments.clear();
   rec->change = 0;
-  while (q.next())
-  {
+  while (q.next()) {
     auto r(q.record());
     ReceiptPayment rPay;
     rPay.paymentNumber = r.value("payment_number").toString();
     rPay.amount = r.value("amount").toDouble();
     rPay.date =
-        r.value("payment_date").toString(); // Sudah terformat oleh SQLite
+        r.value("payment_date").toString();  // Sudah terformat oleh SQLite
     rPay.notes = r.value("notes").toString();
     rPay.akunKode = r.value("kode").toString();
     rPay.akunNama = r.value("nama").toString();
 
-    if (!r.value("cash_change").isNull())
-    {
+    if (!r.value("cash_change").isNull()) {
       rPay.cashReceived = r.value("cash_received").toDouble();
       rPay.cashChange = r.value("cash_change").toDouble();
       rec->change = rPay.cashChange;
-    }
-    else
-    {
+    } else {
       rPay.cashReceived = 0;
       rPay.cashChange = 0;
     }
     rec->payments.append(rPay);
   };
 
-  if (!rec->payments.isEmpty())
-  {
+  if (!rec->payments.isEmpty()) {
     rec->amountPaid = rec->paidAmount;
   }
 
@@ -680,26 +604,22 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
   OrderItemFinishingManager oifm;
 
   rec->items.clear();
-  for (auto const &order : rec_orderList)
-  {
+  for (auto const& order : rec_orderList) {
     int orderId = order.value("id").toInt();
     q.prepare("SELECT * FROM order_items WHERE order_id = :oid ORDER BY id");
     q.bindValue(":oid", order.value("id"));
 
-    if (!q.exec())
-    {
+    if (!q.exec()) {
       qWarning() << "[FAST-DB] OrderItem query error:" << q.lastError().text();
       return {false, "Error: " + q.lastError().text()};
     }
 
     QList<QSqlRecord> items;
-    while (q.next())
-      items << q.record();
+    while (q.next()) items << q.record();
 
     qDebug() << "[FAST-DB] Fetching" << items.size()
              << "items for Order ID:" << orderId;
-    for (auto const &item : items)
-    {
+    for (auto const& item : items) {
       ReceiptItem rItem;
       rItem.description = QString("[%1] %2").arg(
           item.value("sku").toString().mid(0, 7),
@@ -720,20 +640,17 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
           "SELECT * FROM order_item_finishings WHERE order_item_id = :oid");
       q.bindValue(":oid", oiid);
 
-      if (!q.exec())
-      {
+      if (!q.exec()) {
         qWarning() << "[FAST-DB] OrderItemFinishings query error:"
                    << q.lastError().text();
         return {false, "Error: " + q.lastError().text()};
       }
 
-      while (q.next())
-        finishings << q.record();
+      while (q.next()) finishings << q.record();
 
       qDebug() << "[FAST-DB] Fetching" << finishings.size()
                << "items for Order Item ID:" << oiid;
-      for (auto const &fin : finishings)
-      {
+      for (auto const& fin : finishings) {
         ReceiptFinishing rFin;
         rFin.name = fin.value("finishing_name").toString();
         rFin.qty = fin.value("quantity").toInt();
@@ -754,24 +671,18 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
 }
 
 DBOperationHelper::OperationResult
-DBOperationHelper::paymentHasCompletePaidInvoice(int payment_id)
-{
+DBOperationHelper::paymentHasCompletePaidInvoice(int payment_id) {
   PaymentManager pm;
   auto optPay = pm.getById(payment_id);
-  if (!optPay)
-    return {false, "Data transaksi tidak ditemukan"};
+  if (!optPay) return {false, "Data transaksi tidak ditemukan"};
 
   InvoiceManager iman;
   auto optInv = iman.getById(optPay->value("invoice_id").toInt());
-  if (!optInv)
-    return {false, "Data invoice tidak ditemukan"};
+  if (!optInv) return {false, "Data invoice tidak ditemukan"};
 
-  if (optInv->value("settlement_status").toString() == "paid")
-  {
+  if (optInv->value("settlement_status").toString() == "paid") {
     return {true, "Invoice sudah lunas", {{"invoice_id", optInv->value("id")}}};
-  }
-  else
-  {
+  } else {
     return {false, "Invoice belum lunas"};
   }
   return {false, "Data transaksi tidak ditemukan"};

@@ -15,6 +15,7 @@ CreateFinishingServiceDialog::~CreateFinishingServiceDialog() { delete ui; }
 
 
 void CreateFinishingServiceDialog::on_simpanButton_clicked() {
+  ui->simpanButton->setEnabled(false);
   QString kode        = ui->kodeEdit->text().trimmed();
   QString name        = ui->nameEdit->text().trimmed();
   QString unit        = ui->unitEdit->currentText().trimmed();
@@ -31,6 +32,7 @@ void CreateFinishingServiceDialog::on_simpanButton_clicked() {
       "Deskripsikan finishing dengan jelas"
     };
     QMessageBox::warning(this, "Input tidak diterima", "Pastikan input anda memenuhi kriteria:\n" + kriteria.join("\n- "));
+    ui->simpanButton->setEnabled(true);
     return;
   }
 
@@ -51,4 +53,5 @@ void CreateFinishingServiceDialog::on_simpanButton_clicked() {
   } else {
     QMessageBox::warning(this, "Input tidak diterima", "Pesan kesalahan:\n" + fsm.errorString());
   }
+  ui->simpanButton->setEnabled(true);
 }

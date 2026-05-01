@@ -2,6 +2,7 @@
 #include "ui_instantorderdialog.h"
 
 #include "customerpickerdialog.h"
+#include "src/customs/buttonguard.h"
 #include "src/customs/orderitemdelegate.h"
 #include "src/dialogs/orderitemdialog.h"
 #include "src/managers/managers.h"
@@ -303,6 +304,7 @@ bool InstantOrderDialog::checkInput()
 
 void InstantOrderDialog::on_bayarButton_clicked()
 {
+  ButtonGuard guard(ui->bayarButton);
   if (!checkInput())
     return;
 

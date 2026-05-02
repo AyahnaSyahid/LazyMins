@@ -13,6 +13,8 @@
 #include <QAction>
 #include <QMessageBox>
 #include <QStyledItemDelegate>
+#include <QSqlField>
+#include <QSqlRecord>
 
 namespace {
   class Delegate : public QStyledItemDelegate
@@ -83,7 +85,6 @@ InvoiceDataViewer::~InvoiceDataViewer() {}
 void InvoiceDataViewer::onCreateInvoice() {
   InvoiceComposerDialog ids(this);
   connect(&ids, &QDialog::accepted, this, &DataViewer::refresh);
-  
   // Signal Forwarding
   connect(&ids, &InvoiceComposerDialog::invoiceCreated, this, &InvoiceDataViewer::invoiceCreated);
   connect(&ids, &InvoiceComposerDialog::paymentCreated, this, &InvoiceDataViewer::paymentCreated);
@@ -147,13 +148,21 @@ void InvoiceDataViewer::createInvoiceForOrder(int orderId) {
   }
   KonsumenManager km;
   auto optCustomer = km.getById(optOrder->value("customer_id").toInt());
-  if(!optCustomer) {
-    QMessageBox::information(this, "Kesalahan", "Sistem tidak dapat menemukan konsumen");
-    return ;
+  QSqlRecord walkIn;
+  if (!optCustomer) {
+    walkIn = QSqlRecord();
+    walkIn.append(QSqlField("id", optOrder->value("customer_id").metaType(), "orders"));
+    walkIn.append(QSqlField("nama_lengkap", optOrder->value("customer_name").metaType(), "orders"));
+    walkIn.append(QSqlField("nomor_telp", optOrder->value("customer_phone").metaType(), "orders"));
+    walkIn.setValue(0, optOrder->value("customer_id"));
+    walkIn.setValue(1, optOrder->value("customer_name"));
+    walkIn.setValue(2, optOrder->value("customer_phone"));
+  } else {
+    walkIn = *optCustomer;
   }
-  
+
   InvoiceComposerDialog ids(this);
-  ids.setCustomer(*optCustomer);
+  ids.setCustomer(walkIn);
   ids.importOrders({orderId});
   connect(&ids, &QDialog::accepted, this, &DataViewer::refresh);
   

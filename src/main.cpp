@@ -2,6 +2,7 @@
 #include "src/mainwindow/mainwindow.h"
 #include "src/setup/setupwindow.h"
 #include "src/printer/printservice.h"
+#include "src/utils/sessionmanager.h"
 
 #include <QApplication>
 #include <QSettings>
@@ -41,7 +42,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-
+    app.installEventFilter(&SessionManager::instance());
     MainWindow mainWindow;
     // show() called from login dialog
     

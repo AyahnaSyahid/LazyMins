@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QSqlRecord>
+#include <QEvent>
 
 #ifndef SESSION_MAX_IDLE_TIME
 #define SESSION_MAX_IDLE_TIME 180'000 // 3 minutes
@@ -31,7 +32,10 @@ signals:
   void loginFailed(const QString&);
   void loginSuccess();
   void idleTimeout();
+  void locked(); // Signal baru untuk menandai aplikasi terkunci
 
+protected:
+  bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
   SessionManager();

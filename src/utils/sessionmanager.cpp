@@ -54,7 +54,25 @@ void SessionManager::logout() {
 
 void SessionManager::restartIdleTimer()
 {
-  m_idleTimer->start();
+  // Hanya jalankan timer jika ada user yang login
+  if (m_currentUserRecord.has_value()) {
+    m_idleTimer->start();
+  } else {
+    m_idleTimer->stop();
+  }
+}
+
+bool SessionManager::eventFilter(QObject *obj, QEvent *event)
+{
+  // Deteksi aktivitas user
+  if (event->type() == QEvent::KeyPress ||
+      event->type() == QEvent::MouseButtonPress ||
+      event->type() == QEvent::MouseMove ||
+      event->type() == QEvent::Wheel ||
+      event->type() == QEvent::TouchBegin) {
+    restartIdleTimer();
+  }
+  return QObject::eventFilter(obj, event);
 }
 
 std::optional<QSqlRecord> SessionManager::currentUser() const {
@@ -79,4 +97,3 @@ int SessionManager::currentUserId() const
   if(!m_currentUserRecord) return -1;
   return (*m_currentUserRecord).value("id").toInt();
 }
-

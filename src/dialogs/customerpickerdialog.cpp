@@ -17,14 +17,13 @@ namespace {
   };
 }
 
-
-CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
+CustomerPickerDialog::CustomerPickerDialog(QWidget *parent):
     QDialog(parent),
     ui(new Ui::CustomerPickerDialog),
-    model(new QSqlQueryModel(this))
+    m_model(new QSqlQueryModel(this))
 {
     ui->setupUi(this);
-    model->setQuery(R"--(
+    m_model->setQuery(R"--(
     SELECT k.id,
            nama_lengkap,
            pl.id AS pl_id,
@@ -35,17 +34,17 @@ CustomerPickerDialog::CustomerPickerDialog(QWidget *parent) :
      ORDER BY nama_lengkap ASC
     )--", BaseManager::connection);
     
-    while(model->canFetchMore()) model->fetchMore();
+    while(m_model->canFetchMore()) m_model->fetchMore();
     
-    model->setHeaderData(0, Qt::Horizontal, "ID");
-    model->setHeaderData(1, Qt::Horizontal, "Nama");
-    model->setHeaderData(2, Qt::Horizontal, "Level ID");
-    model->setHeaderData(3, Qt::Horizontal, "Level Harga");
-    model->setHeaderData(4, Qt::Horizontal, "Nomor Telepon");
+    m_model->setHeaderData(0, Qt::Horizontal, "ID");
+    m_model->setHeaderData(1, Qt::Horizontal, "Nama");
+    m_model->setHeaderData(2, Qt::Horizontal, "Level ID");
+    m_model->setHeaderData(3, Qt::Horizontal, "Level Harga");
+    m_model->setHeaderData(4, Qt::Horizontal, "Nomor Telepon");
     
     auto proxy = new QSortFilterProxyModel(this);
     proxy->setObjectName("proxy");
-    proxy->setSourceModel(model);
+    proxy->setSourceModel(m_model);
     proxy->setFilterKeyColumn(-1);
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     proxy->sort(1);
@@ -82,7 +81,7 @@ void CustomerPickerDialog::on_customerView_clicked(const QModelIndex &index) {
     auto proxy = findChild<QSortFilterProxyModel*>("proxy");
     if(!proxy) return;
     // Handle the selection of a customer
-    auto record = model->record(proxy->mapToSource(index).row());
+    auto record = m_model->record(proxy->mapToSource(index).row());
     emit customerPicked(record);
     accept(); // Close the dialog after selection    
 }
@@ -95,5 +94,5 @@ void CustomerPickerDialog::setModelQuery(const QString& name)
     qWarning() << "CustomerPickerDialog : setModelQuery Error :" << q.lastError().text() ;
     return ;
   }
-  model->setQuery(std::move(q));
+  m_model->setQuery(std::move(q));
 }

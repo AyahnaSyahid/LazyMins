@@ -54,6 +54,22 @@ QList<QSqlRecord> InvoiceManager::getActive(const QString &orderBy, int limit)
   return getWhere("is_active = 1", {}, orderBy, limit);
 }
 
+bool InvoiceManager::hasPayments(int id) {
+  QSqlQuery query(connection);
+  query.prepare(R"-(
+    SELECT EXISTS (
+              SELECT 1
+                FROM invoices
+                WHERE paid_amount > 0 AND id = :iid
+          )
+          AS ada_pembayaran;
+        )-");
+  query.bindValue(":iid", id);
+  if (query.exec() && query.next())
+    return query.value("ada_pembayaran").toBool();
+  return false;
+}
+
 bool InvoiceManager::updateStagingStatus(int id, const QString &status)
 {
   return update(id, {{"staging_status", status}});

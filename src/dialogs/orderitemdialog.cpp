@@ -38,32 +38,39 @@ void disableSignalAndSet(
       },
       editor);
 }
-
+constexpr int cColId = 0;
+constexpr int cColArea = 3;
+constexpr int cColCost = 4;
+constexpr int cColSku = 5;
 }  // namespace
 
 OrderItemDialog::OrderItemDialog(QWidget* parent)
-    : QDialog(parent), ui(new Ui::OrderItemDialog), m_mode(Create) {
+    : QDialog(parent), ui(new Ui::OrderItemDialog), m_mode(Create), m_orderItem {nullptr} {
   ui->setupUi(this);
-  ui->produkComboBox->setQuery(
-      "SELECT id, name, description, use_area, cost_price, sku FROM products");
-  ui->produkComboBox->showColumn(0, false);  // Sembunyikan kolom id
-  ui->produkComboBox->showColumn(3, false);  // Sembunyikan kolom use_area
-  ui->produkComboBox->showColumn(4, false);  // Sembunyikan kolom cost_price
-  ui->produkComboBox->showColumn(5, false);  // Sembunyikan kolom sku
+  setupProdukComboBox();
+  setupFinishingView();
+}
+
+void OrderItemDialog::setupProdukComboBox() {
+  ui->produkComboBox->setQuery(R"-(
+    SELECT id, 
+          name, 
+          description, 
+          use_area, 
+          cost_price,
+          sku
+      FROM products
+    WHERE is_active = 1
+      ORDER BY name ASC;
+  )-");
+  ui->produkComboBox->showColumn(cColId, false);  // Sembunyikan kolom id
+  ui->produkComboBox->showColumn(cColArea,
+                                 false);  // Sembunyikan kolom use_area
+  ui->produkComboBox->showColumn(cColCost,
+                                 false);  // Sembunyikan kolom cost_price
+  ui->produkComboBox->showColumn(cColSku, false);  // Sembunyikan kolom sku
   ui->produkComboBox->boxViewAutoResize();
   ui->produkComboBox->setCurrentIndex(-1);
-  m_finishingListModel.setList(&m_newFinishingItems);
-  ui->finishingView->setModel(&m_finishingListModel);
-  ui->finishingView->setItemDelegate(new FinishingItemDelegate(this));
-
-  // Context menu for finishing view: edit and remove
-  ui->finishingView->setContextMenuPolicy(Qt::CustomContextMenu);
-  connect(ui->finishingView, &QWidget::customContextMenuRequested, this,
-          &OrderItemDialog::on_finishingView_customContextMenuRequested);
-  connect(&m_finishingListModel, &QAbstractListModel::rowsInserted, this,
-          &OrderItemDialog::recalculateSubtotal);
-  connect(&m_finishingListModel, &QAbstractListModel::rowsRemoved, this,
-          &OrderItemDialog::recalculateSubtotal);
 }
 
 OrderItemDialog::~OrderItemDialog() { delete ui; }
@@ -88,7 +95,8 @@ void OrderItemDialog::setOrder(OrderItem* order) {
   auto prmodel = ui->produkComboBox->model();
   auto indexes = prmodel->match(prmodel->index(0, 0), Qt::DisplayRole,
                                 currentProductId, 1, Qt::MatchExactly);
-  auto currentIndex = indexes.at(0).row();
+  if (indexes.isEmpty()) return;
+  auto currentIndex = indexes.first().row();
   ui->produkComboBox->setCurrentIndex(currentIndex);
 
   ui->namaLineEdit->setText(order->product_name);
@@ -123,72 +131,72 @@ void OrderItemDialog::on_simpanButton_clicked() {
     QMessageBox::warning(this, "Validasi", "Produk harus dipilih");
     return;
   }
-
   // validasi nama tidak boleh kosong
   if (ui->namaLineEdit->text().trimmed().isEmpty()) {
     QMessageBox::warning(this, "Validasi", "Nama produk tidak boleh kosong");
     return;
   }
 
+  auto index = ui->produkComboBox->model()->index(
+      ui->produkComboBox->currentIndex(), 0);
+  auto opt_pr = m_productManager.getById(index.siblingAtColumn(0).data().toInt());
+  if (!opt_pr) {
+    QMessageBox::warning(this, "Validasi", "Produk tidak ditemukan");
+    return;
+  }
+  OrderItem oi = buildOrderItemFromUi(*opt_pr);
   if (m_mode == Create) {
-    auto index = ui->produkComboBox->model()->index(
-        ui->produkComboBox->currentIndex(), 0);
-    auto opt_pr =
-        m_productManager.getById(index.siblingAtColumn(0).data().toInt());
-    if (opt_pr) {
-      auto pr = *opt_pr;
-      OrderItem oi;
-      oi.product_id = pr.value("id").toInt();
-      oi.product_name = ui->namaLineEdit->text().trimmed();
-      oi.sku = pr.value("sku").toString();
-      oi.quantity = ui->qtySpinBox->value();
-      oi.unit = pr.value("unit").toString();
-      oi.use_area = pr.value("use_area").toBool();
-      oi.size_width = oi.use_area ? ui->widthBox->value() : 1.0;
-      oi.size_height = oi.use_area ? ui->heightBox->value() : 1.0;
-      oi.sale_price = ui->hargaSpinBox->value();
-      oi.base_price = pr.value("cost_price").toInt();
-      oi.discount_percentage = ui->diskonDoubleSpinBox->value();
-      oi.discount_amount = ui->diskonRpSpinBox->value();
-      oi.finishing_total = m_finishingListModel.total();
-      oi.notes = ui->notesTextEdit->toPlainText();
-      auto p = m_finishingListModel.getItems();
-      oi.finishings.clear();
-      for (auto const fp : p) {
-        oi.finishings << fp;
-      }
-      emit itemCreated(oi);
-    }
+    emit itemCreated(oi);
   } else {
     // Edit mode: update the existing item in place
     if (m_orderItem) {
-      auto index = ui->produkComboBox->model()->index(
-          ui->produkComboBox->currentIndex(), 0);
-      auto opt_pr =
-          m_productManager.getById(index.siblingAtColumn(0).data().toInt());
-      if (opt_pr) {
-        auto pr = *opt_pr;
-        m_orderItem->product_id = pr.value("id").toInt();
-        m_orderItem->product_name = ui->namaLineEdit->text().trimmed();
-        m_orderItem->sku = pr.value("sku").toString();
-        m_orderItem->quantity = ui->qtySpinBox->value();
-        m_orderItem->unit = pr.value("unit").toString();
-        m_orderItem->use_area = pr.value("use_area").toBool();
-        m_orderItem->size_width =
-            m_orderItem->use_area ? ui->widthBox->value() : 1.0;
-        m_orderItem->size_height =
-            m_orderItem->use_area ? ui->heightBox->value() : 1.0;
-        m_orderItem->sale_price = ui->hargaSpinBox->value();
-        m_orderItem->base_price = pr.value("cost_price").toInt();
-        m_orderItem->discount_percentage = ui->diskonDoubleSpinBox->value();
-        m_orderItem->discount_amount = ui->diskonRpSpinBox->value();
-        m_orderItem->finishing_total = m_finishingListModel.total();
-        m_orderItem->notes = ui->notesTextEdit->toPlainText();
-        emit editFinished();
-      }
+      *m_orderItem = oi;
+      emit editFinished();
     }
   }
   accept();
+}
+
+void OrderItemDialog::setupFinishingView() {
+  m_finishingListModel.setList(&m_newFinishingItems);
+  ui->finishingView->setModel(&m_finishingListModel);
+  ui->finishingView->setItemDelegate(new FinishingItemDelegate(this));
+
+  // Context menu for finishing view: edit and remove
+  ui->finishingView->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(ui->finishingView, &QWidget::customContextMenuRequested, this,
+          &OrderItemDialog::on_finishingView_customContextMenuRequested);
+  connect(&m_finishingListModel, &QAbstractListModel::rowsInserted, this,
+          &OrderItemDialog::recalculateSubtotal);
+  connect(&m_finishingListModel, &QAbstractListModel::rowsRemoved, this,
+          &OrderItemDialog::recalculateSubtotal);
+}
+
+OrderItem OrderItemDialog::buildOrderItemFromUi(
+  const QSqlRecord& rec) const {
+  OrderItem oi;
+  oi.product_id = rec.value("id").toInt();
+  oi.product_name = ui->namaLineEdit->text().trimmed();
+  oi.sku = rec.value("sku").toString();
+  oi.quantity = ui->qtySpinBox->value();
+  oi.unit = rec.value("unit").toString();
+  oi.use_area = rec.value("use_area").toBool();
+  oi.size_width = oi.use_area ? ui->widthBox->value() : 1.0;
+  oi.size_height = oi.use_area ? ui->heightBox->value() : 1.0;
+  oi.sale_price = ui->hargaSpinBox->value();
+  oi.base_price = rec.value("cost_price").toInt();
+  oi.discount_percentage = ui->diskonDoubleSpinBox->value();
+  oi.discount_amount = ui->diskonRpSpinBox->value();
+  oi.finishing_total = m_finishingListModel.total();
+  oi.notes = ui->notesTextEdit->toPlainText();
+  if (m_mode == Create) {
+    oi.finishings.clear();
+    auto p = m_finishingListModel.getItems();
+    for (auto const fp : p) {
+      oi.finishings << fp;
+    }
+  }
+  return oi;
 }
 
 void OrderItemDialog::on_produkComboBox_currentIndexChanged(int index) {

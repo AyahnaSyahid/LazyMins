@@ -11,6 +11,7 @@ public:
     QList<QSqlRecord> getByStagingStatus(const QString& status);
     QList<QSqlRecord> getBySettlementStatus(const QString& status);
     QList<QSqlRecord> getActive(const QString& orderBy = "created_at DESC", int limit = -1);
+    bool hasPayments(int id);
 
     bool updateStagingStatus(int id, const QString& status);
     bool updateSettlementStatus(int id, const QString& status);

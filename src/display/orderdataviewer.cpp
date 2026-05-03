@@ -1,6 +1,7 @@
 #include "orderdataviewer.h"
 
 #include <QAction>
+#include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPlainTextEdit>
@@ -79,7 +80,8 @@ OrderDataViewer::OrderDataViewer(QWidget* p) : DataViewer(p) {
            o.discount_amount AS discount,
            o.total_amount AS total_amount,
            date(order_date, 'localtime'),
-           o.staging_status AS staging_status
+           o.staging_status AS staging_status,
+           o.invoice_id AS invoice_id
       FROM orders o
      WHERE o.invoice_id IS NULL OR ( o.staging_status <> 'completed' AND o.staging_status <> 'cancelled' )
   )--");
@@ -95,6 +97,7 @@ OrderDataViewer::OrderDataViewer(QWidget* p) : DataViewer(p) {
   mod->setHeaderData(6, Qt::Horizontal, "Total");
   mod->setHeaderData(7, Qt::Horizontal, "Tanggal");
   mod->setHeaderData(8, Qt::Horizontal, "Status");
+  setColumnVisible(9, false);
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
   ui->dataView->verticalHeader()->hide();
   adjustColumns();
@@ -120,6 +123,25 @@ OrderDataViewer::~OrderDataViewer() {}
 void OrderDataViewer::setOrderStatus(const QModelIndex& ix,
                                      const QString& status) {
   auto& mod = DataViewer::model();
+  if (status == "cancelled") {
+    auto rc = mod.record(ix.row());
+    if (rc.value("staging_status") == "cancelled") {
+      return;
+    }
+    if (rc.value("invoice_id").isNull()) {
+      // Order belum memiliki Invoice
+      QString choices = QInputDialog::getItem(
+          this, "Konfirmasi", "Kembalikan jumlah item produk kedalam stock ?",
+          {"Kembalikan", "Buang"}, 0, false);
+      if (choices == "Buang") {
+        if (mod.setData(ix.siblingAtColumn(8), status, Qt::EditRole) &&
+            mod.submitAll())
+          return;
+          QMessageBox::warning(this, "Gagal", "Gagal mengubah status pesanan");
+        return;
+      }
+    }
+  }
   QString currentStatus =
       ix.siblingAtColumn(8).data(Qt::DisplayRole).toString();
   QMessageBox::StandardButton proceed = QMessageBox::question(
@@ -232,10 +254,10 @@ void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
             currentIndex.siblingAtColumn(0).data().toInt());
       });
     }
-    auto viewOrderItems = ctx.addAction("Lihat Pesanan");
+    auto viewOrderItems = ctx.addAction("Lihat");
     auto substatus = ctx.addMenu("Set Status");
-    for (QString setStatus : QList<QString>{"pending", "processing", "ready",
-                                            "completed", "cancelled"}) {
+    for (QString setStatus :
+         QList<QString>{"pending", "processing", "ready", "completed"}) {
       QString label = setStatus[0].toUpper() + setStatus.sliced(1);
       auto setStatusAction = substatus->addAction(label);
       if (setStatus == contextStatus) setStatusAction->setEnabled(false);
@@ -243,12 +265,18 @@ void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
               [this, currentIndex, setStatus]() {
                 setOrderStatus(currentIndex, setStatus);
               });
-      if (setStatus == "cancelled") {  // Batasi hanya untuk super_admin
-        if (!SessionManager::instance().isSuperAdminSession()) {
-          setStatusAction->setEnabled(false);
-        }
+    }
+
+    if (SessionManager::instance().currentUser().has_value()) {
+      if (currentIndex.siblingAtColumn(9).data().isNull()) {
+        // Hanya tambahkan jika order belum memiliki invoice
+        auto setCanceled = substatus->addAction("Cancelled");
+        connect(setCanceled, &QAction::triggered, [this, currentIndex]() {
+          setOrderStatus(currentIndex, "cancelled");
+        });
       }
     }
+
     auto sep2 = ctx.addSeparator();
     connect(viewOrderItems, &QAction::triggered,
             [this, currentIndex]() { this->viewOrderItems(currentIndex); });

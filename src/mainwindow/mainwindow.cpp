@@ -302,6 +302,18 @@ void MainWindow::on_actionLaporanPenjualanHariIni_triggered()
   dl->open();
 }
 
+#include "src/dialogs/infopercetakandialog.h"
+void MainWindow::on_actionInfoPercetakan_triggered()
+{
+  InfoPercetakanDialog ipd;
+  ipd.exec();
+}
+
+void MainWindow::on_actionTentangQt_triggered()
+{
+  QMessageBox::aboutQt(this, "Tentang Qt");
+}
+
 void MainWindow::setupToolbarActions()
 {
   // currently no dynamic action setup is needed, but this function can be used

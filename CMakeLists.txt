@@ -61,6 +61,7 @@ add_library(data_layer STATIC
     src/managers/helpers.cpp
     src/managers/itemflowservice.cpp
     src/managers/financialledgerservice.cpp
+    src/controllers/infopercetakan.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 
@@ -130,6 +131,7 @@ add_library(ui_dialogs STATIC
     src/display/invoicebrowser.cpp
     src/dialogs/createfinishingservicedialog.cpp
     src/customs/buttonguard.cpp
+    src/dialogs/infopercetakandialog.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)

@@ -40,8 +40,16 @@
      <addaction name="actionEscPosConfig"/>
      <addaction name="actionPrinterTest_2"/>
     </widget>
+    <widget class="QMenu" name="menuInfo">
+     <property name="title">
+      <string>Info</string>
+     </property>
+     <addaction name="actionInfoPercetakan"/>
+     <addaction name="actionTentangQt"/>
+    </widget>
     <addaction name="menuAkun"/>
     <addaction name="menuPrinter"/>
+    <addaction name="menuInfo"/>
    </widget>
    <widget class="QMenu" name="menuToolbar">
     <property name="title">
@@ -253,6 +261,16 @@
   <action name="actionLaporanPengeluaranHariIni">
    <property name="text">
     <string>Hari ini</string>
+   </property>
+  </action>
+  <action name="actionInfoPercetakan">
+   <property name="text">
+    <string>Percetakan</string>
+   </property>
+  </action>
+  <action name="actionTentangQt">
+   <property name="text">
+    <string>Qt</string>
    </property>
   </action>
  </widget>

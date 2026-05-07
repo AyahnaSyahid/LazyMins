@@ -3,8 +3,9 @@
 #include <QMessageBox>
 
 #include "src/customs/buttonguard.h"
-#include "src/managers/managers.h"
 #include "ui_akuntransaksidialog.h"
+
+#include "src/controllers/akuntransaksi.h"
 
 AkunTransaksiDialog::AkunTransaksiDialog(QWidget* parent)
     : ui(new Ui::AkunTransaksiDialog), FormDialog(parent) {
@@ -72,20 +73,21 @@ void AkunTransaksiDialog::on_simpanButton_clicked() {
 
 bool AkunTransaksiDialog::onSave(const QVariantMap& param) {
   if (param.isEmpty()) return false;
-  AkunTransaksiManager mgr;
+  AkunTransaksiController ctr;
+  QString err;
+  QVariantMap cvar(param);
   if (isCreateMode()) {
-    auto opt = mgr.create(param);
-    if (!opt.has_value()) {
+    if (!ctr.createAccount(cvar, &err)) {
       qWarning() << "AkunTransaksiDialog: gagal membuat akun_transaksi:"
-                 << mgr.errorString();
+                 << err;
       return false;
     }
   } else {
     auto rc = originalRecord();
     // FIX Bug 6: pesan log "memperbarui", bukan "membuat"
-    if (!mgr.update(rc.value("id").toInt(), param)) {
+    if (!ctr.updateAccount(rc.value("id").toInt(), cvar, &err)) {
       qWarning() << "AkunTransaksiDialog: gagal memperbarui akun_transaksi:"
-                 << mgr.errorString();
+                 << err;
       return false;
     }
   }

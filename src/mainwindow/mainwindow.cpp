@@ -180,6 +180,8 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   ui->menuTambah->addSeparator();
   ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
   ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
+  connect(actionGroup, &ActionGroup::newAkunTransaksiCreated,
+          atdv, &AkunTransaksiDataViewer::refresh);
 
   // UserSession
   auto &sm = SessionManager::instance();

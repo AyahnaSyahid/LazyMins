@@ -62,6 +62,7 @@ add_library(data_layer STATIC
     src/managers/itemflowservice.cpp
     src/managers/financialledgerservice.cpp
     src/controllers/infopercetakan.cpp
+    src/controllers/akuntransaksi.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 

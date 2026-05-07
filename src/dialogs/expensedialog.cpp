@@ -2,6 +2,7 @@
 #include "ui_expensedialog.h"
 
 #include "src/dialogs/basepickerdialog.h"
+#include "src/customs/buttonguard.h"
 
 #include <QMessageBox>
 
@@ -19,7 +20,6 @@ ui(new Ui::ExpenseDialog), QDialog(p)
   
   ui->akunCombo->setQuery(accQuery);
   ui->akunCombo->boxViewAutoResize();
-  
 }
 
 ExpenseDialog::~ExpenseDialog() { delete ui; }
@@ -37,6 +37,7 @@ void ExpenseDialog::on_pilihKategori_clicked() {
     if (ixs.count()) 
       ui->kategoriCombo->setCurrentIndex(ixs.first().row());
   });
+  bpd.exec();
 }
 
 void ExpenseDialog::on_pilihAkun_clicked() {
@@ -52,8 +53,10 @@ void ExpenseDialog::on_pilihAkun_clicked() {
     if (ixs.count()) 
       ui->akunCombo->setCurrentIndex(ixs.first().row());
   });
+  bpd.exec();
 }
 
 void ExpenseDialog::on_simpanButton_clicked() {
+  ButtonGuard guard(ui->simpanButton);
   
 }

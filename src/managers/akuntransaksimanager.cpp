@@ -5,8 +5,7 @@
 
 AkunTransaksiManager::AkunTransaksiManager()
     : BaseManager("akun_transaksi", false)
-{
-}
+{}
 
 std::optional<QSqlRecord> AkunTransaksiManager::getByKode(const QString& kode)
 {
@@ -58,7 +57,7 @@ bool AkunTransaksiManager::opname(int id, int newSaldo, const QString& deskripsi
         return false;
     }
 
-    auto oldSaldo = q.value("saldo").toInt();
+    auto oldSaldo = q.value("saldo").toLongLong();
 
     q.prepare("UPDATE akun_transaksi SET saldo = :nsaldo WHERE id = :id AND saldo != :nsaldo");
     q.bindValue(":nsaldo", newSaldo);

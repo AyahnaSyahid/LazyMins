@@ -138,7 +138,10 @@
   <tabstop>namaLineEdit</tabstop>
   <tabstop>sKULineEdit</tabstop>
   <tabstop>productCategoriesComboBox</tabstop>
+  <tabstop>aktifComboBox</tabstop>
+  <tabstop>comboUnit</tabstop>
   <tabstop>descPlainTextEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

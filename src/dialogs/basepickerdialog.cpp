@@ -43,6 +43,7 @@ BasePickerDialog::BasePickerDialog(const QString &title, QWidget *parent)
     m_proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     
     ui->baseView->setModel(m_proxyModel);
+    ui->baseView->verticalHeader()->hide();
 
     m_filterTimer->setInterval(300);
     connect(ui->lineEdit, &QLineEdit::textChanged, m_filterTimer, qOverload<>(&QTimer::start));
@@ -98,6 +99,11 @@ void BasePickerDialog::adjustDialogSize() {
     finalWidth = qBound(400, finalWidth, 1000); 
     
     this->resize(finalWidth, this->height());
+}
+
+void BasePickerDialog::setVerticalHeaderShown(bool shown)
+{
+    ui->baseView->verticalHeader()->setVisible(shown);
 }
 
 void BasePickerDialog::setHiddenColumns(const QList<int> &columns) {

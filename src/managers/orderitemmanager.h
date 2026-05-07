@@ -7,13 +7,12 @@ public:
     explicit OrderItemManager();
 
     QList<QSqlRecord> getByOrder(int orderId);
-    bool updateFinishingTotal(int id, int finishingTotal);
-    bool recalculate(int item_id);
+    bool updateFinishingTotal(int id);
+    bool addFinishings(int id, QList<int> finishingIds);
+    bool setOrderId(int id, int orderId);
+    bool removeFinishings(int id, QList<int> finishingIds);
 
 protected:
-    // Setelah insert/update item, recalculate subtotal order induk
-    // UPDATE -- rekalkulasi sekarang berpindah ke OrderManager
-    bool afterCreate(const QSqlRecord& record) override;
-    bool afterUpdate(int id, const QSqlRecord& before, const QSqlRecord& after) override;
-    bool afterDelete(int id, const QSqlRecord& before) override;
+    bool beforeCreate(QVariantMap& params) override;
+    bool beforeUpdate(int id, QVariantMap& params) override;
 };

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QString>
-#include <QSharedPointer>
+#include <QList>
 
 // ==================== Receipt Structure ====================
 
@@ -14,6 +14,9 @@ struct ReceiptFinishing {
 
 struct ReceiptItem {
     QString description;
+    double sizeWidth  = 1.0;
+    double sizeHeight = 1.0;
+    bool   areaBased = false;
     double quantity = 1.0;
     double unitPrice = 0.0;
     double totalPrice = 0.0;
@@ -82,10 +85,6 @@ struct Receipt {
     QString pickupDate;
 };
 
-using ReceiptPtr = QSharedPointer<Receipt>;
-
-Q_DECLARE_METATYPE(ReceiptPtr);
-
 // ==================== Debugging Support ====================
 
 #include <QDebug>
@@ -97,4 +96,3 @@ QDebug operator<<(QDebug debug, const ReceiptFinishing &f);
 QDebug operator<<(QDebug debug, const ReceiptItem &item);
 QDebug operator<<(QDebug debug, const ReceiptPayment &p);
 QDebug operator<<(QDebug debug, const Receipt &r);
-QDebug operator<<(QDebug debug, const ReceiptPtr &ptr);

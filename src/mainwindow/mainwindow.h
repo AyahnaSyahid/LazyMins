@@ -18,6 +18,10 @@ class MainWindow : public QMainWindow
   
   private slots:
     void currentUserChanged();
+    void on_actionLaporanPengeluaranHariIni_triggered();
+    void on_actionLaporanPenjualanHariIni_triggered();
+    void on_actionInfoPercetakan_triggered();
+    void on_actionTentangQt_triggered();
 
   private:
 

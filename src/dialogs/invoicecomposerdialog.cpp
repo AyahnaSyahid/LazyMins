@@ -1,6 +1,7 @@
 #include "invoicecomposerdialog.h"
 #include "ui_invoicecomposerdialog.h"
 
+#include "src/customs/buttonguard.h"
 #include "src/customs/invoicecomposerdelegate.h"
 #include "src/models/invoicecomposermodel.h"
 #include "src/dialogs/orderpickerdialog.h"
@@ -87,6 +88,7 @@ bool InvoiceComposerDialog::makeInvoice() {
 
 void InvoiceComposerDialog::on_simpanButton_clicked()
 {
+  ButtonGuard guard(ui->simpanButton);
   if (!checkInput()) return;
   if (makeInvoice()) {
     accept();
@@ -95,6 +97,7 @@ void InvoiceComposerDialog::on_simpanButton_clicked()
 
 void InvoiceComposerDialog::on_bayarButton_clicked()
 { 
+  ButtonGuard guard(ui->bayarButton);
   if (!checkInput()) return;
   makePayment();
 }
@@ -102,7 +105,8 @@ void InvoiceComposerDialog::on_bayarButton_clicked()
 void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
 {
   OrderPickerDialog opd(this);
-  opd.setCustomerId(m_customer_id);
+  if (m_customer_id > 0) opd.setCustomerId(m_customer_id);
+  else if (!m_customer_name.isEmpty()) opd.setCustomerName(m_customer_name);
   opd.setFilterIds(model->imported());
   if(opd.availableCount() < 1) { 
     QMessageBox::information(this, "Semua Order Sudah Diimpor",
@@ -116,8 +120,23 @@ void InvoiceComposerDialog::onImportOrder() // buka dialog order picker
 void InvoiceComposerDialog::on_pilihButton_clicked()
 {
   CustomerPickerDialog kpd;
-  kpd.setWindowFlag(Qt::FramelessWindowHint, true);
-  kpd.setModelQuery(R"-(
+  kpd.setWindowFlag(Qt::FramelessWindowHint, true); // This line should be before setModelQuery
+  // kpd.setModelQuery(R"-(
+  //   SELECT k.id,
+  //          nama_lengkap,
+  //          pl.id AS pl_id,
+  //          level_name,
+  //          nomor_telp
+  //     FROM konsumen k
+  //          JOIN price_levels pl ON k.price_level_id = pl.id
+  //    WHERE EXISTS (
+  //              SELECT 1
+  //                FROM orders o
+  //               WHERE o.customer_id = k.id
+  //                 AND o.invoice_id IS NULL )
+  // )-");
+  // Build the full query string including walk-in customers
+  QString fullQuery = R"-(
     SELECT k.id,
            nama_lengkap,
            pl.id AS pl_id,
@@ -130,8 +149,18 @@ void InvoiceComposerDialog::on_pilihButton_clicked()
                  FROM orders o
                 WHERE o.customer_id = k.id
                   AND o.invoice_id IS NULL )
-  )-");
-  if (!kpd.availableCustomers()) {
+UNION
+SELECT NULL AS id,
+           o.customer_name AS nama_lengkap,
+           1 AS pl_id, -- Default price level for walk-in
+           'ORDER' AS level_name, -- Default price level name
+           o.customer_phone AS nomor_telp
+      FROM orders o
+     WHERE o.customer_id IS NULL AND o.invoice_id IS NULL AND o.customer_name IS NOT NULL GROUP BY o.customer_name, o.customer_phone
+  )-";
+  kpd.setModelQuery(fullQuery); // Set the combined query
+
+  if (kpd.model()->rowCount() == 0) { // Check if any customers are available after combining
     QMessageBox::information(nullptr, "Selesai", "Tidak ditemukan konsumen yang memiliki order tanpa invoice");
     return ;
   }
@@ -206,12 +235,14 @@ void InvoiceComposerDialog::refresh()
 
 void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc)
 {
-    auto newId = rc.value("id").toInt();
+    auto newId = 0;
+    QString newCustName = "";
+    if(rc.value("id").isValid()) newId = rc.value("id").toInt();
+    if(rc.value("nama_lengkap").isValid()) newCustName = rc.value("nama_lengkap").toString();
 
-    if (newId < 1) return;
-    if (newId == m_customer_id) return;
+    if (newId == m_customer_id && m_customer_name == rc.value("nama_lengkap").toString()) return;
 
-    if (m_customer_id > 0 && model->rowCount() ) {
+    if (model->rowCount() ) {
         auto confirm = QMessageBox::question(
             this,
             "Ganti Pelanggan?",
@@ -222,16 +253,16 @@ void InvoiceComposerDialog::setCustomer(const QSqlRecord& rc)
         if (confirm == QMessageBox::No) return;
         model->clearOrders();
     }
-    m_customer_id    = rc.value("id").toInt();
-    m_customer_name  = rc.value("nama_lengkap").toString();
+    m_customer_id    = newId;
+    m_customer_name  = newCustName;
     m_customer_phone = rc.value("nomor_telp").toString();
     emit customerChanged();
 }
 
 bool InvoiceComposerDialog::checkInput()
 {
-  if (m_customer_id < 1) {
-    QMessageBox::warning(this, "Periksa masukan", "Anda belum menentukan Konsumen");
+  if (m_customer_id < 1 && m_customer_name.isEmpty()) { // Allow walk-in customers if name is provided
+    QMessageBox::warning(this, "Periksa masukan", "Anda belum menentukan Konsumen atau nama konsumen kosong");
     return false;
   }
 
@@ -255,7 +286,13 @@ QVariantMap InvoiceComposerDialog::params() const
     {"customer_name", m_customer_name},
     {"customer_phone", m_customer_phone},
     {"issue_date", ui->dateEdit->date().toString("yyyy-MM-dd")},
-    {"tax_amount", ui->pajakSpinBox->value()} };
+    {"tax_amount", ui->pajakSpinBox->value()}
+  };
+  if (m_customer_id > 0) {
+    ret["customer_id"] = m_customer_id;
+  } else {
+    ret["customer_id"] = QVariant(); // Set to NULL for walk-in customers
+  }
   
   if (!ui->plainTextEdit->toPlainText().simplified().isEmpty()) ret["notes"] = ui->plainTextEdit->toPlainText();
   return ret;
@@ -275,5 +312,3 @@ void InvoiceComposerDialog::handlePaymentGranted(const QVariantMap& vmap) {
 void InvoiceComposerDialog::handlePaymentRejected() {
   qWarning() << "Payment Rejected;";
 }
-
-

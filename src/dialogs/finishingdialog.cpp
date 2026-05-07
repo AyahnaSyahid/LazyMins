@@ -7,6 +7,7 @@
 #include <QMessageBox>
 #include <QTimer>
 
+#include "src/customs/buttonguard.h"
 #include "src/managers/basemanager.h"
 
 FinishingDialog::FinishingDialog(QWidget *parent) :
@@ -77,6 +78,7 @@ void FinishingDialog::setItem(const FinishingItem &item) {
 };
 
 void FinishingDialog::on_simpanButton_clicked() {
+  ButtonGuard guard(ui->simpanButton);
   if (ui->finishingComboBox->currentText().isEmpty() || ui->finishingComboBox->currentIndex() == -1) {
     QMessageBox::information(this, "Periksa masukkan", "Anda belum menentukan jenis finishing");
     return ;

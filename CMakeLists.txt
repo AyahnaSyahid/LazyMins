@@ -59,6 +59,9 @@ add_library(data_layer STATIC
     src/managers/stockmovementmanager.cpp
     src/managers/transaksimanager.cpp
     src/managers/helpers.cpp
+    src/managers/itemflowservice.cpp
+    src/managers/financialledgerservice.cpp
+    src/controllers/infopercetakan.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 
@@ -125,21 +128,28 @@ add_library(ui_dialogs STATIC
     src/display/konsumendataviewer.cpp
     src/display/paymentsdataviewer.cpp
     src/dialogs/depositdialog.cpp
+    src/display/invoicebrowser.cpp
+    src/dialogs/createfinishingservicedialog.cpp
+    src/customs/buttonguard.cpp
+    src/dialogs/infopercetakandialog.cpp
 )
 
-target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets)
+target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)
 # Header tambahan jika diperlukan
 # set_target_properties(ui_dialogs PROPERTIES
     # SOURCES "src/dialogs/fieldmap.h"
 # )
 
+# Modul khusus laporan
+add_subdirectory(src/modul_laporan)
+
 # ==================== 5. Printing Module ====================
 # Modul khusus printer [cite: 5]
 add_library(printing_module STATIC
-    src/printer/escpos.cpp
     src/printer/posprinter.cpp
     src/printer/posprintertestdialog.cpp
     src/printer/receipt_debug.cpp
+    src/printer/printservice.cpp
 )
 target_link_libraries(printing_module PUBLIC data_layer Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 
@@ -149,7 +159,10 @@ add_library(printer_setup_module STATIC
     
 target_link_libraries(printer_setup_module PUBLIC Qt6::Widgets Qt6::PrintSupport Qt6::SerialPort EscPosQt)
 
+enable_testing()
+
 add_subdirectory(escpos-qt)
+add_subdirectory(tests)
 
 # ==================== Executable Utama ====================
 # Menggabungkan semua library dan file utama [cite: 1, 5, 6]
@@ -159,7 +172,9 @@ set(EXECUTABLE_SOURCES
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
-    resources/database_resources.qrc )
+    resources/database_resources.qrc
+    resources/res.rc
+    )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
     qt_add_executable(LazyMins WIN32 ${EXECUTABLE_SOURCES})
@@ -176,6 +191,7 @@ target_link_libraries(LazyMins PRIVATE
     ui_dialogs
     printing_module
     printer_setup_module
+    modul_laporan
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network

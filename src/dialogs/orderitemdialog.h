@@ -35,6 +35,10 @@ public slots:
     void resetForm();
 
 private slots:
+    void setupProdukComboBox();
+    void setupFinishingView();
+    OrderItem buildOrderItemFromUi(const QSqlRecord& record) const;
+
     void on_produkComboBox_currentIndexChanged(int index);
     void on_simpanButton_clicked();
     void on_pilihButton_clicked();

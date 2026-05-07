@@ -5,8 +5,8 @@
 
 class RolesComboBox : public QueryComboBox  
 {
-  Q_OBJECT
   public:
     RolesComboBox(QWidget *p=nullptr);
     int currentRoleId() const;
+    void setCurrentRoleId(int roleId);
 };

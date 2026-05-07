@@ -48,12 +48,3 @@ QDebug operator<<(QDebug debug, const Receipt &r) {
                     << "---------------------";
     return debug;
 }
-
-// Overload untuk QSharedPointer<Receipt>
-QDebug operator<<(QDebug debug, const ReceiptPtr &ptr) {
-    if (!ptr) {
-        debug << "ReceiptPtr(null)";
-        return debug;
-    }
-    return debug << *ptr;
-}

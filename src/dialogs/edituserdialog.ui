@@ -161,13 +161,13 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>usernameEdit</tabstop>
+  <tabstop>ubahButton</tabstop>
   <tabstop>fullnameEdit</tabstop>
   <tabstop>phoneEdit</tabstop>
   <tabstop>emailEdit</tabstop>
   <tabstop>roleBox</tabstop>
   <tabstop>simpanButton</tabstop>
-  <tabstop>ubahButton</tabstop>
-  <tabstop>usernameEdit</tabstop>
  </tabstops>
  <resources/>
  <connections/>

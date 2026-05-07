@@ -50,7 +50,6 @@ void KonsumenDialog::setupBoundFields()
 bool KonsumenDialog::onSave(const QVariantMap& changes)
 {
     KonsumenManager km;
-
     if (isCreateMode()) {
         auto opt = km.create(changes);
         return opt.has_value();

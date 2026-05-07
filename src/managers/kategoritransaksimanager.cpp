@@ -16,7 +16,7 @@ bool KategoriTransaksiManager::beforeCreate(QVariantMap& params)
 QList<QSqlRecord> KategoriTransaksiManager::getByTipe(const QString& tipe)
 {
     return getWhere("tipe = :tipe COLLATE NOCASE AND is_active = 1",
-                    {{ ":tipe", tipe }},
+                    {{ "tipe", tipe }},
                     "nama");
 }
 
@@ -28,7 +28,7 @@ QList<QSqlRecord> KategoriTransaksiManager::getActive(const QString& orderBy, in
 QList<QSqlRecord> KategoriTransaksiManager::getChildren(int parentId)
 {
     return getWhere("parent_id = :parent_id AND is_active = 1",
-                    {{ ":parent_id", parentId }},
+                    {{ "parent_id", parentId }},
                     "nama");
 }
 

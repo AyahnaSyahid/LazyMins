@@ -1,5 +1,8 @@
 #include "finishingservicesviewer.h"
 #include "ui_dataviewer.h"
+
+#include "src/dialogs/createfinishingservicedialog.h"
+
 #include <QStyledItemDelegate>
 
 #include <QStyledItemDelegate>
@@ -215,7 +218,16 @@ FinishingServicesViewer::~FinishingServicesViewer() {}
 void FinishingServicesViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   auto &m = model();
   QMenu context;
+  auto createOne = context.addAction("Buat baru", this, &FinishingServicesViewer::openCreateFinishingDialog);
+  context.addSeparator();
   auto simpan = context.addAction("Simpan", &m, &AdvancedQueryModel::submitAll);
   auto revert = context.addAction("Reset",  &m, &AdvancedQueryModel::revertAll);
   context.exec(Ui()->dataView->viewport()->mapToGlobal(p));
+}
+
+void FinishingServicesViewer::openCreateFinishingDialog() {
+  auto *cfsd = new CreateFinishingServiceDialog(this);
+  cfsd->setAttribute(Qt::WA_DeleteOnClose);
+  connect(cfsd, &QDialog::accepted, this, &DataViewer::refresh);
+  cfsd->open();
 }

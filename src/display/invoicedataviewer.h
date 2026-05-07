@@ -21,11 +21,16 @@ class InvoiceDataViewer : public DataViewer
     void openContextMenu(const QPoint& pt);
     void on_dataView_customContextMenuRequested(const QPoint& p);
     void openPaymentForInvoice(int);
+    void createInvoiceForOrder(int);
     
   signals:
     // penerusan signal
     void invoiceCreated(int id);
     void paymentCreated(int id);
+    void printInvoiceToSerial(int id);
+  
+  private slots:
+    void onBrowseInvoices();
     
   private:
     void onPaymentGranted(const QVariantMap& vm);

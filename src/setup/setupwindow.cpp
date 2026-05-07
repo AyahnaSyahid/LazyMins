@@ -3,6 +3,7 @@
 #include "src/database/databasemanager.h"
 #include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
+#include "src/utils/sessionmanager.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -108,27 +109,23 @@ void SetupWindow::on_installButton_clicked()
     QString dbFilePath = dbDirectory.absoluteFilePath("LAdmins.db");
 
     // === 4. Inisialisasi Database ===
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "SetupConnection");
-    db.setDatabaseName(dbFilePath);
-
+    auto &dbm = DatabaseManager::instance();
+    if (! dbm.initializeFromSetup(dbFilePath, params["username"], params["password"]) )
+    {
+        QMessageBox::critical(this, "Gagal Membuat Database", 
+                              "Tidak dapat membuat file database:\n" + dbm.lastError().text());
+        return;
+    }
+    
+    QSqlDatabase db = dbm.database();
     if (!db.open()) {
         QMessageBox::critical(this, "Gagal Membuka Database", 
                               "Tidak dapat membuat file database:\n" + db.lastError().text());
         return;
     }
-    
-    auto &dbm = DatabaseManager::instance();
-    
-    // Jalankan skema database lengkap
-    if (!dbm.initSchema(db)) {
-        db.close();
-        qDebug() << db.lastError().text();
-        emit setupFailed();
-        QSqlDatabase::removeDatabase("SetupConnection");
-        return;   // Pesan error sudah ditampilkan di dalam initializeDatabase()
-    }
-    dbm.setDatabase(db);
+
     BaseManager::connection = db;
+
     // === 5. Simpan Pengaturan Perusahaan ===
     auto app_sm = AppSettingsManager();
     app_sm.saveSettings("company_name", {{"setting_value", params["compName"]}, {"data_type", "string"}, {"description", "Nama Perusahaan"}, {"updated_by", 1}});
@@ -136,35 +133,31 @@ void SetupWindow::on_installButton_clicked()
     app_sm.saveSettings("company_phone", {{"setting_value", params["compTelp"]}, {"data_type", "string"}, {"description", "Nama Perusahaan"}, {"updated_by", 1}});
     app_sm.saveSettings("company_email", {{"setting_value", params["compEmail"]}, {"data_type", "string"}, {"description", "Nama Perusahaan"}, {"updated_by", 1}});
     
-    // === 6. Buat Akun Super Admin ===
-    auto adm = AdminManager();
+    // === 6. Edit Akun Super Admin ===
+    AdminManager adm;
     QVariantMap va {
-      { "username",         params["username"] },
-      { "role_id",          1 },
-      { "literal_password", params["password"] },
       { "nama_lengkap",     params["fullname"] },
       { "email",            params["compEmail"] },
       { "nomor_telp",       params["telpUser"] },
       { "is_active",        QVariant(true)} 
     };
 
-    auto opt_adm = adm.create(va);
+    if (!adm.update(1, va)) {
+      QMessageBox::critical(this, "Gagal Menyimpan Pengaturan", 
+                            "Gagal memperbarui data Super_Admin:\n" + adm.errorString());
+      db.close();
+      return ;
+    }
+
+    auto opt_adm = adm.getById(1);
     if (!opt_adm.has_value()) {
       QMessageBox::critical(this, "Gagal Menyimpan Pengaturan", 
                             "Gagal membuat Super_Admin:\n" + adm.errorString());
       db.close();
       return ;
     }
-
-    // === 7. Simpan Path Database ke QSettings ===
-    QSettings settings;
-    settings.setValue("Database/databasePath", dbFilePath);
-    settings.sync();
-    // === 8. Berhasil - Tutup Setup dan Lanjut ke MainWindow ===
-    QMessageBox::information(this, "Setup Berhasil", 
-                             "Database dan akun Super Admin telah berhasil dibuat.\n\n"
-                             "Aplikasi akan melanjutkan ke halaman utama.");
-
+    // force login for this initial setup
+    SessionManager::instance().login(opt_adm->value("username").toString(), params["password"]);
     emit setupFinished();     // Signal yang sudah Anda definisikan
     // close() akan dilakukan di main() melalui lambda yang terhubung ke signal ini
 }

@@ -121,13 +121,16 @@ private slots:
 
 signals:
     void serialPortError(const QString& message);
-    void needConfigureSerial();
+    void unconfiguredSerialPort();
+    void printFinished(const Receipt& r);
 
 private:
     PosPrinter(QObject* p = nullptr);
     ~PosPrinter();
     PosPrinter(const PosPrinter&) = delete;
+    PosPrinter(PosPrinter&&) = delete;
     PosPrinter& operator=(const PosPrinter&) = delete;
+    PosPrinter& operator=(PosPrinter&&) = delete;
 
     QSerialPort m_serialPort;
     
@@ -159,8 +162,8 @@ private:
     int calculateMaxCharsPerLine() const;
 
     // Member variables
-    QString m_serialPortName;
-    qint32 m_serialPortBaudRate;
+    QString m_serialPortName    = "";
+    qint32 m_serialPortBaudRate = 0;
     QString m_currentPrinter;
     PrinterConfig m_config;
     QString m_lastError;

@@ -154,6 +154,16 @@
    <header>src/customs/rolescombobox.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>fullnameEdit</tabstop>
+  <tabstop>phoneEdit</tabstop>
+  <tabstop>emailEdit</tabstop>
+  <tabstop>roleBox</tabstop>
+  <tabstop>usernameEdit</tabstop>
+  <tabstop>passwordEdit1</tabstop>
+  <tabstop>passwordEdit2</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

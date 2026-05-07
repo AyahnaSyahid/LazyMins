@@ -1,6 +1,7 @@
 import sqlite3
 import sys
 import os
+from pathlib import Path
 
 def initialize_schema_file(file_name: str, db_path: str) -> bool:
     if not os.path.exists(file_name):
@@ -95,9 +96,15 @@ def initialize_schema_file(file_name: str, db_path: str) -> bool:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    arg_len = len(sys.argv)
+    
+    if arg_len == 3:
+        success = initialize_schema_file(sys.argv[1], sys.argv[2])
+        sys.exit(0 if success else 1)
+    elif arg_len == 1:
+        file_dir = Path(__file__).parent
+        success = initialize_schema_file(file_dir / "resources/schema/percetakan_schema_improved.sql", file_dir / "LAdmins.db")
+        sys.exit(0 if success else 1)
+    else:
         print("Usage: python script.py <schema_file.sql> <database.db>")
         sys.exit(1)
-
-    success = initialize_schema_file(sys.argv[1], sys.argv[2])
-    sys.exit(0 if success else 1)

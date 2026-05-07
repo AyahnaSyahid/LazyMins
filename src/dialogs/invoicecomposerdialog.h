@@ -21,6 +21,7 @@ class InvoiceComposerDialog : public QDialog
     void uiSync();
     void refresh();             // ambil kembali data orders yang ada didatabase
     void setCustomer(const QSqlRecord&);
+    void importOrders(const QList<int> &imported);
 
   private slots:
     void on_simpanButton_clicked();
@@ -29,7 +30,6 @@ class InvoiceComposerDialog : public QDialog
     void on_metodeBayar_currentIndexChanged(int);
     // void on_pajakSpinBix_valueChanged(int);
     void onImportOrder(); // buka dialog order picker
-    void importOrders(const QList<int> &imported);
     void on_orderListView_customContextMenuRequested(const QPoint&);
     void on_pilihButton_clicked();
     void onCustomerChanged();

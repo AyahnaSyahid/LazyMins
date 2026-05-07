@@ -14,9 +14,14 @@ public:
     explicit ConfigureSerialPosDialog(QWidget *parent = nullptr);
     ~ConfigureSerialPosDialog();
 
+    // Fungsi statis untuk mengecek apakah konfigurasi sudah ada dan valid
+    static bool hasValidConfig(); 
+
 private slots:
     void on_testButton_clicked();
+    void on_simpanButton_clicked();
 
 private:
+    void saveSettings();
     Ui::ConfigureSerialPosDialog *ui;
 };

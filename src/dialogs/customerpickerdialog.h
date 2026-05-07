@@ -15,9 +15,10 @@ public:
     explicit CustomerPickerDialog(QWidget *parent = nullptr);
     ~CustomerPickerDialog();
 
-    int availableCustomers() const { return model->rowCount(); }
+    int availableCustomers() const { return m_model->rowCount(); }
     
     void setModelQuery(const QString& q);
+    QSqlQueryModel* model() { return m_model; }
     
 private slots:
     void on_customerView_clicked(const QModelIndex &index);
@@ -27,5 +28,5 @@ signals:
     
 private:
     Ui::CustomerPickerDialog *ui;
-    QSqlQueryModel *model;
+    QSqlQueryModel *m_model;
 };

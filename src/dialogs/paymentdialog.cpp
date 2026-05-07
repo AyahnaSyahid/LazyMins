@@ -55,9 +55,9 @@ ui(new Ui::PaymentDialog), m_paymentModel(new QStandardItemModel(this)), QDialog
   m_akunModel = qobject_cast<QSqlQueryModel*>(ui->akunTransaksiComboBox->model());
   
   // m_paymentModel
-  m_paymentModel->setColumnCount(2);
-
   ui->tableView->setModel(m_paymentModel);
+  ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  resetModel();
   ui->tableView->horizontalHeader()->setStretchLastSection(true);
   ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
   ui->tableView->setAlternatingRowColors(true);
@@ -78,7 +78,7 @@ void PaymentDialog::setInvoiceId(int iid)
   ui->noInvoiceLabel->setText(m_invoiceRecord.value("invoice_number").toString());
   
   PaymentManager paymentManager;
-  m_paymentModel->clear();
+  resetModel();
   auto payment_records = paymentManager.getWhere("invoice_id = :iid", {{"iid", m_invoiceRecord.value("id")}});
   auto sumVal = 0;
   for (auto const& pr : payment_records) {
@@ -92,7 +92,6 @@ void PaymentDialog::setInvoiceId(int iid)
   auto rem = m_invoiceRecord.value("remaining_amount").toInt();
   auto sumItem = new QStandardItem(QString("Terbayar : %L1").arg(sumVal));
   m_paymentModel->appendRow(sumItem);
-  m_paymentModel->setHorizontalHeaderLabels( {"Tanggal", "Nilai"} );
   ui->tableView->setSpan(m_paymentModel->rowCount() -1, 0, 1, 2);
   ui->tableView->resizeColumnsToContents();
   ui->belumBayarSpinBox->setValue(rem);
@@ -126,6 +125,12 @@ int PaymentDialog::currentTRAkun() const {
 int PaymentDialog::currentInvoiceId() const {
   auto rv = m_invoiceRecord.value("id");
   return rv.isValid() ? rv.toInt() : -1;
+}
+
+void PaymentDialog::resetModel() {
+  m_paymentModel->clear();
+  m_paymentModel->setColumnCount(2);
+  m_paymentModel->setHorizontalHeaderLabels({"Tanggal", "Nilai"});
 }
 
 bool PaymentDialog::checkInput() {

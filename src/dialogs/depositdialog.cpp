@@ -2,6 +2,7 @@
 #include "ui_depositdialog.h"
 
 #include "src/managers/akuntransaksimanager.h"
+#include "src/customs/buttonguard.h"
 #include <QMessageBox>
 
 DepositDialog::DepositDialog(QWidget *parent) :
@@ -26,6 +27,7 @@ void DepositDialog::prepareModify(const QSqlRecord& rec)
 
 void DepositDialog::on_simpanButton_clicked()
 {
+    ButtonGuard guard(ui->simpanButton);
     if (ui->jumlahSpinBox->value() == 0) {
         QMessageBox::warning(this, "Jumlah Deposit", "Jumlah deposit tidak boleh nol (0)");
         return;

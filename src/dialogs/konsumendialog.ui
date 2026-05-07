@@ -269,14 +269,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TipeKonsumenComboBox</class>
-   <extends>QComboBox</extends>
-   <header>src/customs/tipekonsumencombobox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PriceLevelComboBox</class>
    <extends>QComboBox</extends>
    <header>src/customs/pricelevelcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TipeKonsumenComboBox</class>
+   <extends>QComboBox</extends>
+   <header>src/customs/tipekonsumencombobox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
@@ -290,6 +290,7 @@
   <tabstop>activeCheck</tabstop>
   <tabstop>kodeKonsumenLineEdit</tabstop>
   <tabstop>tipeBox</tabstop>
+  <tabstop>priceLevelBox</tabstop>
   <tabstop>notesEdit</tabstop>
   <tabstop>simpanButton</tabstop>
  </tabstops>

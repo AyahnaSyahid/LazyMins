@@ -114,7 +114,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QPlainTextEdit" name="notesEdit"/>
+        <widget class="QPlainTextEdit" name="notesEdit">
+         <property name="tabChangesFocus">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -136,6 +140,12 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tipeCombo</tabstop>
+  <tabstop>jumlahSpinBox</tabstop>
+  <tabstop>notesEdit</tabstop>
+  <tabstop>simpanButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

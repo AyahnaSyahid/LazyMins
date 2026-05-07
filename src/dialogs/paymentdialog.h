@@ -41,6 +41,7 @@ class PaymentDialog : public QDialog
     QVariantMap collect() const;
   
   private:
+    void resetModel();
     bool checkInput();
     
     Ui::PaymentDialog *ui;

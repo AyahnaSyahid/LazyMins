@@ -286,12 +286,13 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>tableView</tabstop>
   <tabstop>akunTransaksiComboBox</tabstop>
   <tabstop>belumBayarSpinBox</tabstop>
   <tabstop>jumlahUangSpinBox</tabstop>
   <tabstop>dibayarkanSpinBox</tabstop>
+  <tabstop>sisaSpinBox</tabstop>
   <tabstop>kembalianSpinBox</tabstop>
-  <tabstop>tableView</tabstop>
   <tabstop>okButton</tabstop>
  </tabstops>
  <resources/>

@@ -7,6 +7,7 @@
 class StockMovementManager : public BaseManager
 {
 public:
+    enum ItemLogType { SALE, RETURN_RESTOCK, RETURN };
     explicit StockMovementManager();
 
     QList<QSqlRecord> getByProduct(int productId, const QString& orderBy = "movement_date DESC");
@@ -27,9 +28,13 @@ public:
                                           int referenceId              = -1,
                                           const QString& notes         = QString());
 
+    // NO-OP jika tipe == RETURN
+    // untuk investigasi kegagalan cetak bisa lihat order_id yang di cancel
+    // dan melihat daftar order_item yang ada disana
+    // TODO : Mungkin nanti kita harus memiliki table waste sendiri untuk kebutuhan pelacakan kegagalan cetak
+    bool orderItemLog(int orderItemId, ItemLogType type, int adminId= -1);
+    bool orderItemSold(int orderItemId, int adminId= -1) { return orderItemLog(orderItemId, SALE, adminId); };    
+    bool orderItemCancelled(int orderItemId, int adminId= -1) { return orderItemLog(orderItemId, RETURN_RESTOCK, adminId); };
 protected:
-    // Sebelum insert: hitung stock_before & stock_after otomatis
     bool beforeCreate(QVariantMap& params) override;
-    // Setelah insert: update products.stock
-    bool afterCreate(const QSqlRecord& record) override;
 };

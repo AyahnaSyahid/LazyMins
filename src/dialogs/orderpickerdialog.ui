@@ -64,6 +64,10 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>lineEdit</tabstop>
+  <tabstop>orderView</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

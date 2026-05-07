@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QDialog>
-#include <QSqlRecord>
+#include <QVariantMap>
 
 namespace Ui {
   class AkunTransaksiOpnameDialog;
@@ -14,6 +14,7 @@ class AkunTransaksiOpnameDialog : public QDialog
     explicit AkunTransaksiOpnameDialog(QWidget *parent = nullptr);
     ~AkunTransaksiOpnameDialog();
     bool prepareOpname(int akunId);
+    QVariantMap paramFromUi() const;
 
   private slots:
     void on_simpanButton_clicked();
@@ -21,5 +22,5 @@ class AkunTransaksiOpnameDialog : public QDialog
 
   private:
     Ui::AkunTransaksiOpnameDialog *ui;
-    QSqlRecord m_record;
+    QVariantMap m_data;
 };

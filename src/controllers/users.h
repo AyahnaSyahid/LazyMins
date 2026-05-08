@@ -16,7 +16,7 @@ struct UserData
     QString nomor_telp;
 };
 
-
+class QSqlRecord;
 class UserController
 {
 public:
@@ -24,4 +24,6 @@ public:
     ~UserController() = default;
     bool createUser(QVariantMap &params, QString *error);
     bool updateUser(int userId, const QVariantMap &params, QString *error);
+    UserData getUserData(int id) const;
+    QSqlRecord getUserRecord(int id) const;
 };

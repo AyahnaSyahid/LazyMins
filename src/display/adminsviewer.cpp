@@ -6,6 +6,9 @@
 #include <QMessageBox>
 #include <QStyledItemDelegate>
 
+#include "src/dialogs/userdialog.h"
+#include "src/controllers/users.h"
+
 namespace
 {
     class Delegate : public QStyledItemDelegate
@@ -56,13 +59,30 @@ AdminsViewer::AdminsViewer(QWidget *parent) : DataViewer(parent)
 
 AdminsViewer::~AdminsViewer() {}
 
+void AdminsViewer::editUser(int userId) {
+    UserController uc;
+    auto rc = uc.getUserRecord(userId);
+    if(rc.isEmpty()) {
+        QMessageBox::warning(this, "Kesalahan", "Data User tidak dapat ditemukan");
+        return ;
+    }
+    UserDialog ud(this);
+    ud.prepareModify(rc);
+    connect(&ud, &QDialog::accepted, this, &DataViewer::refresh);
+    ud.exec();
+}
+
+void AdminsViewer::changeUserPassword(int userId) {}
+
 void AdminsViewer::on_dataView_customContextMenuRequested(const QPoint &pt)
 {
     QMenu ctx;
     ctx.setToolTipsVisible(true);
     auto ix = Ui()->dataView->indexAt(pt);
-    if (ix.isValid())
-    {
-        ctx.addAction("Reset Password")->setData(ix);
-        ctx.addAction("Reset Pin")->setData(ix);
+    
+    if (!ix.isValid()) return;
+    
+    auto edat = ctx.addAction("Edit Data");
+    auto epas = ctx.addAction("Reset Password");
+
 }

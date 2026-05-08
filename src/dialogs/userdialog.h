@@ -1,7 +1,6 @@
 #pragma once
 
 #include "formdialog.h"
-#include "src/managers/adminmanager.h"
 
 namespace Ui
 {
@@ -14,11 +13,11 @@ class UserDialog : public FormDialog
 public:
     explicit UserDialog(QWidget *parent = nullptr);
     ~UserDialog();
-    QString getErrorString() const { return m_adminManager.errorString(); };
 
 protected:
     bool onSave(const QVariantMap &changes) override;
     void setupFields() override;
+    void setupBoundFields() override;
     bool isInputAcceptable() const override;
 
 private slots:
@@ -26,5 +25,4 @@ private slots:
 
 private:
     Ui::UserDialog *ui;
-    AdminManager m_adminManager;
 };

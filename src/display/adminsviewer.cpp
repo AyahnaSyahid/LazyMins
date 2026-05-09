@@ -6,8 +6,9 @@
 #include <QMessageBox>
 #include <QStyledItemDelegate>
 
-#include "src/dialogs/userdialog.h"
 #include "src/controllers/users.h"
+#include "src/dialogs/edituserdialog.h"
+#include "src/dialogs/edituserlogininfodialog.h"
 
 namespace
 {
@@ -35,10 +36,10 @@ namespace
 }
 AdminsViewer::AdminsViewer(QWidget *parent) : DataViewer(parent)
 {
-    auto ui = Ui();
+    ui = Ui();
     setWindowTitle("Data Admins");
     setQueryArgs(R"-(
-        SELECT id, 
+        SELECT admins.id, 
                rl.role_name, 
                username, 
                nama_lengkap,
@@ -46,11 +47,20 @@ AdminsViewer::AdminsViewer(QWidget *parent) : DataViewer(parent)
                nomor_telp,
                is_active,
                role_id,
-               last_seen 
+               last_login 
           FROM admins 
           JOIN roles rl 
             ON admins.role_id = rl.id)-");
     setColumnVisible("role_id", false);
+    ui->dataView->model()->setHeaderData(0, Qt::Horizontal, "AdminID", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(1, Qt::Horizontal, "Role", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(2, Qt::Horizontal, "Username", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(3, Qt::Horizontal, "Nama Lengkap", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(4, Qt::Horizontal, "Email", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(5, Qt::Horizontal, "Nomor Telp", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(6, Qt::Horizontal, "Aktif", Qt::DisplayRole);
+    ui->dataView->model()->setHeaderData(8, Qt::Horizontal, "Terakhir Login", Qt::DisplayRole);
+    adjustColumns();
     setEditable(false);
     ui->dataView->setItemDelegate(new Delegate(this));
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -59,30 +69,49 @@ AdminsViewer::AdminsViewer(QWidget *parent) : DataViewer(parent)
 
 AdminsViewer::~AdminsViewer() {}
 
-void AdminsViewer::editUser(int userId) {
+void AdminsViewer::editUser(int userId)
+{
     UserController uc;
     auto rc = uc.getUserRecord(userId);
-    if(rc.isEmpty()) {
+    if (rc.isEmpty())
+    {
         QMessageBox::warning(this, "Kesalahan", "Data User tidak dapat ditemukan");
-        return ;
+        return;
     }
-    UserDialog ud(this);
-    ud.prepareModify(rc);
+    EditUserDialog ud(rc.value("username").toString(), this);
     connect(&ud, &QDialog::accepted, this, &DataViewer::refresh);
     ud.exec();
 }
 
-void AdminsViewer::changeUserPassword(int userId) {}
+void AdminsViewer::changeUserPassword(int userId)
+{
+    UserController uc;
+    auto rc = uc.getUserRecord(userId);
+    if (rc.isEmpty())
+    {
+        QMessageBox::warning(this, "Kesalahan", "Data User tidak dapat ditemukan");
+        return;
+    }
+    EditUserLoginInfoDialog ud(rc.value("username").toString(), this);
+    connect(&ud, &QDialog::accepted, this, &DataViewer::refresh);
+    ud.exec();
+}
 
 void AdminsViewer::on_dataView_customContextMenuRequested(const QPoint &pt)
 {
     QMenu ctx;
     ctx.setToolTipsVisible(true);
-    auto ix = Ui()->dataView->indexAt(pt);
-    
-    if (!ix.isValid()) return;
-    
+    auto ix = ui->dataView->indexAt(pt);
+
+    if (!ix.isValid())
+        return;
+
     auto edat = ctx.addAction("Edit Data");
     auto epas = ctx.addAction("Reset Password");
 
+    connect(edat, &QAction::triggered, [this, ix]()
+            { editUser(ix.siblingAtColumn(0).data().toInt()); });
+    connect(epas, &QAction::triggered, [this, ix]()
+            { changeUserPassword(ix.siblingAtColumn(0).data().toInt()); });
+    ctx.exec(ui->dataView->viewport()->mapToGlobal(pt));
 }

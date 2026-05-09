@@ -17,4 +17,6 @@ private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
     void editUser(int userId);
     void changeUserPassword(int userId);
+protected:
+    Ui::DataViewer *ui;
 };

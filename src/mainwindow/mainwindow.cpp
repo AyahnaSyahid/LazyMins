@@ -23,7 +23,7 @@
 #include "src/display/orderdataviewer.h"
 #include "src/display/paymentsdataviewer.h"
 #include "src/display/produkdataviewer.h"
-#include "src/managers/adminmanager.h"
+#include "src/display/adminsviewer.h"
 #include "src/managers/appsettingsmanager.h"
 #include "src/modul_laporan/reportloader.h"
 #include "src/modul_laporan/reportview.h"
@@ -213,7 +213,10 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
     if (!sm.isSuperAdminSession()) ud->setEditRoleDisabled();
     ud->setAttribute(Qt::WA_DeleteOnClose);
     ud->open(); });
-
+  auto actBrowseAkun = new QAction("Lihat", this);
+  actBrowseAkun->setObjectName("browseAkunAction");
+  ui->menuAkun->insertAction(actEditAkun, actBrowseAkun);
+  connect(actBrowseAkun, &QAction::triggered, this, &MainWindow::onBrowseAccounts);
   // Window Title
   AppSettingsManager apm;
   setWindowTitle(
@@ -314,6 +317,24 @@ void MainWindow::on_actionInfoPercetakan_triggered()
 void MainWindow::on_actionTentangQt_triggered()
 {
   QMessageBox::aboutQt(this, "Tentang Qt");
+}
+
+void MainWindow::onBrowseAccounts()
+{
+  if (!SessionManager::instance().isSuperAdminSession()) {
+    QMessageBox::warning(
+        this, "Tidak dapat melihat/edit akun",
+        "Hanya super admin yang dapat melihat daftar akun");
+    return;
+  }
+  auto wd = new QDialog(this);
+  auto l = new QVBoxLayout(wd);
+  auto rv = new AdminsViewer(wd);
+  l->addWidget(rv);
+  wd->setLayout(l);
+  wd->setWindowTitle("Daftar Akun");
+  wd->setAttribute(Qt::WA_DeleteOnClose);
+  wd->open();
 }
 
 void MainWindow::setupToolbarActions()

@@ -6,7 +6,7 @@
 #include "src/customs/buttonguard.h"
 #include "src/dialogs/edituserlogininfodialog.h"
 #include "src/dialogs/revokepassworddialog.h"
-#include "src/managers/adminmanager.h"
+#include "src/controllers/users.h"
 #include "ui_edituserdialog.h"
 
 EditUserDialog::EditUserDialog(const QString& name, QWidget* p)
@@ -18,11 +18,11 @@ EditUserDialog::EditUserDialog(const QString& name, QWidget* p)
 EditUserDialog::~EditUserDialog() { delete ui; }
 
 bool EditUserDialog::setUser(const QString& name) {
-  AdminManager aa;
-  auto opt = aa.getRecord(name);
-  if (!opt.has_value()) return false;
+  UserController aa;
+  auto opt = aa.getUserRecord(name);
+  if(opt.isEmpty()) return false;
 
-  auto ur = *opt;
+  auto ur = opt;
   info.id = ur.value("id").toInt();
   info.role_id = ur.value("role_id").toInt();
   info.username = ur.value("username").toString();

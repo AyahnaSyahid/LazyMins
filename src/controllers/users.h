@@ -26,4 +26,6 @@ public:
     bool updateUser(int userId, const QVariantMap &params, QString *error);
     UserData getUserData(int id) const;
     QSqlRecord getUserRecord(int id) const;
+    QSqlRecord getUserRecord(const QString& username) const;
+    int getRoleId(int id) const;
 };

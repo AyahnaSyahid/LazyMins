@@ -22,6 +22,7 @@ class MainWindow : public QMainWindow
     void on_actionLaporanPenjualanHariIni_triggered();
     void on_actionInfoPercetakan_triggered();
     void on_actionTentangQt_triggered();
+    void onBrowseAccounts();
 
   private:
 

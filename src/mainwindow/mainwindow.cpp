@@ -145,6 +145,7 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
 
   // PaymentsDataViewer bisa memverifikasi pembayaran
   connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
+  connect(pdv, &PaymentsDataViewer::paymentVerified, atdv, &DataViewer::refresh);
 
   tabifyDockWidget(dsP, dsF); // products, finishings
   dsP->raise();

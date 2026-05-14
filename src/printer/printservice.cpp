@@ -50,7 +50,7 @@ void PrintService::printToSerialRequested(const Receipt &rcp)
             this->m_setupRejected = true;
         });
         
-        dlg->show();
+        dlg->exec();
         return;
     }
 

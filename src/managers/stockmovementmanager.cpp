@@ -99,7 +99,7 @@ bool StockMovementManager::orderItemLog(int orderItemId, ItemLogType type, int a
     {
         double width = oimRecord->value("size_width").toDouble();
         double height = oimRecord->value("size_height").toDouble();
-        qty = qCeil((width * height * qty) * 100.0) / 100.0;
+        qty = qCeil((width * height * qty) * 100) / 100.0;
     }
 
     // 2. Tentukan arah stok berdasarkan tipe

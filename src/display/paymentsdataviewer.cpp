@@ -6,6 +6,7 @@
 #include "src/managers/managers.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
+#include "src/managers/financialledgerservice.h"
 
 #include <QMenu>
 #include <QAction>
@@ -153,7 +154,6 @@ void PaymentsDataViewer::openCreatePaymentDialog()
 
 void PaymentsDataViewer::openVerifyPaymentDialog(int paymentId)
 {
-  PaymentManager paymentManager;
   auto optUser = SessionManager::instance().currentUser();
   if (!optUser.has_value()) {
       QMessageBox::critical(this, "Akses ditolak", "Error:\nTidak ada aktif user dalam sesi ini\nTapi mengapa anda bisa masuk sampai sini ??");
@@ -165,19 +165,13 @@ void PaymentsDataViewer::openVerifyPaymentDialog(int paymentId)
                                                        "Lanjutkan ?", QMessageBox::Yes | QMessageBox::No);
   if (ver == QMessageBox::No) return ;
   
-  SqlTransaction tr;
-  if (!tr.started()) {
-    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat memulai transaksi database");
+  FinancialLedgerService flc;
+  if (!flc.verify(paymentId, user.value("id").toInt())) {
+    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat mengubah status verifikasi : \n" + flc.errorString());
     return ;
   }
-  if (!paymentManager.verify(paymentId, user.value("id").toInt())) {
-    QMessageBox::critical(this, "Operasi Gagal", "Tidak dapat mengubah status verifikasi : \n" + paymentManager.errorString());
-    return ;
-  }
-  if ( tr.commit() ) {
-    refresh();
-    emit paymentVerified(paymentId);
-  }
+  emit paymentVerified(paymentId);
+  refresh();
 }
 
 void PaymentsDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt)
@@ -193,7 +187,7 @@ void PaymentsDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt
 
     auto verifyAction = menu.addAction("Verifikasi");
     verifyAction->setToolTip("Verifikasi pembayaran ini");
-    verifyAction->setEnabled(hasSelection && status == "pending");
+    verifyAction->setEnabled(hasSelection && status != "verified");
 
     menu.addSeparator();
 

@@ -35,6 +35,7 @@ void PrintService::printToSerialRequested(const Receipt &rcp)
 
     // 2. Cek validitas konfigurasi menggunakan fungsi statis dari Dialog
     if(!ConfigureSerialPosDialog::hasValidConfig()) {
+        if (m_setupRejected) return;
         auto dlg = new ConfigureSerialPosDialog();
         dlg->setAttribute(Qt::WA_DeleteOnClose); // Cegah Memory Leak
         
@@ -42,6 +43,11 @@ void PrintService::printToSerialRequested(const Receipt &rcp)
         connect(dlg, &QDialog::accepted, this, [this]() {
             this->loadSettings();
             this->printQueuedReceipts(); // Lanjutkan cetak antrean
+        });
+
+        // Catat penolakan konfig pada sesi ini
+        connect(dlg, &QDialog::rejected, this, [this]() {
+            this->m_setupRejected = true;
         });
         
         dlg->show();

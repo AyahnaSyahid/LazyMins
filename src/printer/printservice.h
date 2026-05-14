@@ -38,5 +38,6 @@ private:
     QString m_portName;
     int     m_baudRate = -1;
     bool    m_serialPortDisabled = false;
+    bool    m_setupRejected = false;
     QList<Receipt> m_printQueue;
 };

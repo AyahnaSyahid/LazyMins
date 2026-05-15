@@ -17,7 +17,7 @@ class InstantOrderDialog : public QDialog
 public:
   explicit InstantOrderDialog(QWidget *parent = nullptr);
   ~InstantOrderDialog();
-
+  OrderHeader orderHeader() const;
 
 private slots:
   void on_pilihButton_clicked();

@@ -204,6 +204,24 @@ InstantOrderDialog::InstantOrderDialog(QWidget *p) : ui(new Ui::InstantOrderDial
 
 InstantOrderDialog::~InstantOrderDialog() { delete ui; }
 
+OrderHeader InstantOrderDialog::orderHeader() const
+{
+  OrderHeader oh;
+  oh.customer_id = customerSet.id;
+  oh.customer_name = customerSet.name;
+  oh.customer_phone = customerSet.phone;
+  oh.price_level_id = customerSet.price_level;
+  oh.deadline_date = QDateTime::currentDateTimeUtc();
+  oh.completion_date = QDateTime::currentDateTimeUtc();
+  oh.discount_amount = ui->discountSpinBox->value();
+  oh.customer_id = customerSet.id;
+  if (customerSet.name != ui->nameLineEdit->text()) {
+    oh.customer_name = ui->nameLineEdit->text();
+    oh.customer_id = -1;
+  }
+  return oh;
+}
+
 void InstantOrderDialog::on_pilihButton_clicked()
 {
   auto dialog = new CustomerPickerDialog(this);
@@ -216,11 +234,12 @@ void InstantOrderDialog::on_pilihButton_clicked()
   connect(dialog, &CustomerPickerDialog::customerPicked,
           [this](const QSqlRecord &record)
           {
-            ui->nameLineEdit->setText(record.value("nama_lengkap").toString());
-            ui->phoneLineEdit->setText(record.value("nomor_telp").toString());
-            customerSet.id = record.value("id").toInt();
             customerSet.name = record.value("nama_lengkap").toString();
+            customerSet.id = record.value("id").toInt();
+            customerSet.phone = record.value("nomor_telp").toString();
             customerSet.price_level = record.value("pl_id").toInt();
+            ui->nameLineEdit->setText(customerSet.name);
+            ui->phoneLineEdit->setText(customerSet.phone);
             auto model = ui->lHargaComboBox->model();
             auto indexes = model->match(model->index(0, 0), Qt::DisplayRole, customerSet.price_level, 1, Qt::MatchExactly);
             if (indexes.count())

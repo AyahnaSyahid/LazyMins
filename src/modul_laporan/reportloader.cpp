@@ -120,6 +120,19 @@ ReportMeta ReportLoader::buildMeta(const QDate& date, const QString& prefix)
                            .arg(prefix)
                            .arg(date.toString("yyyyMMdd"));
     m.printedBy      = "System";
+    if(m_adminId > 0) {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT adm.username, adm.nama_lengkap, r.role_name
+            FROM   admins adm JOIN roles r ON r.id = role_id
+            WHERE  adm.id = :id
+        )");
+        q.bindValue(":id", m_adminId);
+        if (exec(q, "buildRangeMeta::users") && q.next()) {
+            m.printedBy = q.value("nama_lengkap").toString();
+            if (m.printedBy.isEmpty()) m.printedBy = q.value("username").toString();
+        }
+    }
     return m;
 }
 
@@ -134,6 +147,19 @@ ReportMeta ReportLoader::buildRangeMeta(const DateRange& range, const QString& p
                            .arg(range.from.toString("yyyyMMdd"))
                            .arg(range.to.toString("yyyyMMdd"));
     m.printedBy      = "System";
+    if(m_adminId > 0) {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT adm.username, adm.nama_lengkap, r.role_name
+            FROM   admins adm JOIN roles r ON r.id = role_id
+            WHERE  adm.id = :id
+        )");
+        q.bindValue(":id", m_adminId);
+        if (exec(q, "buildRangeMeta::users") && q.next()) {
+            m.printedBy = q.value("nama_lengkap").toString();
+            if (m.printedBy.isEmpty()) m.printedBy = q.value("username").toString();
+        }
+    }
     return m;
 }
 

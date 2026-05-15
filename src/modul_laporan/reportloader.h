@@ -37,7 +37,7 @@
 class ReportLoader
 {
 public:
-    ReportLoader(QSqlDatabase &db) : m_db(db) {}
+    ReportLoader(QSqlDatabase &db, int adminId=0) : m_db(db), m_adminId(adminId) {}
 
     // ---- harian ----
     DailySalesReport   loadDailySales  (const QDate& date);
@@ -52,6 +52,7 @@ public:
 
 private:
     QSqlDatabase &m_db;
+    int m_adminId;
     QString m_error;
 
     // ---- shared ----

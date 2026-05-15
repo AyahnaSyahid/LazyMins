@@ -51,13 +51,13 @@ public:
 
         // --- 7. Signatures ---
         y = addSignatureBlock(y,
-            { "Nur Holis K.", "(                )", "(                )" },
+            { m_data.meta.printedBy, "(                )", "(                )" },
             { "Dibuat oleh",  "Diperiksa oleh",    "Disetujui oleh"     });
         y += 8;
 
         // --- 8. Footer ---
         addDocFooter(y,
-            "Dicetak otomatis oleh sistem POS Percetakan Maju Jaya",
+            "Disusun oleh sistem POS " + m_data.company.name,
             "Halaman 1 dari 1");
 
         m_scene->setSceneRect(0, 0, m_theme.pageWidth, y + 30);

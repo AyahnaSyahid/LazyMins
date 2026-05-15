@@ -283,7 +283,7 @@ void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
   auto dl = new QDialog(this);
   auto l = new QVBoxLayout(dl);
   auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection);
+  ReportLoader rl(BaseManager::connection, SessionManager::instance().currentUserId());
   auto de = rl.loadDailyExpense(QDate::currentDate());
   rv->showExpenseReport(de);
   dl->setLayout(l);
@@ -298,7 +298,7 @@ void MainWindow::on_actionLaporanPenjualanHariIni_triggered()
   auto dl = new QDialog(this);
   auto l = new QVBoxLayout(dl);
   auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection);
+  ReportLoader rl(BaseManager::connection, SessionManager::instance().currentUserId());
   auto de = rl.loadDailySales(QDate::currentDate());
   rv->showSalesReport(de);
   dl->setLayout(l);

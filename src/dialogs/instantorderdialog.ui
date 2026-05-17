@@ -35,7 +35,7 @@
            <widget class="QLineEdit" name="nameLineEdit"/>
           </item>
           <item>
-           <widget class="QToolButton" name="pilihButton">
+           <widget class="QToolButton" name="pilihCustomer">
             <property name="text">
              <string>Pilih</string>
             </property>
@@ -386,7 +386,7 @@
  </widget>
  <tabstops>
   <tabstop>nameLineEdit</tabstop>
-  <tabstop>pilihButton</tabstop>
+  <tabstop>pilihCustomer</tabstop>
   <tabstop>phoneLineEdit</tabstop>
   <tabstop>lHargaComboBox</tabstop>
   <tabstop>orderListView</tabstop>

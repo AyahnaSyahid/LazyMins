@@ -166,12 +166,13 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
       },
       this);
   connect(ui->actionInstantOrderCreate, &QAction::triggered,
-          [this, dv1, idv]()
+          [this, dv1, idv, atdv]()
           {
             auto dialog = new InstantOrderDialog(this);
             dialog->setAttribute(Qt::WA_DeleteOnClose);
             connect(dialog, &QDialog::accepted, dv1, &DataViewer::refresh);
             connect(dialog, &QDialog::accepted, idv, &DataViewer::refresh);
+            connect(dialog, &QDialog::accepted, atdv, &DataViewer::refresh);
             dialog->open();
           });
 

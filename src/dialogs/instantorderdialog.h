@@ -20,11 +20,15 @@ public:
   OrderHeader orderHeader() const;
 
 private slots:
-  void on_pilihButton_clicked();
+  void on_pilihCustomer_clicked();
+  void on_nameLineEdit_textChanged(const QString& txt);
+  void on_phoneLineEdit_textChanged(const QString& txt);
+  void on_lHargaComboBox_currentIndexChanged(int index);
   void on_bayarButton_clicked();
   void on_orderListView_customContextMenuRequested(const QPoint&);
   void addItem(const OrderItem &item) { omod.addItem(item); }
   void recalculate();
+  void setCustomerRecord(const QSqlRecord &record);
 
 private:
   bool checkInput();

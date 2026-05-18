@@ -5,6 +5,7 @@ namespace Ui {
 }
 
 #include <QDialog>
+#include <QVariantMap>
 
 class ExpenseDialog : public QDialog
 {
@@ -12,7 +13,9 @@ class ExpenseDialog : public QDialog
   public:
     explicit ExpenseDialog(QWidget * =nullptr);
     ~ExpenseDialog();
-  
+
+    QVariantMap collectParams() const;
+    
   private slots:
     void on_simpanButton_clicked();
     void on_pilihKategori_clicked();

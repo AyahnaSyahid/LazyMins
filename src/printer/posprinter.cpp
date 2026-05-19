@@ -249,9 +249,9 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::PrintModes(fontNormal | EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
-    << receipt.companyName << "\n"
+    << receipt.companyName
     << EscPosPrinter::PrintModes(fontKecil)
-    << line('-')
+    << "\n"
     << EscPosPrinter::PrintModes(fontKecil | fontBold)
     << receipt.companyAddress << "\n"
     << receipt.companyPhone << "\n";

@@ -65,6 +65,7 @@ add_library(data_layer STATIC
     src/controllers/akuntransaksi.cpp
     src/controllers/users.cpp
     src/controllers/instantorder.cpp
+    src/controllers/expense.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 

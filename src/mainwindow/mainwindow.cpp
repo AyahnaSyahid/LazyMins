@@ -184,7 +184,8 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
   connect(actionGroup, &ActionGroup::newAkunTransaksiCreated,
           atdv, &AkunTransaksiDataViewer::refresh);
-
+  connect(actionGroup, &ActionGroup::expenseAdded,
+          atdv, &AkunTransaksiDataViewer::refresh);
   // UserSession
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this,

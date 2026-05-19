@@ -21,6 +21,9 @@ class ExpenseDialog : public QDialog
     void on_pilihKategori_clicked();
     void on_pilihAkun_clicked();
   
+  signals:
+    void expenseAdded();
+
   private:
     Ui::ExpenseDialog *ui;
 };

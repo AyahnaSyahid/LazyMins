@@ -25,8 +25,9 @@
 #include "src/display/produkdataviewer.h"
 #include "src/display/adminsviewer.h"
 #include "src/managers/appsettingsmanager.h"
-#include "src/modul_laporan/reportloader.h"
+#include "src/modul_laporan/reportdialog.h"
 #include "src/modul_laporan/reportview.h"
+#include "src/modul_laporan/reportloader.h"
 #include "src/printer/printservice.h"
 #include "src/utils/posprintertestdialog.h"
 #include "src/utils/sessionmanager.h"
@@ -282,31 +283,16 @@ MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
 {
-  auto dl = new QDialog(this);
-  auto l = new QVBoxLayout(dl);
-  auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection, SessionManager::instance().currentUserId());
-  auto de = rl.loadDailyExpense(QDate::currentDate());
-  rv->showExpenseReport(de);
-  dl->setLayout(l);
-  l->addWidget(rv);
+
+  auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
   dl->setAttribute(Qt::WA_DeleteOnClose);
-  rv->resetTransform();
   dl->open();
 }
 
 void MainWindow::on_actionLaporanPenjualanHariIni_triggered()
 {
-  auto dl = new QDialog(this);
-  auto l = new QVBoxLayout(dl);
-  auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection, SessionManager::instance().currentUserId());
-  auto de = rl.loadDailySales(QDate::currentDate());
-  rv->showSalesReport(de);
-  dl->setLayout(l);
-  l->addWidget(rv);
+  auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
   dl->setAttribute(Qt::WA_DeleteOnClose);
-  rv->resetTransform();
   dl->open();
 }
 

@@ -1,41 +1,43 @@
 #include "reportloader.h"
+#include <QTimeZone>
 
 // ============================================================
 //  PUBLIC — HARIAN
 // ============================================================
 
-DailySalesReport ReportLoader::loadDailySales(const QDate& date)
+DailySalesReport ReportLoader::loadDailySales(const QDate &date)
 {
     m_error.clear();
     const QString dateStr = date.toString("yyyy-MM-dd");
+    qDebug() << "[ReportLodaer] Loading " << dateStr;
 
     DailySalesReport r;
-    r.company        = loadCompanyInfo();
-    r.meta           = buildMeta(date, "RPT-H");
-    r.summary        = loadSalesSummary(dateStr);
-    r.orders         = loadOrders(dateStr);
+    r.company = loadCompanyInfo();
+    r.meta = buildMeta(date, "RPT-H");
+    r.summary = loadSalesSummary(dateStr);
+    r.orders = loadOrders(dateStr);
     r.paymentMethods = loadPaymentMethods(dateStr);
-    r.topProducts    = loadTopProducts(dateStr);
-    r.notes          = "Laporan ini mencakup semua order selain 'cancelled'. "
-                       "Waktu menggunakan zona WIB (UTC+7). "
-                       "Data piutang belum termasuk order dari hari sebelumnya.";
+    r.topProducts = loadTopProducts(dateStr);
+    r.notes = "Laporan ini mencakup semua order selain 'cancelled'. "
+              "Waktu menggunakan zona WIB (UTC+7). "
+              "Data piutang belum termasuk order dari hari sebelumnya.";
     return r;
 }
 
-DailyExpenseReport ReportLoader::loadDailyExpense(const QDate& date)
+DailyExpenseReport ReportLoader::loadDailyExpense(const QDate &date)
 {
     m_error.clear();
     const QString dateStr = date.toString("yyyy-MM-dd");
 
     DailyExpenseReport r;
-    r.company    = loadCompanyInfo();
-    r.meta       = buildMeta(date, "RPT-B");
-    r.summary    = loadExpenseSummary(dateStr);
-    r.expenses   = loadExpenses(dateStr);
+    r.company = loadCompanyInfo();
+    r.meta = buildMeta(date, "RPT-B");
+    r.summary = loadExpenseSummary(dateStr);
+    r.expenses = loadExpenses(dateStr);
     r.byCategory = loadByCategory(dateStr);
-    r.byAccount  = loadByAccount(dateStr);
-    r.notes      = "Hanya mencakup transaksi bertipe 'pengeluaran' yang dicatat hari ini. "
-                   "Waktu menggunakan zona WIB (UTC+7).";
+    r.byAccount = loadByAccount(dateStr);
+    r.notes = "Hanya mencakup transaksi bertipe 'pengeluaran' yang dicatat hari ini. "
+              "Waktu menggunakan zona WIB (UTC+7).";
     return r;
 }
 
@@ -43,47 +45,54 @@ DailyExpenseReport ReportLoader::loadDailyExpense(const QDate& date)
 //  PUBLIC — PERIODE
 // ============================================================
 
-RangeSalesReport ReportLoader::loadRangeSales(const DateRange& range)
+RangeSalesReport ReportLoader::loadRangeSales(const DateRange &range)
 {
     m_error.clear();
 
     RangeSalesReport r;
-    r.company        = loadCompanyInfo();
-    r.meta           = buildRangeMeta(range, "RPT-PJ");
-    r.summary        = loadRangeSalesSummary(range);
-    r.topOrders      = loadRangeTopOrders(range, 10, r.otherOrderCount, r.otherOrderTotal);
+    r.company = loadCompanyInfo();
+    r.meta = buildRangeMeta(range, "RPT-PJ");
+    r.summary = loadRangeSalesSummary(range);
+    r.topOrders = loadRangeTopOrders(range, 10, r.otherOrderCount, r.otherOrderTotal);
     r.paymentMethods = loadRangePaymentMethods(range);
-    r.topProducts    = loadRangeTopProducts(range);
-    r.trend          = loadRangeTrend(range);
-    r.notes          = QString("Laporan periode %1 hari (%2). "
-                               "Mencakup semua order selain 'cancelled'. "
-                               "Waktu menggunakan zona WIB (UTC+7).")
-                           .arg(range.days())
-                           .arg(range.toString());
+    r.topProducts = loadRangeTopProducts(range);
+    r.trend = loadRangeTrend(range);
+    r.notes = QString("Laporan periode %1 hari (%2). "
+                      "Mencakup semua order selain 'cancelled'. "
+                      "Waktu menggunakan zona WIB (UTC+7).")
+                  .arg(range.days())
+                  .arg(range.toString());
     return r;
 }
 
-RangeExpenseReport ReportLoader::loadRangeExpense(const DateRange& range)
+RangeExpenseReport ReportLoader::loadRangeExpense(const DateRange &range)
 {
     m_error.clear();
 
     RangeExpenseReport r;
-    r.company    = loadCompanyInfo();
-    r.meta       = buildRangeMeta(range, "RPT-PB");
-    r.summary    = loadRangeExpenseSummary(range);
+    r.company = loadCompanyInfo();
+    r.meta = buildRangeMeta(range, "RPT-PB");
+    r.summary = loadRangeExpenseSummary(range);
     r.byCategory = loadRangeByCategory(range);
-    r.byAccount  = loadRangeByAccount(range);
-    r.notes      = QString("Laporan periode %1 hari (%2). "
-                           "Hanya mencakup transaksi bertipe 'pengeluaran'. "
-                           "Waktu menggunakan zona WIB (UTC+7).")
-                       .arg(range.days())
-                       .arg(range.toString());
+    r.byAccount = loadRangeByAccount(range);
+    r.notes = QString("Laporan periode %1 hari (%2). "
+                      "Hanya mencakup transaksi bertipe 'pengeluaran'. "
+                      "Waktu menggunakan zona WIB (UTC+7).")
+                  .arg(range.days())
+                  .arg(range.toString());
     return r;
 }
 
 // ============================================================
 //  SHARED
 // ============================================================
+
+QString ReportLoader::asUtcString(const QDate local)
+{
+    // Mengonversi awal hari (00:00) tanggal lokal ke zona waktu UTC
+    QDateTime dt(local, QTime(0, 0), QTimeZone::LocalTime);
+    return dt.toUTC().toString("yyyy-MM-dd");
+}
 
 CompanyInfo ReportLoader::loadCompanyInfo()
 {
@@ -97,30 +106,37 @@ CompanyInfo ReportLoader::loadCompanyInfo()
     )");
 
     CompanyInfo info;
-    if (!exec(q, "loadCompanyInfo")) return info;
+    if (!exec(q, "loadCompanyInfo"))
+        return info;
 
-    while (q.next()) {
+    while (q.next())
+    {
         const QString key = q.value("setting_key").toString();
         const QString val = q.value("setting_value").toString();
-        if      (key == "company_name")    info.name    = val;
-        else if (key == "company_address") info.address = val;
-        else if (key == "company_phone")   info.phone   = val;
-        else if (key == "company_email")   info.email   = val;
+        if (key == "company_name")
+            info.name = val;
+        else if (key == "company_address")
+            info.address = val;
+        else if (key == "company_phone")
+            info.phone = val;
+        else if (key == "company_email")
+            info.email = val;
     }
     return info;
 }
 
-ReportMeta ReportLoader::buildMeta(const QDate& date, const QString& prefix)
+ReportMeta ReportLoader::buildMeta(const QDate &date, const QString &prefix)
 {
     ReportMeta m;
-    m.periodDate     = date;
-    m.periodRange    = { date, date };
-    m.printedAt      = QDateTime::currentDateTimeUtc();
+    m.periodDate = date;
+    m.periodRange = {date, date};
+    m.printedAt = QDateTime::currentDateTimeUtc();
     m.documentNumber = QString("%1-%2-001")
                            .arg(prefix)
                            .arg(date.toString("yyyyMMdd"));
-    m.printedBy      = "System";
-    if(m_adminId > 0) {
+    m.printedBy = "System";
+    if (m_adminId > 0)
+    {
         QSqlQuery q(m_db);
         q.prepare(R"(
             SELECT adm.username, adm.nama_lengkap, r.role_name
@@ -128,26 +144,29 @@ ReportMeta ReportLoader::buildMeta(const QDate& date, const QString& prefix)
             WHERE  adm.id = :id
         )");
         q.bindValue(":id", m_adminId);
-        if (exec(q, "buildRangeMeta::users") && q.next()) {
+        if (exec(q, "buildRangeMeta::users") && q.next())
+        {
             m.printedBy = q.value("nama_lengkap").toString();
-            if (m.printedBy.isEmpty()) m.printedBy = q.value("username").toString();
+            if (m.printedBy.isEmpty())
+                m.printedBy = q.value("username").toString();
         }
     }
     return m;
 }
 
-ReportMeta ReportLoader::buildRangeMeta(const DateRange& range, const QString& prefix)
+ReportMeta ReportLoader::buildRangeMeta(const DateRange &range, const QString &prefix)
 {
     ReportMeta m;
-    m.periodDate     = range.from;   // isi from untuk kompatibilitas
-    m.periodRange    = range;
-    m.printedAt      = QDateTime::currentDateTimeUtc();
+    m.periodDate = range.from; // isi from untuk kompatibilitas
+    m.periodRange = range;
+    m.printedAt = QDateTime::currentDateTimeUtc();
     m.documentNumber = QString("%1-%2-%3-001")
                            .arg(prefix)
                            .arg(range.from.toString("yyyyMMdd"))
                            .arg(range.to.toString("yyyyMMdd"));
-    m.printedBy      = "System";
-    if(m_adminId > 0) {
+    m.printedBy = "System";
+    if (m_adminId > 0)
+    {
         QSqlQuery q(m_db);
         q.prepare(R"(
             SELECT adm.username, adm.nama_lengkap, r.role_name
@@ -155,9 +174,11 @@ ReportMeta ReportLoader::buildRangeMeta(const DateRange& range, const QString& p
             WHERE  adm.id = :id
         )");
         q.bindValue(":id", m_adminId);
-        if (exec(q, "buildRangeMeta::users") && q.next()) {
+        if (exec(q, "buildRangeMeta::users") && q.next())
+        {
             m.printedBy = q.value("nama_lengkap").toString();
-            if (m.printedBy.isEmpty()) m.printedBy = q.value("username").toString();
+            if (m.printedBy.isEmpty())
+                m.printedBy = q.value("username").toString();
         }
     }
     return m;
@@ -167,7 +188,7 @@ ReportMeta ReportLoader::buildRangeMeta(const DateRange& range, const QString& p
 //  SALES — helpers harian
 // ============================================================
 
-SalesSummary ReportLoader::loadSalesSummary(const QString& dateStr)
+SalesSummary ReportLoader::loadSalesSummary(const QString &dateStr)
 {
     SalesSummary s;
 
@@ -179,11 +200,13 @@ SalesSummary ReportLoader::loadSalesSummary(const QString& dateStr)
             FROM   orders
             WHERE  staging_status != 'cancelled'
               AND  %1
-        )").arg(wibFilter().arg("order_date")));
+        )")
+                      .arg(wibFilter().arg("order_date")));
         q.bindValue(":date", dateStr);
 
-        if (exec(q, "salesSummary::orders") && q.next()) {
-            s.totalOrders  = q.value("total_orders").toInt();
+        if (exec(q, "salesSummary::orders") && q.next())
+        {
+            s.totalOrders = q.value("total_orders").toInt();
             s.totalRevenue = toInt(q.value("total_revenue"));
         }
     }
@@ -197,11 +220,13 @@ SalesSummary ReportLoader::loadSalesSummary(const QString& dateStr)
             WHERE  staging_status != 'cancelled'
               AND  is_active = 1
               AND  %1
-        )").arg(wibFilter().arg("issue_date")));
+        )")
+                      .arg(wibFilter().arg("issue_date")));
         q.bindValue(":date", dateStr);
 
-        if (exec(q, "salesSummary::invoices") && q.next()) {
-            s.paidAmount   = toInt(q.value("paid"));
+        if (exec(q, "salesSummary::invoices") && q.next())
+        {
+            s.paidAmount = toInt(q.value("paid"));
             s.unpaidAmount = toInt(q.value("remaining"));
         }
     }
@@ -209,7 +234,7 @@ SalesSummary ReportLoader::loadSalesSummary(const QString& dateStr)
     return s;
 }
 
-QList<OrderRow> ReportLoader::loadOrders(const QString& dateStr)
+QList<OrderRow> ReportLoader::loadOrders(const QString &dateStr)
 {
     QList<OrderRow> rows;
 
@@ -237,31 +262,34 @@ QList<OrderRow> ReportLoader::loadOrders(const QString& dateStr)
         WHERE  o.staging_status != 'cancelled'
           AND  %1
         ORDER  BY o.order_date
-    )").arg(wibFilter().arg("o.order_date")));
+    )")
+                  .arg(wibFilter().arg("o.order_date")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadOrders")) return rows;
+    if (!exec(q, "loadOrders"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         OrderRow row;
-        row.orderNumber      = q.value("order_number").toString();
-        row.customerName     = q.value("customer_name").toString();
-        row.totalAmount      = toInt(q.value("total_amount"));
+        row.orderNumber = q.value("order_number").toString();
+        row.customerName = q.value("customer_name").toString();
+        row.totalAmount = toInt(q.value("total_amount"));
         row.productionStatus = q.value("staging_status").toString();
-        row.paymentStatus    = q.value("settlement_status").toString();
+        row.paymentStatus = q.value("settlement_status").toString();
 
         const QString first = q.value("first_product").toString();
-        const int     count = q.value("item_count").toInt();
-        row.productSummary  = (count > 1)
-            ? QString("%1 (+%2 lainnya)").arg(first).arg(count - 1)
-            : first;
+        const int count = q.value("item_count").toInt();
+        row.productSummary = (count > 1)
+                                 ? QString("%1 (+%2 lainnya)").arg(first).arg(count - 1)
+                                 : first;
 
         rows.append(row);
     }
     return rows;
 }
 
-QList<PaymentMethodRow> ReportLoader::loadPaymentMethods(const QString& dateStr)
+QList<PaymentMethodRow> ReportLoader::loadPaymentMethods(const QString &dateStr)
 {
     QList<PaymentMethodRow> rows;
 
@@ -276,22 +304,23 @@ QList<PaymentMethodRow> ReportLoader::loadPaymentMethods(const QString& dateStr)
           AND  %1
         GROUP  BY at.id, at.nama
         ORDER  BY total_amount DESC
-    )").arg(wibFilter().arg("p.payment_date")));
+    )")
+                  .arg(wibFilter().arg("p.payment_date")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadPaymentMethods")) return rows;
+    if (!exec(q, "loadPaymentMethods"))
+        return rows;
 
-    while (q.next()) {
-        rows.append({
-            q.value("method_name").toString(),
-            q.value("tx_count").toInt(),
-            toInt(q.value("total_amount"))
-        });
+    while (q.next())
+    {
+        rows.append({q.value("method_name").toString(),
+                     q.value("tx_count").toInt(),
+                     toInt(q.value("total_amount"))});
     }
     return rows;
 }
 
-QList<TopProductRow> ReportLoader::loadTopProducts(const QString& dateStr)
+QList<TopProductRow> ReportLoader::loadTopProducts(const QString &dateStr)
 {
     QList<TopProductRow> rows;
 
@@ -317,23 +346,26 @@ QList<TopProductRow> ReportLoader::loadTopProducts(const QString& dateStr)
         GROUP  BY p.id, p.name, pc.category_name, p.unit, p.use_area
         ORDER  BY revenue DESC
         LIMIT  10
-    )").arg(wibFilter().arg("o.order_date")));
+    )")
+                  .arg(wibFilter().arg("o.order_date")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadTopProducts")) return rows;
+    if (!exec(q, "loadTopProducts"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         TopProductRow row;
-        row.productName  = q.value("product_name").toString();
+        row.productName = q.value("product_name").toString();
         row.categoryName = q.value("category_name").toString();
-        row.revenue      = toInt(q.value("revenue"));
+        row.revenue = toInt(q.value("revenue"));
 
-        const QString qty     = q.value("qty_sold").toString();
-        const QString unit    = q.value("unit").toString();
-        const bool    useArea = q.value("use_area").toBool();
+        const QString qty = q.value("qty_sold").toString();
+        const QString unit = q.value("unit").toString();
+        const bool useArea = q.value("use_area").toBool();
         row.qtySold = useArea
-            ? QString("%1 m²").arg(qty)
-            : QString("%1 %2").arg(qty, unit);
+                          ? QString("%1 m²").arg(qty)
+                          : QString("%1 %2").arg(qty, unit);
 
         rows.append(row);
     }
@@ -344,7 +376,7 @@ QList<TopProductRow> ReportLoader::loadTopProducts(const QString& dateStr)
 //  SALES — helpers range
 // ============================================================
 
-SalesSummary ReportLoader::loadRangeSalesSummary(const DateRange& r)
+SalesSummary ReportLoader::loadRangeSalesSummary(const DateRange &r)
 {
     SalesSummary s;
 
@@ -356,11 +388,13 @@ SalesSummary ReportLoader::loadRangeSalesSummary(const DateRange& r)
             FROM   orders
             WHERE  staging_status != 'cancelled'
               AND  %1
-        )").arg(wibRangeFilter().arg("order_date")));
+        )")
+                      .arg(wibRangeFilter().arg("order_date")));
         bindRange(q, r);
 
-        if (exec(q, "rangeSalesSummary::orders") && q.next()) {
-            s.totalOrders  = q.value("total_orders").toInt();
+        if (exec(q, "rangeSalesSummary::orders") && q.next())
+        {
+            s.totalOrders = q.value("total_orders").toInt();
             s.totalRevenue = toInt(q.value("total_revenue"));
         }
     }
@@ -374,11 +408,13 @@ SalesSummary ReportLoader::loadRangeSalesSummary(const DateRange& r)
             WHERE  staging_status != 'cancelled'
               AND  is_active = 1
               AND  %1
-        )").arg(wibRangeFilter().arg("issue_date")));
+        )")
+                      .arg(wibRangeFilter().arg("issue_date")));
         bindRange(q, r);
 
-        if (exec(q, "rangeSalesSummary::invoices") && q.next()) {
-            s.paidAmount   = toInt(q.value("paid"));
+        if (exec(q, "rangeSalesSummary::invoices") && q.next())
+        {
+            s.paidAmount = toInt(q.value("paid"));
             s.unpaidAmount = toInt(q.value("remaining"));
         }
     }
@@ -386,8 +422,8 @@ SalesSummary ReportLoader::loadRangeSalesSummary(const DateRange& r)
     return s;
 }
 
-QList<OrderRow> ReportLoader::loadRangeTopOrders(const DateRange& r, int limit,
-                                                  int& outOtherCount, qint64& outOtherTotal)
+QList<OrderRow> ReportLoader::loadRangeTopOrders(const DateRange &r, int limit,
+                                                 int &outOtherCount, qint64 &outOtherTotal)
 {
     QList<OrderRow> rows;
     outOtherCount = 0;
@@ -418,29 +454,35 @@ QList<OrderRow> ReportLoader::loadRangeTopOrders(const DateRange& r, int limit,
         WHERE  o.staging_status != 'cancelled'
           AND  %1
         ORDER  BY o.total_amount DESC
-    )").arg(wibRangeFilter().arg("o.order_date")));
+    )")
+                  .arg(wibRangeFilter().arg("o.order_date")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangeTopOrders")) return rows;
+    if (!exec(q, "loadRangeTopOrders"))
+        return rows;
 
     int idx = 0;
-    while (q.next()) {
-        if (idx < limit) {
+    while (q.next())
+    {
+        if (idx < limit)
+        {
             OrderRow row;
-            row.orderNumber      = q.value("order_number").toString();
-            row.customerName     = q.value("customer_name").toString();
-            row.totalAmount      = toInt(q.value("total_amount"));
+            row.orderNumber = q.value("order_number").toString();
+            row.customerName = q.value("customer_name").toString();
+            row.totalAmount = toInt(q.value("total_amount"));
             row.productionStatus = q.value("staging_status").toString();
-            row.paymentStatus    = q.value("settlement_status").toString();
+            row.paymentStatus = q.value("settlement_status").toString();
 
             const QString first = q.value("first_product").toString();
-            const int     count = q.value("item_count").toInt();
-            row.productSummary  = (count > 1)
-                ? QString("%1 (+%2 lainnya)").arg(first).arg(count - 1)
-                : first;
+            const int count = q.value("item_count").toInt();
+            row.productSummary = (count > 1)
+                                     ? QString("%1 (+%2 lainnya)").arg(first).arg(count - 1)
+                                     : first;
 
             rows.append(row);
-        } else {
+        }
+        else
+        {
             // akumulasi sisa
             outOtherCount++;
             outOtherTotal += toInt(q.value("total_amount"));
@@ -451,7 +493,7 @@ QList<OrderRow> ReportLoader::loadRangeTopOrders(const DateRange& r, int limit,
     return rows;
 }
 
-QList<PaymentMethodRow> ReportLoader::loadRangePaymentMethods(const DateRange& r)
+QList<PaymentMethodRow> ReportLoader::loadRangePaymentMethods(const DateRange &r)
 {
     QList<PaymentMethodRow> rows;
 
@@ -466,22 +508,23 @@ QList<PaymentMethodRow> ReportLoader::loadRangePaymentMethods(const DateRange& r
           AND  %1
         GROUP  BY at.id, at.nama
         ORDER  BY total_amount DESC
-    )").arg(wibRangeFilter().arg("p.payment_date")));
+    )")
+                  .arg(wibRangeFilter().arg("p.payment_date")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangePaymentMethods")) return rows;
+    if (!exec(q, "loadRangePaymentMethods"))
+        return rows;
 
-    while (q.next()) {
-        rows.append({
-            q.value("method_name").toString(),
-            q.value("tx_count").toInt(),
-            toInt(q.value("total_amount"))
-        });
+    while (q.next())
+    {
+        rows.append({q.value("method_name").toString(),
+                     q.value("tx_count").toInt(),
+                     toInt(q.value("total_amount"))});
     }
     return rows;
 }
 
-QList<TopProductRow> ReportLoader::loadRangeTopProducts(const DateRange& r)
+QList<TopProductRow> ReportLoader::loadRangeTopProducts(const DateRange &r)
 {
     QList<TopProductRow> rows;
 
@@ -507,30 +550,33 @@ QList<TopProductRow> ReportLoader::loadRangeTopProducts(const DateRange& r)
         GROUP  BY p.id, p.name, pc.category_name, p.unit, p.use_area
         ORDER  BY revenue DESC
         LIMIT  10
-    )").arg(wibRangeFilter().arg("o.order_date")));
+    )")
+                  .arg(wibRangeFilter().arg("o.order_date")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangeTopProducts")) return rows;
+    if (!exec(q, "loadRangeTopProducts"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         TopProductRow row;
-        row.productName  = q.value("product_name").toString();
+        row.productName = q.value("product_name").toString();
         row.categoryName = q.value("category_name").toString();
-        row.revenue      = toInt(q.value("revenue"));
+        row.revenue = toInt(q.value("revenue"));
 
-        const QString qty     = q.value("qty_sold").toString();
-        const QString unit    = q.value("unit").toString();
-        const bool    useArea = q.value("use_area").toBool();
+        const QString qty = q.value("qty_sold").toString();
+        const QString unit = q.value("unit").toString();
+        const bool useArea = q.value("use_area").toBool();
         row.qtySold = useArea
-            ? QString("%1 m²").arg(qty)
-            : QString("%1 %2").arg(qty, unit);
+                          ? QString("%1 m²").arg(qty)
+                          : QString("%1 %2").arg(qty, unit);
 
         rows.append(row);
     }
     return rows;
 }
 
-QList<DailySalesTrendRow> ReportLoader::loadRangeTrend(const DateRange& r)
+QList<DailySalesTrendRow> ReportLoader::loadRangeTrend(const DateRange &r)
 {
     QList<DailySalesTrendRow> rows;
 
@@ -544,16 +590,19 @@ QList<DailySalesTrendRow> ReportLoader::loadRangeTrend(const DateRange& r)
           AND  %1
         GROUP  BY day
         ORDER  BY day ASC
-    )").arg(wibRangeFilter().arg("order_date")));
+    )")
+                  .arg(wibRangeFilter().arg("order_date")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangeTrend")) return rows;
+    if (!exec(q, "loadRangeTrend"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         DailySalesTrendRow row;
-        row.date       = QDate::fromString(q.value("day").toString(), "yyyy-MM-dd");
+        row.date = QDate::fromString(q.value("day").toString(), "yyyy-MM-dd");
         row.orderCount = q.value("order_count").toInt();
-        row.revenue    = toInt(q.value("revenue"));
+        row.revenue = toInt(q.value("revenue"));
         rows.append(row);
     }
     return rows;
@@ -563,7 +612,7 @@ QList<DailySalesTrendRow> ReportLoader::loadRangeTrend(const DateRange& r)
 //  EXPENSE — helpers harian
 // ============================================================
 
-ExpenseSummary ReportLoader::loadExpenseSummary(const QString& dateStr)
+ExpenseSummary ReportLoader::loadExpenseSummary(const QString &dateStr)
 {
     ExpenseSummary s;
 
@@ -574,7 +623,8 @@ ExpenseSummary ReportLoader::loadExpenseSummary(const QString& dateStr)
             FROM   transaksi
             WHERE  tipe = 'pengeluaran'
               AND  %1
-        )").arg(wibFilter().arg("created_at")));
+        )")
+                      .arg(wibFilter().arg("created_at")));
         q.bindValue(":date", dateStr);
 
         if (exec(q, "expenseSummary::total") && q.next())
@@ -591,15 +641,20 @@ ExpenseSummary ReportLoader::loadExpenseSummary(const QString& dateStr)
             WHERE  t.tipe = 'pengeluaran'
               AND  %1
             GROUP  BY kt.id, kt.nama
-        )").arg(wibFilter().arg("t.created_at")));
+        )")
+                      .arg(wibFilter().arg("t.created_at")));
         q.bindValue(":date", dateStr);
 
-        if (exec(q, "expenseSummary::breakdown")) {
-            while (q.next()) {
+        if (exec(q, "expenseSummary::breakdown"))
+        {
+            while (q.next())
+            {
                 const QString type = categoryTypeFrom(q.value("kat_nama").toString());
-                const qint64  sub  = toInt(q.value("subtotal"));
-                if (type == "material") s.materialExpense += sub;
-                else                    s.opsExpense      += sub;
+                const qint64 sub = toInt(q.value("subtotal"));
+                if (type == "material")
+                    s.materialExpense += sub;
+                else
+                    s.opsExpense += sub;
             }
         }
     }
@@ -607,7 +662,7 @@ ExpenseSummary ReportLoader::loadExpenseSummary(const QString& dateStr)
     return s;
 }
 
-QList<ExpenseRow> ReportLoader::loadExpenses(const QString& dateStr)
+QList<ExpenseRow> ReportLoader::loadExpenses(const QString &dateStr)
 {
     QList<ExpenseRow> rows;
 
@@ -633,26 +688,29 @@ QList<ExpenseRow> ReportLoader::loadExpenses(const QString& dateStr)
                          OR LOWER(kt.nama) LIKE '%%stok%%' THEN 0
                     ELSE 1 END,
                t.created_at
-    )").arg(wibFilter().arg("t.created_at")));
+    )")
+                  .arg(wibFilter().arg("t.created_at")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadExpenses")) return rows;
+    if (!exec(q, "loadExpenses"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         ExpenseRow row;
-        row.txNumber     = q.value("transaction_number").toString();
-        row.description  = q.value("deskripsi").toString();
+        row.txNumber = q.value("transaction_number").toString();
+        row.description = q.value("deskripsi").toString();
         row.categoryName = q.value("kat_nama").toString();
-        row.accountName  = q.value("akun_nama").toString();
-        row.recordedBy   = q.value("admin_nama").toString();
-        row.amount       = toInt(q.value("amount"));
+        row.accountName = q.value("akun_nama").toString();
+        row.recordedBy = q.value("admin_nama").toString();
+        row.amount = toInt(q.value("amount"));
         row.categoryType = categoryTypeFrom(row.categoryName);
         rows.append(row);
     }
     return rows;
 }
 
-QList<ExpenseCategoryRow> ReportLoader::loadByCategory(const QString& dateStr)
+QList<ExpenseCategoryRow> ReportLoader::loadByCategory(const QString &dateStr)
 {
     QList<ExpenseCategoryRow> rows;
 
@@ -664,7 +722,8 @@ QList<ExpenseCategoryRow> ReportLoader::loadByCategory(const QString& dateStr)
             FROM   transaksi
             WHERE  tipe = 'pengeluaran'
               AND  %1
-        )").arg(wibFilter().arg("created_at")));
+        )")
+                      .arg(wibFilter().arg("created_at")));
         q.bindValue(":date", dateStr);
         if (exec(q, "byCategory::total") && q.next())
             grandTotal = toInt(q.value("total"));
@@ -681,23 +740,26 @@ QList<ExpenseCategoryRow> ReportLoader::loadByCategory(const QString& dateStr)
           AND  %1
         GROUP  BY kt.id, kt.nama
         ORDER  BY subtotal DESC
-    )").arg(wibFilter().arg("t.created_at")));
+    )")
+                  .arg(wibFilter().arg("t.created_at")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadByCategory")) return rows;
+    if (!exec(q, "loadByCategory"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         ExpenseCategoryRow row;
         row.categoryName = q.value("kat_nama").toString();
-        row.txCount      = q.value("tx_count").toInt();
-        row.amount       = toInt(q.value("subtotal"));
-        row.percent      = (grandTotal > 0) ? (row.amount * 100.0 / grandTotal) : 0.0;
+        row.txCount = q.value("tx_count").toInt();
+        row.amount = toInt(q.value("subtotal"));
+        row.percent = (grandTotal > 0) ? (row.amount * 100.0 / grandTotal) : 0.0;
         rows.append(row);
     }
     return rows;
 }
 
-QList<ExpenseAccountRow> ReportLoader::loadByAccount(const QString& dateStr)
+QList<ExpenseAccountRow> ReportLoader::loadByAccount(const QString &dateStr)
 {
     QList<ExpenseAccountRow> rows;
 
@@ -712,17 +774,18 @@ QList<ExpenseAccountRow> ReportLoader::loadByAccount(const QString& dateStr)
           AND  %1
         GROUP  BY at.id, at.nama
         ORDER  BY subtotal DESC
-    )").arg(wibFilter().arg("t.created_at")));
+    )")
+                  .arg(wibFilter().arg("t.created_at")));
     q.bindValue(":date", dateStr);
 
-    if (!exec(q, "loadByAccount")) return rows;
+    if (!exec(q, "loadByAccount"))
+        return rows;
 
-    while (q.next()) {
-        rows.append({
-            q.value("akun_nama").toString(),
-            q.value("tx_count").toInt(),
-            toInt(q.value("subtotal"))
-        });
+    while (q.next())
+    {
+        rows.append({q.value("akun_nama").toString(),
+                     q.value("tx_count").toInt(),
+                     toInt(q.value("subtotal"))});
     }
     return rows;
 }
@@ -731,7 +794,7 @@ QList<ExpenseAccountRow> ReportLoader::loadByAccount(const QString& dateStr)
 //  EXPENSE — helpers range
 // ============================================================
 
-ExpenseSummary ReportLoader::loadRangeExpenseSummary(const DateRange& r)
+ExpenseSummary ReportLoader::loadRangeExpenseSummary(const DateRange &r)
 {
     ExpenseSummary s;
 
@@ -742,7 +805,8 @@ ExpenseSummary ReportLoader::loadRangeExpenseSummary(const DateRange& r)
             FROM   transaksi
             WHERE  tipe = 'pengeluaran'
               AND  %1
-        )").arg(wibRangeFilter().arg("created_at")));
+        )")
+                      .arg(wibRangeFilter().arg("created_at")));
         bindRange(q, r);
 
         if (exec(q, "rangeExpenseSummary::total") && q.next())
@@ -759,15 +823,20 @@ ExpenseSummary ReportLoader::loadRangeExpenseSummary(const DateRange& r)
             WHERE  t.tipe = 'pengeluaran'
               AND  %1
             GROUP  BY kt.id, kt.nama
-        )").arg(wibRangeFilter().arg("t.created_at")));
+        )")
+                      .arg(wibRangeFilter().arg("t.created_at")));
         bindRange(q, r);
 
-        if (exec(q, "rangeExpenseSummary::breakdown")) {
-            while (q.next()) {
+        if (exec(q, "rangeExpenseSummary::breakdown"))
+        {
+            while (q.next())
+            {
                 const QString type = categoryTypeFrom(q.value("kat_nama").toString());
-                const qint64  sub  = toInt(q.value("subtotal"));
-                if (type == "material") s.materialExpense += sub;
-                else                    s.opsExpense      += sub;
+                const qint64 sub = toInt(q.value("subtotal"));
+                if (type == "material")
+                    s.materialExpense += sub;
+                else
+                    s.opsExpense += sub;
             }
         }
     }
@@ -775,7 +844,7 @@ ExpenseSummary ReportLoader::loadRangeExpenseSummary(const DateRange& r)
     return s;
 }
 
-QList<ExpenseCategoryRow> ReportLoader::loadRangeByCategory(const DateRange& r)
+QList<ExpenseCategoryRow> ReportLoader::loadRangeByCategory(const DateRange &r)
 {
     QList<ExpenseCategoryRow> rows;
 
@@ -787,7 +856,8 @@ QList<ExpenseCategoryRow> ReportLoader::loadRangeByCategory(const DateRange& r)
             FROM   transaksi
             WHERE  tipe = 'pengeluaran'
               AND  %1
-        )").arg(wibRangeFilter().arg("created_at")));
+        )")
+                      .arg(wibRangeFilter().arg("created_at")));
         bindRange(q, r);
         if (exec(q, "rangeByCategory::total") && q.next())
             grandTotal = toInt(q.value("total"));
@@ -804,23 +874,26 @@ QList<ExpenseCategoryRow> ReportLoader::loadRangeByCategory(const DateRange& r)
           AND  %1
         GROUP  BY kt.id, kt.nama
         ORDER  BY subtotal DESC
-    )").arg(wibRangeFilter().arg("t.created_at")));
+    )")
+                  .arg(wibRangeFilter().arg("t.created_at")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangeByCategory")) return rows;
+    if (!exec(q, "loadRangeByCategory"))
+        return rows;
 
-    while (q.next()) {
+    while (q.next())
+    {
         ExpenseCategoryRow row;
         row.categoryName = q.value("kat_nama").toString();
-        row.txCount      = q.value("tx_count").toInt();
-        row.amount       = toInt(q.value("subtotal"));
-        row.percent      = (grandTotal > 0) ? (row.amount * 100.0 / grandTotal) : 0.0;
+        row.txCount = q.value("tx_count").toInt();
+        row.amount = toInt(q.value("subtotal"));
+        row.percent = (grandTotal > 0) ? (row.amount * 100.0 / grandTotal) : 0.0;
         rows.append(row);
     }
     return rows;
 }
 
-QList<ExpenseAccountRow> ReportLoader::loadRangeByAccount(const DateRange& r)
+QList<ExpenseAccountRow> ReportLoader::loadRangeByAccount(const DateRange &r)
 {
     QList<ExpenseAccountRow> rows;
 
@@ -835,17 +908,18 @@ QList<ExpenseAccountRow> ReportLoader::loadRangeByAccount(const DateRange& r)
           AND  %1
         GROUP  BY at.id, at.nama
         ORDER  BY subtotal DESC
-    )").arg(wibRangeFilter().arg("t.created_at")));
+    )")
+                  .arg(wibRangeFilter().arg("t.created_at")));
     bindRange(q, r);
 
-    if (!exec(q, "loadRangeByAccount")) return rows;
+    if (!exec(q, "loadRangeByAccount"))
+        return rows;
 
-    while (q.next()) {
-        rows.append({
-            q.value("akun_nama").toString(),
-            q.value("tx_count").toInt(),
-            toInt(q.value("subtotal"))
-        });
+    while (q.next())
+    {
+        rows.append({q.value("akun_nama").toString(),
+                     q.value("tx_count").toInt(),
+                     toInt(q.value("subtotal"))});
     }
     return rows;
 }

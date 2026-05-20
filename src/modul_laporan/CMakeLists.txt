@@ -2,7 +2,8 @@ set(MODUL_LAPORAN_SOURCES
     daily_expense_renderer.h
     daily_sales_renderer.h
     reportloader.cpp
-    reportview.cpp)
+    reportview.cpp
+    reportdialog.cpp)
 
 qt_add_library(modul_laporan_loader STATIC reportloader.cpp)
 

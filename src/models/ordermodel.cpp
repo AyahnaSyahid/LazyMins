@@ -365,8 +365,8 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
           {"priority",           m_header.priority},
-          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
-          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
+          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date.toString("yyyy-MM-dd hh:mm:ss"))},
+          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date.toString("yyyy-MM-dd hh:mm:ss"))},
           {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
           {"internal_notes",     m_header.internal_notes.isEmpty() ? QVariant() : QVariant(m_header.internal_notes)},
           {"order_number",       m_header.order_number}
@@ -394,8 +394,8 @@ bool OrderModel::commit(QSqlDatabase &db)
           {"discount_amount",    m_header.discount_amount},
           {"discount_percentage",m_header.discount_percentage},
           {"priority",           m_header.priority},
-          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date)},
-          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date)},
+          {"order_date",         m_header.order_date.isNull() ? QVariant() : QVariant(m_header.order_date.toString("yyyy-MM-dd hh:mm:ss"))},
+          {"deadline_date",      m_header.deadline_date.isNull() ? QVariant() : QVariant(m_header.deadline_date.toString("yyyy-MM-dd hh:mm:ss"))},
           {"notes",              m_header.notes.isEmpty() ? QVariant() : QVariant(m_header.notes)},
           {"internal_notes",     m_header.internal_notes.isEmpty() ? QVariant() : QVariant(m_header.internal_notes)},
           {"order_number",       m_header.order_number}

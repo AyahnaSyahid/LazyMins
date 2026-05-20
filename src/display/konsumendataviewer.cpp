@@ -70,13 +70,13 @@ KonsumenDataViewer::KonsumenDataViewer(QWidget* parent) : DataViewer(parent) {
                k.catatan,
                pl.level_name  AS price_level,
                k.is_active,
-               k.last_seen
+               date(k.last_seen, 'localtime') AS last_seen
           FROM konsumen k
           JOIN price_levels pl ON k.price_level_id = pl.id
     )--");
 
   setFilterColumnNames(
-      {"k.customer_code", "k.nama_lengkap", "k.nomor_telp", "k.email"});
+      {"customer_code", "nama_lengkap", "nomor_telp", "email"});
   ui->dataView->setItemDelegate(new KonsumenDelegate(this));
   ui->dataView->verticalHeader()->hide();
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);

@@ -1,6 +1,7 @@
 #include "itemflowservice.h"
 #include "src/managers/orderitemmanager.h"
 #include "src/managers/productmanager.h"
+#include "src/managers/ordermanager.h"
 #include "src/managers/stockmovementmanager.h"
 #include "src/utils/sqltransaction.h"
 
@@ -51,6 +52,16 @@ bool ItemFlowService::processItemCancel(int orderItemId, bool restock)
             return false;
     }
     return true;
+}
+
+bool ItemFlowService::processOrderCancel(int orderId, bool restock)
+{
+    resetError();
+    QSqlQuery query(BaseManager::connection);
+    query.prepare(R"-(
+        
+        )-");
+    return false;
 }
 
 bool ItemFlowService::stockIn(int productId, qreal stockIn, const QString &supplier, const QString &notes)

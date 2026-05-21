@@ -16,6 +16,7 @@
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/revokepassworddialog.h"
 #include "src/dialogs/userdialog.h"
+#include "src/display/adminsviewer.h"
 #include "src/display/akuntransaksidataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/invoicedataviewer.h"
@@ -23,11 +24,10 @@
 #include "src/display/orderdataviewer.h"
 #include "src/display/paymentsdataviewer.h"
 #include "src/display/produkdataviewer.h"
-#include "src/display/adminsviewer.h"
 #include "src/managers/appsettingsmanager.h"
 #include "src/modul_laporan/reportdialog.h"
-#include "src/modul_laporan/reportview.h"
 #include "src/modul_laporan/reportloader.h"
+#include "src/modul_laporan/reportview.h"
 #include "src/printer/printservice.h"
 #include "src/utils/posprintertestdialog.h"
 #include "src/utils/sessionmanager.h"
@@ -143,6 +143,7 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
 
   // InvoiceDataViewer bisa membuat pembayaran
   connect(idv, &InvoiceDataViewer::paymentCreated, pdv, &DataViewer::refresh);
+  connect(idv, &InvoiceDataViewer::paymentCreated, atdv, &DataViewer::refresh);
 
   // PaymentsDataViewer bisa memverifikasi pembayaran
   connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
@@ -310,7 +311,8 @@ void MainWindow::on_actionTentangQt_triggered()
 
 void MainWindow::onBrowseAccounts()
 {
-  if (!SessionManager::instance().isSuperAdminSession()) {
+  if (!SessionManager::instance().isSuperAdminSession())
+  {
     QMessageBox::warning(
         this, "Tidak dapat melihat/edit akun",
         "Hanya super admin yang dapat melihat daftar akun");

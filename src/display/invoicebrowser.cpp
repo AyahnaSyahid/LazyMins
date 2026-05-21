@@ -59,7 +59,7 @@ SELECT inv.id,
   model().setHeaderData(21, Qt::Horizontal, "I Notes", Qt::DisplayRole);
 
   setColumnVisible(0, false);
-
+  setFilterColumnNames({"invoice_number", "customer_name"});
   Ui()->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(Ui()->dataView, &QAbstractItemView::customContextMenuRequested, this,
           &InvoiceBrowser::on_dataView_customContextMenuRequested);

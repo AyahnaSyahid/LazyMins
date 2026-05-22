@@ -19,13 +19,14 @@ private slots:
   void on_dataView_customContextMenuRequested(const QPoint& p);
   void setOrderStatus(const QModelIndex& ix, const QString& status);
   void viewOrderItems(const QModelIndex& ix);
-  // void cancelOrder(const QModelIndex& ix);
+  void cancelOrder(const QModelIndex& ix);
 
 private:
   QString orderStatus(const QModelIndex&) const;
 
 signals:
   void orderCreated(int id);
+  void stockChanged(int orderId);
   void createInvoiceRequested(int id);
   
 private:

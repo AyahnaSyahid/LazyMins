@@ -13,6 +13,7 @@
 
 #include "src/dialogs/orderdialog.h"
 #include "src/managers/itemflowservice.h"
+#include "src/utils/sqltransaction.h"
 #include "src/utils/sessionmanager.h"
 #include "ui_dataviewer.h"
 
@@ -129,25 +130,7 @@ void OrderDataViewer::setOrderStatus(const QModelIndex& ix,
     if (rc.value("staging_status") == "cancelled") {
       return;
     }
-    if (rc.value("invoice_id").isNull()) {
-      // Order belum memiliki Invoice
-      QString choices = QInputDialog::getItem(
-          this, "Konfirmasi", "Kembalikan jumlah item produk kedalam stock ?",
-          {"Kembalikan", "Buang"}, 0, false);
-
-      if (mod.setData(ix.siblingAtColumn(8), status, Qt::EditRole)) {
-        if (!mod.submitAll()) {
-          QMessageBox::warning(this, "Gagal", "Gagal mengubah status pesanan");
-          return;
-        }
-        if (choices == "Kembalikan") {
-          ItemFlowService ifs;
-          if (!ifs.processOrderCancel(rc.value("id").toInt())) {
-            qDebug() << "Gagal mengembalikan stock";
-          }
-        }
-      }
-    }
+    cancelOrder(ix);
     return ;
   }
   QString currentStatus =
@@ -228,7 +211,18 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
   dl->open();
 }
 
-// void OrderDataViewer::cancelOrder(const QModelIndex& ix) {}
+void OrderDataViewer::cancelOrder(const QModelIndex& ix) {
+  int orderid = ix.siblingAtColumn(0).data().toInt();
+  QString ch = QInputDialog::getItem(this, "Pembatalan Order", "Pilih metode penanganan Item", {"Kembalikan Stok", "Drop/Gagal"}, 0, false);
+  bool restock = ch == "Kembalikan Stok" ? true : false;
+  ItemFlowService ifs;
+  if (!ifs.processOrderCancel(orderid, restock)) {
+    QMessageBox::warning(this, "Gagal", "Gagal membatalkan pesanan");
+    return;
+  }
+  if (restock) emit stockChanged(orderid);
+  refresh();
+}
 
 QString OrderDataViewer::orderStatus(const QModelIndex& index) const {
   auto mod = index.model();

@@ -58,6 +58,8 @@ bool ItemFlowService::processOrderCancel(int orderId, bool restock) {
     if (!processItemCancel(orderItem.value("id").toInt(), restock))
       return false;
   }
+  OrderManager om;
+  if (!om.updateStagingStatus(orderId, "cancelled")) return false;
   return true;
 }
 

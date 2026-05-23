@@ -96,9 +96,9 @@ void OrderPickerDialog::onParameterChanged() {
   ORDER BY order_date ASC )--");
   QString whereClause;
   if (m_setMode == SetById) {
-    whereClause = "WHERE customer_id = :customer AND invoice_id IS NULL";
+    whereClause = "WHERE customer_id = :customer AND invoice_id IS NULL AND staging_status <> 'cancelled'";
   } else if (m_setMode == SetByName) {
-    whereClause = "WHERE customer_name = :customer AND customer_id IS NULL AND invoice_id IS NULL";
+    whereClause = "WHERE customer_name = :customer AND customer_id IS NULL AND invoice_id IS NULL AND staging_status <> 'cancelled'";
   }
 
   if (!m_filter_ids.isEmpty()) {

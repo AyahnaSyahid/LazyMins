@@ -11,6 +11,7 @@ public:
     static PrintService& instance();
 
 public slots:
+    void enableAutoPrint(bool enable);
     // Menangani permintaan cetak lewat id invoice
     void printInvoiceToSerial(int id);
     // Menangani permintaan cetak lewat id payment
@@ -39,5 +40,6 @@ private:
     int     m_baudRate = -1;
     bool    m_serialPortDisabled = false;
     bool    m_setupRejected = false;
+    bool    m_disableAutoPrint = false;
     QList<Receipt> m_printQueue;
 };

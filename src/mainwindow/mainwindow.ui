@@ -39,6 +39,7 @@
      </property>
      <addaction name="actionEscPosConfig"/>
      <addaction name="actionPrinterTest_2"/>
+     <addaction name="actionAutoPrintStruct"/>
     </widget>
     <widget class="QMenu" name="menuInfo">
      <property name="title">
@@ -271,6 +272,14 @@
   <action name="actionTentangQt">
    <property name="text">
     <string>Qt</string>
+   </property>
+  </action>
+  <action name="actionAutoPrintStruct">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Auto Print</string>
    </property>
   </action>
  </widget>

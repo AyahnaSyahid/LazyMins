@@ -28,4 +28,6 @@ class MainWindow : public QMainWindow
 
     void setupToolbarActions();
     Ui::MainWindow *ui;
+
+    void setupAutoPrintStuctAction();
 };

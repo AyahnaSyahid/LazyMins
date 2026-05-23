@@ -106,7 +106,6 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   connect(ord1, &OrderDataViewer::orderCreated, dv1, &DataViewer::refresh);
   connect(ord1, &OrderDataViewer::stockChanged, dv1, &DataViewer::refresh);
 
-
   auto idv = new InvoiceDataViewer;
   auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
   addDockWidget(Qt::TopDockWidgetArea, dsI);
@@ -250,7 +249,7 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
           &PrintService::onPaymentCreated);
   connect(&p_svc, &PrintService::unableToPrint, [this](const QString &m)
           { QMessageBox::warning(this, "Tidak dapat mencetak", m); });
-
+  setupAutoPrintStuctAction();
   // pengamanan
   auto app = qApp;
   if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd"))
@@ -335,6 +334,16 @@ void MainWindow::setupToolbarActions()
   // currently no dynamic action setup is needed, but this function can be used
   // in the future if we want to enable/disable actions based on user role or
   // other conditions
+}
+
+#include <QSettings>
+void MainWindow::setupAutoPrintStuctAction()
+{
+  QSettings settings;
+  bool autoPrintStructDisabled = settings.value("printer/disableAutoPrint", false).toBool();
+  ui->actionAutoPrintStruct->setChecked(!autoPrintStructDisabled);
+  connect(ui->actionAutoPrintStruct, &QAction::triggered, [this](bool checked)
+          { PrintService::instance().enableAutoPrint(checked); });
 }
 
 void MainWindow::openLoginForm()

@@ -22,7 +22,17 @@ void PrintService::loadSettings()
     m_portName = settings.value("SerialPrinter/PortName").toString();
     m_baudRate = settings.value("SerialPrinter/BaudRate", 9600).toInt();
     m_serialPortDisabled = settings.value("printer/serialPortDisabled", false).toBool();
+    m_disableAutoPrint = settings.value("printer/disableAutoPrint", false).toBool();
 }
+
+void PrintService::enableAutoPrint(bool enable)
+{
+    QSettings settings;
+    settings.setValue("printer/disableAutoPrint", !enable);
+    m_disableAutoPrint = !enable;
+    settings.sync();
+}
+
 
 void PrintService::printToSerialRequested(const Receipt &rcp)
 {
@@ -93,6 +103,7 @@ void PrintService::printReceiptRequested(const Receipt &rcp)
 }
 
 void PrintService::onPaymentCreated(int paymentId) {
+    if (m_disableAutoPrint) return;
     auto result = DBOperationHelper::paymentHasCompletePaidInvoice(paymentId);
     if (!result.ok) {
         emit unableToPrint(result.error);

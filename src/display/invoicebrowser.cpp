@@ -4,7 +4,7 @@
 #include <QMenu>
 
 #include "ui_dataviewer.h"
-#include "src\customs\invoicebrowserdelegate.h"
+#include "src/customs/invoicebrowserdelegate.h"
 
 InvoiceBrowser::InvoiceBrowser(QWidget* parent) : DataViewer(parent) {
   QString query = R"-(

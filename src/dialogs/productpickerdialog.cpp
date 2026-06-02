@@ -71,7 +71,7 @@ SELECT id, name, description, stock
   auto filterTimer = new QTimer(this);
   filterTimer->setInterval(300);
   connect(ui->lineEdit, &QLineEdit::textChanged, [filterTimer](QString) { filterTimer->start(); } );
-  connect(filterTimer, &QTimer::timeout, this, onFilterTimerTimeout);
+  connect(filterTimer, &QTimer::timeout, this, &ProductPickerDialog::onFilterTimerTimeout);
 
   // Resize
   this->adjustDialogSize();

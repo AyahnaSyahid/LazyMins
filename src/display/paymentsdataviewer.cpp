@@ -188,7 +188,7 @@ void PaymentsDataViewer::on_dataView_customContextMenuRequested(const QPoint &pt
     auto verifyAction = menu.addAction("Verifikasi");
     verifyAction->setToolTip("Verifikasi pembayaran ini");
     verifyAction->setEnabled(hasSelection && status != "verified");
-
+    // TODO: Tambahkan tombol pembatalan
     menu.addSeparator();
 
     auto submenu = menu.addMenu("Data baru");

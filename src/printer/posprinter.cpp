@@ -254,6 +254,9 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << "\n"
     << EscPosPrinter::PrintModes(fontKecil | fontBold)
     << receipt.companyAddress << "\n"
+    << EscPosPrinter::PrintModes(fontKecil)
+    << line('-')
+    << EscPosPrinter::PrintModes(fontKecil | fontBold)
     << receipt.companyPhone << "\n";
   if (!receipt.companyPhone2.isEmpty())
      p << receipt.companyPhone2 << "\n";

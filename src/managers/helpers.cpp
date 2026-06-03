@@ -540,6 +540,28 @@ DBOperationHelper::OperationResult DBOperationHelper::loadInvoiceDataFast(
   rec->paidAmount = rec_invoice.value("paid_amount").toDouble();
   rec->remaining = rec_invoice.value("remaining_amount").toDouble();
 
+  // WORKAROUND # diskon di tingkat order_items tidak ditampilkan
+  QSqlQuery q2(BaseManager::connection);
+  q2.prepare(R"-(
+    SELECT SUM(oi.discount_amount) 
+      FROM order_items oi
+          JOIN
+          orders ord ON oi.order_id = ord.id
+          JOIN
+          invoices inv ON inv.id = ord.invoice_id
+    WHERE ord.staging_status IS NOT 'cancelled' AND 
+          inv.id = :inv_id;
+    )-");
+  q2.bindValue(":inv_id", invoice_id);
+  if (!q2.exec()) {
+    qWarning() << "[FAST-DB] Discount query error:" << q2.lastError().text();
+    return {false, "Error: " + q2.lastError().text()};
+  }
+
+  if (q2.next()) {
+    rec->discount += q2.value(0).toInt();
+  }
+
   // --- 2. GET ORDERS ---
   q.prepare(
       "SELECT * FROM orders WHERE invoice_id = :iid AND staging_status <> "

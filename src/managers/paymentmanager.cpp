@@ -90,9 +90,9 @@ bool PaymentManager::cancel(int id, int admin_id) {
     setErrorString(q.lastError().text());
     return false;
   }
-  if (q.numRowsAffected() > 0) {
-    FinancialLedgerService flc;
-    return flc.handlePayment(id);
+  if (q.numRowsAffected() == 0) {
+    setErrorString("Pembayaran tidak ditemukan");
+    return false;
   }
-  return false;
+  return true;
 }

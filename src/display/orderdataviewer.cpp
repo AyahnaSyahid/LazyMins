@@ -10,11 +10,13 @@
 #include <QTextCursor>
 #include <QTextOption>
 #include <QTimeZone>
+#include <QTreeView>
 
 #include "src/dialogs/orderdialog.h"
 #include "src/managers/itemflowservice.h"
 #include "src/utils/sqltransaction.h"
 #include "src/utils/sessionmanager.h"
+#include "src/models/ordertreemodel.h"
 #include "ui_dataviewer.h"
 
 namespace {
@@ -224,6 +226,19 @@ void OrderDataViewer::cancelOrder(const QModelIndex& ix) {
   refresh();
 }
 
+void OrderDataViewer::openOrderBrowser()
+{
+  // TODO: Percantik browsernya dong
+  QDialog orderBrowserDialog(this);
+  orderBrowserDialog.setWindowTitle("Order Browser");
+  auto layout = new QVBoxLayout(&orderBrowserDialog);
+  auto tree = new QTreeView(&orderBrowserDialog);
+  tree->setModel(new OrderTreeModel(BaseManager::connection, this));
+  layout->addWidget(tree);
+  orderBrowserDialog.adjustSize();
+  orderBrowserDialog.exec();
+}
+
 QString OrderDataViewer::orderStatus(const QModelIndex& index) const {
   auto mod = index.model();
   return mod->data(index.siblingAtColumn(8)).toString();
@@ -233,6 +248,9 @@ void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   QMenu ctx;
   ctx.setToolTipsVisible(true);
   auto currentIndex = Ui()->dataView->indexAt(p);
+  auto orderBrowser = ctx.addAction("Lihat Data Order");
+  connect(orderBrowser, &QAction::triggered, this, &OrderDataViewer::openOrderBrowser);
+
   if (currentIndex.isValid()) {
     OrderManager om;
     auto contextOrder =
@@ -287,7 +305,6 @@ void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   }
 
   ctx.addAction(m_createOrderAction);
-
   ctx.exec(Ui()->dataView->viewport()->mapToGlobal(p));
 }
 

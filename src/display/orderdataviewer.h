@@ -20,6 +20,7 @@ private slots:
   void setOrderStatus(const QModelIndex& ix, const QString& status);
   void viewOrderItems(const QModelIndex& ix);
   void cancelOrder(const QModelIndex& ix);
+  void openOrderBrowser();
 
 private:
   QString orderStatus(const QModelIndex&) const;

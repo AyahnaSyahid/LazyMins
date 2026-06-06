@@ -77,6 +77,7 @@ add_library(model_components STATIC
     src/models/finishinglistmodel.cpp
     src/models/priceleveleditormodel.cpp
     src/models/invoicecomposermodel.cpp
+    src/models/ordertreemodel.cpp
 )
 
 target_link_libraries(model_components PUBLIC data_layer)

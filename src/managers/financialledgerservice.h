@@ -17,7 +17,7 @@ public:
     bool canBeHandled(int paymentId);
     
     bool isVerified(int paymentId) const;
-
+    bool cancel(int paymentId);
 
     // Transaction Locked
     bool createPayment(const QVariantMap& params, int *paymentId = nullptr);

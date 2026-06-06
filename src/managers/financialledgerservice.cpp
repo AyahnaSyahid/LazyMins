@@ -232,6 +232,29 @@ bool FinancialLedgerService::isVerified(int paymentId) const {
   return false;
 }
 
+bool FinancialLedgerService::cancel(int paymentId)
+{
+    PaymentManager pym;
+    auto optPay = pym.getById(paymentId);
+    if (!optPay.has_value()) {
+        m_errorString = "Data pembayaran tidak ditemukan";
+        return false;
+    }
+    if (optPay->value("verification_status").toString() == "verified") {
+        // Gagalkan saat payment sudah terverifikasi
+        // untuk menghindari rollback yang berbelit
+        m_errorString = "Pembayaran sudah terverifikasi";
+        return false;
+    }
+    
+    if (!pym.cancel(paymentId, SessionManager::instance().currentUserId())) {
+        m_errorString = pym.errorString();
+        return false;
+    }
+
+    return true;
+}
+
 bool FinancialLedgerService::createPayment(const QVariantMap& params,
                                            int* paymentId) {
   SqlTransaction t;

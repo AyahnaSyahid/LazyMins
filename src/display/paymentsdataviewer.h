@@ -27,9 +27,11 @@ private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
     void onAddPaymentActionTriggered();
     void openVerifyPaymentDialog(int paymentId);
-
+    void openCancelPaymentDialog(int paymentId);
 
 private:
+    bool ensureHasUser();
     Ui::DataViewer *ui;
     QAction *m_addPaymentAction = nullptr;
+
 };

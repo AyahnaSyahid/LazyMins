@@ -252,7 +252,7 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   setupAutoPrintStuctAction();
   // pengamanan
   auto app = qApp;
-  if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd"))
+  if (QDate::currentDate() >= QDate::fromString("2027-01-01", "yyyy-MM-dd"))
   {
     QTimer::singleShot(60000, [app]()
                        {

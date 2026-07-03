@@ -20,6 +20,7 @@ private slots:
     void on_dataView_customContextMenuRequested(const QPoint &pt);
     void onAddKonsumenActionTriggered();
     void openEditKonsumenDialog(int konsumenId);
+    void openOrderHistory(int konsumenId);
 
 private:
     Ui::DataViewer *ui;

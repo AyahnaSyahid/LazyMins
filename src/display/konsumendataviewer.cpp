@@ -10,6 +10,7 @@
 
 #include "src/dialogs/konsumendialog.h"
 #include "src/managers/konsumenmanager.h"
+#include "src/display/konsumenorderbrowser.h"
 
 namespace {
 class KonsumenDelegate : public QStyledItemDelegate {
@@ -155,6 +156,16 @@ void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId) {
   dlg.exec();
 }
 
+void KonsumenDataViewer::openOrderHistory(int konsumenId)
+{
+  KonsumenOrderBrowser kod(this);
+  if (! kod.setCustomerId(konsumenId)) {
+    QMessageBox::warning(this, "Kesalahan", "Riwayat tidak dapat ditemukan");
+    return;
+  }
+  kod.exec();
+}
+
 void KonsumenDataViewer::on_dataView_customContextMenuRequested(
     const QPoint& pt) {
   QMenu menu;
@@ -163,6 +174,16 @@ void KonsumenDataViewer::on_dataView_customContextMenuRequested(
   auto clickedIndex = ui->dataView->indexAt(pt);
   const bool hasSelection = clickedIndex.isValid();
   
+  auto historyAction = menu.addAction("Riwayat Order");
+  historyAction->setToolTip("Lihat riwayat pesanan terkait");
+  historyAction->setEnabled(hasSelection);
+
+  connect(historyAction, &QAction::triggered, [this, clickedIndex] {
+    if (clickedIndex.isValid()) {
+      openOrderHistory(clickedIndex.siblingAtColumn(0).data().toInt());
+    }
+  });
+
   auto editAction = menu.addAction("Edit");
   editAction->setToolTip("Edit data konsumen");
   editAction->setEnabled(hasSelection);

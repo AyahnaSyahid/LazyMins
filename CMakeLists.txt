@@ -138,6 +138,7 @@ add_library(ui_dialogs STATIC
     src/customs/buttonguard.cpp
     src/dialogs/infopercetakandialog.cpp
     src/display/adminsviewer.cpp
+    src/display/konsumenorderbrowser.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)

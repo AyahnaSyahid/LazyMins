@@ -17,10 +17,13 @@ public:
     ~KonsumenOrderBrowser();
     bool setCustomerId(int KID);
 
+private slots:
+
 private:
     void setupHeaderData();
     void setupItemDelegate();
     void setupFilterConnection();
+    void setupDateEdit();
     void finalizeUi();
     QList<QDate> minMax;
 

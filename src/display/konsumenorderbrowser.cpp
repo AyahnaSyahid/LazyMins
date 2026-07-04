@@ -131,11 +131,6 @@ bool KonsumenOrderBrowser::setCustomerId(int KID)
 
     if (minMax.isEmpty()) {
         return false;
-    } else if (minMax.count() == 1) {
-        ui->dateEdit->setDate(minMax[0]);
-        ui->dateEdit->setEnabled(false);
-        ui->dateEdit_2->setDate(minMax[0]);
-        ui->dateEdit_2->setEnabled(false);
     }
 
     QSqlQuery q(BaseManager::connection);
@@ -150,7 +145,6 @@ bool KonsumenOrderBrowser::setCustomerId(int KID)
     setupItemDelegate();
     setupFilterConnection();
     
-
     finalizeUi();
     return true;
 }
@@ -182,6 +176,17 @@ void KonsumenOrderBrowser::setupFilterConnection()
     connect(ui->lineEdit, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);
 }
 
+void KonsumenOrderBrowser::setupDateEdit() {
+    QList<QDateEdit*> dateEdits {ui->minDateEdit, ui->maxDateEdit};
+    auto minMaxUnavailable = minMax.count() != 2;
+    
+    for(auto e : dateEdits) {
+        e->setDisabled(minMaxUnavailable);
+        e->setToolTip(minMaxUnavailable ? "Tidak dapat menentukan filter tanggal": "");
+    }
+
+}
+
 void KonsumenOrderBrowser::finalizeUi()
 {
     ui->tableView->resizeColumnsToContents();
@@ -191,10 +196,15 @@ void KonsumenOrderBrowser::finalizeUi()
     ui->tableView->setMinimumWidth(addition + hHeader->length() + (vScroll->isVisible() ? vScroll->width() : 0));
 
     if(minMax.count() == 2) {
-        ui->dateEdit->setMinimumDate(minMax[0]);
-        ui->dateEdit->setDate(minMax[0]);
-        ui->dateEdit->setMaximumDate(minMax[1].addDays(-1));
-        ui->dateEdit_2->setMinimumDate(minMax[0].addDays(1));
-        ui->dateEdit_2->setMaximumDate(minMax[1]);
+        ui->minDateEdit->setMinimumDate(minMax[0]);
+        ui->minDateEdit->setDate(minMax[0]);
+        ui->minDateEdit->setMaximumDate(minMax[1].addDays(-1));
+        ui->maxDateEdit->setMinimumDate(minMax[0].addDays(1));
+        ui->maxDateEdit->setMaximumDate(minMax[1]);
     }
 }
+
+QString KonsumenOrderBrowser::buildQuery() const { 
+
+    return QString();
+ }

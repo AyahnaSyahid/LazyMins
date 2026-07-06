@@ -18,6 +18,7 @@ public:
     bool setCustomerId(int KID);
 
 private slots:
+    void updateQuery();
 
 private:
     void setupHeaderData();
@@ -25,7 +26,9 @@ private:
     void setupFilterConnection();
     void setupDateEdit();
     void finalizeUi();
+    void initializeMinMax(int KID);
     QList<QDate> minMax;
+    int m_customerId{0};
 
     QString buildQuery() const;
 

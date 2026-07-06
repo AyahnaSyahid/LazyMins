@@ -5,9 +5,9 @@
 #include "src/managers/basemanager.h"
 #include "src/managers/konsumenmanager.h"
 #include <QHeaderView>
+#include <QScrollBar>
 #include <QSortFilterProxyModel>
 #include <QSqlQueryModel>
-#include <QScrollBar>
 #include <QStyledItemDelegate>
 
 namespace
@@ -115,37 +115,35 @@ KonsumenOrderBrowser::~KonsumenOrderBrowser() { delete ui; }
 
 bool KonsumenOrderBrowser::setCustomerId(int KID)
 {
+    m_customerId = KID;
     KonsumenManager km;
     auto optkon = km.getById(KID);
     if (!optkon.has_value())
         return false;
     QString textLabel = ui->label->text().arg(optkon->value("nama_lengkap").toString());
     ui->label->setText(textLabel);
-    
-    QSqlQuery mm(BaseManager::connection);
-    mm.prepare(MinMaxDate);
-    mm.bindValue(":kid", KID);
-    if ( mm.exec() && mm.next() ) {
-        minMax = { mm.value(0).toDate(), mm.value(1).toDate() };
-    }
 
-    if (minMax.isEmpty()) {
+    initializeMinMax(KID);
+
+    if (minMax.isEmpty())
+    {
         return false;
     }
 
-    QSqlQuery q(BaseManager::connection);
-    q.prepare(SELECT_QUERY);
-    q.bindValue(":kid", KID);
-    q.exec();
-    model->setQuery(std::move(q));
+    setupDateEdit();
+    
+    finalizeUi();
+
+    updateQuery();
+    
     if (model->rowCount() == 0)
         return false;
 
     setupHeaderData();
     setupItemDelegate();
+
     setupFilterConnection();
-    
-    finalizeUi();
+    ui->tableView->resizeColumnsToContents();
     return true;
 }
 
@@ -174,37 +172,87 @@ void KonsumenOrderBrowser::setupFilterConnection()
 {
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     connect(ui->lineEdit, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);
+    connect(ui->minDateEdit, &QDateEdit::dateChanged, this, &KonsumenOrderBrowser::updateQuery);
+    connect(ui->maxDateEdit, &QDateEdit::dateChanged, this, &KonsumenOrderBrowser::updateQuery);
 }
 
-void KonsumenOrderBrowser::setupDateEdit() {
-    QList<QDateEdit*> dateEdits {ui->minDateEdit, ui->maxDateEdit};
+void KonsumenOrderBrowser::setupDateEdit()
+{
+    QList<QDateEdit *> dateEdits{ui->minDateEdit, ui->maxDateEdit};
     auto minMaxUnavailable = minMax.count() != 2;
-    
-    for(auto e : dateEdits) {
-        e->setDisabled(minMaxUnavailable);
-        e->setToolTip(minMaxUnavailable ? "Tidak dapat menentukan filter tanggal": "");
-    }
 
+    for (auto e : dateEdits)
+    {
+        e->setDisabled(minMaxUnavailable);
+        e->setToolTip(minMaxUnavailable ? "Tidak dapat menetapkan filter tanggal" : "");
+    }
 }
 
 void KonsumenOrderBrowser::finalizeUi()
 {
-    ui->tableView->resizeColumnsToContents();
     auto vScroll = ui->tableView->verticalScrollBar();
     auto hHeader = ui->tableView->horizontalHeader();
     int addition = 2;
     ui->tableView->setMinimumWidth(addition + hHeader->length() + (vScroll->isVisible() ? vScroll->width() : 0));
+    if (minMax.count() == 2)
+    {
+        ui->minDateEdit->blockSignals(true);
+        ui->maxDateEdit->blockSignals(true);
 
-    if(minMax.count() == 2) {
-        ui->minDateEdit->setMinimumDate(minMax[0]);
-        ui->minDateEdit->setDate(minMax[0]);
-        ui->minDateEdit->setMaximumDate(minMax[1].addDays(-1));
-        ui->maxDateEdit->setMinimumDate(minMax[0].addDays(1));
-        ui->maxDateEdit->setMaximumDate(minMax[1]);
+        QDate minDate = minMax[0];
+        QDate maxDate = minMax[1];
+        QDate minPlus1 = minDate.addDays(1);
+        QDate maxMinus1 = maxDate.addDays(-1);
+        QDate maxPlus1 = maxDate.addDays(1);
+        ui->minDateEdit->setMinimumDate(minDate);
+        ui->minDateEdit->setDate(minDate);
+        ui->minDateEdit->setMaximumDate(maxMinus1);
+        ui->maxDateEdit->setMinimumDate(minPlus1);
+        ui->maxDateEdit->setMaximumDate(maxPlus1);
+        ui->maxDateEdit->setDate(maxPlus1);
+
+        ui->minDateEdit->blockSignals(false);
+        ui->maxDateEdit->blockSignals(false);
     }
 }
 
-QString KonsumenOrderBrowser::buildQuery() const { 
+void KonsumenOrderBrowser::initializeMinMax(int KID)
+{
+    QSqlQuery mm(BaseManager::connection);
+    mm.prepare(MinMaxDate);
+    mm.bindValue(":kid", KID);
+    if (mm.exec() && mm.next())
+    {
+        minMax = {mm.value(0).toDate(), mm.value(1).toDate()};
+    }
+}
 
-    return QString();
- }
+QString KonsumenOrderBrowser::buildQuery() const
+{
+    if (minMax.isEmpty()) return SELECT_QUERY;
+    if (minMax[0] == minMax[1]) return SELECT_QUERY;
+    
+    QString query = SELECT_QUERY;
+    QString dateCondition = "\n   AND DATE(o.order_date, 'localtime') BETWEEN :min_date AND :max_date\n ";
+    query.replace("ORDER BY", dateCondition + "ORDER BY");
+    // qDebug() << "[DEBUG] << " << query;
+    return query;
+}
+
+void KonsumenOrderBrowser::updateQuery()
+{
+    if (m_customerId == 0) return;
+
+    QSqlQuery q(BaseManager::connection);
+    q.prepare(buildQuery());
+    q.bindValue(":kid", m_customerId);
+
+    if (minMax.count() == 2 && minMax[0] != minMax[1])
+    {
+        q.bindValue(":min_date", ui->minDateEdit->date().toString("yyyy-MM-dd"));
+        q.bindValue(":max_date", ui->maxDateEdit->date().toString("yyyy-MM-dd"));
+    }
+
+    q.exec();
+    model->setQuery(std::move(q));
+}

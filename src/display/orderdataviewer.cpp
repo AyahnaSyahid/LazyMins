@@ -14,64 +14,74 @@
 
 #include "src/dialogs/orderdialog.h"
 #include "src/managers/itemflowservice.h"
-#include "src/utils/sqltransaction.h"
-#include "src/utils/sessionmanager.h"
 #include "src/models/ordertreemodel.h"
+#include "src/utils/sessionmanager.h"
+#include "src/utils/sqltransaction.h"
 #include "ui_dataviewer.h"
 
-namespace {
-const QBrush processingBrush(QColor(255, 255, 200));
-const QBrush pendingBrush(QColor(255, 200, 200));
-const QBrush readyBrush(QColor(200, 255, 200));
-class Delegate : public QStyledItemDelegate {
- public:
-  using QStyledItemDelegate::QStyledItemDelegate;
+namespace
+{
+  const QBrush processingBrush(QColor(255, 255, 200));
+  const QBrush pendingBrush(QColor(255, 200, 200));
+  const QBrush readyBrush(QColor(200, 255, 200));
+  class Delegate : public QStyledItemDelegate
+  {
+  public:
+    using QStyledItemDelegate::QStyledItemDelegate;
 
- protected:
-  void initStyleOption(QStyleOptionViewItem* option,
-                       const QModelIndex& ix) const override {
-    QStyledItemDelegate::initStyleOption(option, ix);
-    switch (ix.column()) {
-      case 0: {
+  protected:
+    void initStyleOption(QStyleOptionViewItem *option,
+                         const QModelIndex &ix) const override
+    {
+      QStyledItemDelegate::initStyleOption(option, ix);
+      switch (ix.column())
+      {
+      case 0:
+      {
         option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         break;
       }
-      case 3: {
+      case 3:
+      {
         option->displayAlignment = Qt::AlignCenter;
         break;
       }
       case 4:
       case 5:
-      case 6: {
+      case 6:
+      {
         option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         option->text = QLocale().toString(ix.data().toInt());
         break;
       }
-      case 7: {
+      case 7:
+      {
         option->displayAlignment = Qt::AlignCenter;
         QDateTime date = ix.data().toDateTime();
         option->text = date.toString("dd MMMM yyyy");
         break;
       }
-      case 8: {
+      case 8:
+      {
         option->displayAlignment = Qt::AlignCenter;
         break;
       }
       default:
         break;
+      }
+      auto status = ix.siblingAtColumn(8).data(Qt::DisplayRole).toString();
+      if (status == "pending")
+        option->backgroundBrush = pendingBrush;
+      else if (status == "processing")
+        option->backgroundBrush = processingBrush;
+      else if (status == "ready")
+        option->backgroundBrush = readyBrush;
     }
-    auto status = ix.siblingAtColumn(8).data(Qt::DisplayRole).toString();
-    if (status == "pending")
-      option->backgroundBrush = pendingBrush;
-    else if (status == "processing")
-      option->backgroundBrush = processingBrush;
-    else if (status == "ready")
-      option->backgroundBrush = readyBrush;
-  }
-};
-}  // namespace
+  };
+} // namespace
 
-OrderDataViewer::OrderDataViewer(QWidget* p) : DataViewer(p) {
+OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
+{
   auto ui = DataViewer::Ui();
   auto mod = &DataViewer::model();
 
@@ -124,16 +134,19 @@ OrderDataViewer::OrderDataViewer(QWidget* p) : DataViewer(p) {
 
 OrderDataViewer::~OrderDataViewer() {}
 
-void OrderDataViewer::setOrderStatus(const QModelIndex& ix,
-                                     const QString& status) {
-  auto& mod = DataViewer::model();
-  if (status == "cancelled") {
+void OrderDataViewer::setOrderStatus(const QModelIndex &ix,
+                                     const QString &status)
+{
+  auto &mod = DataViewer::model();
+  if (status == "cancelled")
+  {
     auto rc = mod.record(ix.row());
-    if (rc.value("staging_status") == "cancelled") {
+    if (rc.value("staging_status") == "cancelled")
+    {
       return;
     }
     cancelOrder(ix);
-    return ;
+    return;
   }
   QString currentStatus =
       ix.siblingAtColumn(8).data(Qt::DisplayRole).toString();
@@ -141,14 +154,17 @@ void OrderDataViewer::setOrderStatus(const QModelIndex& ix,
       this, "Konfirmasi",
       "Apakah anda yakin ingin mengubah status pesanan ini ?\n dari " +
           currentStatus + " menjadi -> " + status + "?");
-  if (proceed != QMessageBox::Yes) return;
+  if (proceed != QMessageBox::Yes)
+    return;
   mod.setData(ix.siblingAtColumn(8), status, Qt::EditRole);
-  if (!mod.submitAll()) {
+  if (!mod.submitAll())
+  {
     QMessageBox::warning(this, "Gagal", "Gagal mengubah status pesanan");
   };
 }
 
-void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
+void OrderDataViewer::viewOrderItems(const QModelIndex &ix)
+{
   auto dl = new QDialog(this);
   dl->setWindowTitle("Detail Pesanan");
   dl->setAttribute(Qt::WA_DeleteOnClose);
@@ -159,7 +175,8 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
   auto order_items = oim.getByOrder(ix.siblingAtColumn(0).data().toInt());
   pte->setReadOnly(true);
   pte->setWordWrapMode(QTextOption::NoWrap);
-  if (order_items.isEmpty()) {
+  if (order_items.isEmpty())
+  {
     pte->setPlainText("Error:\nData items tidak ditemukan");
     dl->open();
     return;
@@ -167,7 +184,8 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
   OrderItemFinishingManager oifm;
   QList<QList<QSqlRecord>> item_finishings_records;
 
-  for (int a = 0; a < order_items.size(); a++) {
+  for (int a = 0; a < order_items.size(); a++)
+  {
     auto item = order_items.at(a);
     auto fs = oifm.getByOrderItem(item.value("id").toInt());
     item_finishings_records << fs;
@@ -177,7 +195,8 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
   auto formatThin = QTextCharFormat();
   formatThin.setFontWeight(QFont::Normal);
 
-  for (int a = 0; a < order_items.size(); a++) {
+  for (int a = 0; a < order_items.size(); a++)
+  {
     auto item = order_items.at(a);
     QString itemString = QString("[%1] %2\n")
                              .arg(item.value("sku").toString(),
@@ -186,7 +205,8 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
                            .arg(item.value("quantity").toInt())
                            .arg(item.value("unit").toString())
                            .arg(item.value("sale_price").toInt());
-    if (item.value("use_area").toBool()) {
+    if (item.value("use_area").toBool())
+    {
       itemInfo = QString("%L1x%L2 %L3 x%L4 x%L5\n")
                      .arg(item.value("size_width").toDouble(), 0, 'f', 2)
                      .arg(item.value("size_height").toDouble(), 0, 'f', 2)
@@ -199,7 +219,8 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
     cursor.insertText(itemString, formatBold);
     cursor.insertText(itemInfo, formatThin);
     auto finishings = item_finishings_records.at(a);
-    for (auto const& finishing : finishings) {
+    for (auto const &finishing : finishings)
+    {
       QString finishingString =
           QString(" - [%1] %L2x%L3\n")
               .arg(finishing.value("finishing_name").toString())
@@ -213,16 +234,19 @@ void OrderDataViewer::viewOrderItems(const QModelIndex& ix) {
   dl->open();
 }
 
-void OrderDataViewer::cancelOrder(const QModelIndex& ix) {
+void OrderDataViewer::cancelOrder(const QModelIndex &ix)
+{
   int orderid = ix.siblingAtColumn(0).data().toInt();
   QString ch = QInputDialog::getItem(this, "Pembatalan Order", "Pilih metode penanganan Item", {"Kembalikan Stok", "Drop/Gagal"}, 0, false);
   bool restock = ch == "Kembalikan Stok" ? true : false;
   ItemFlowService ifs;
-  if (!ifs.processOrderCancel(orderid, restock)) {
+  if (!ifs.processOrderCancel(orderid, restock))
+  {
     QMessageBox::warning(this, "Gagal", "Gagal membatalkan pesanan");
     return;
   }
-  if (restock) emit stockChanged(orderid);
+  if (restock)
+    emit stockChanged(orderid);
   refresh();
 }
 
@@ -239,76 +263,90 @@ void OrderDataViewer::openOrderBrowser()
   orderBrowserDialog.exec();
 }
 
-QString OrderDataViewer::orderStatus(const QModelIndex& index) const {
+QString OrderDataViewer::orderStatus(const QModelIndex &index) const
+{
   auto mod = index.model();
   return mod->data(index.siblingAtColumn(8)).toString();
 }
 
-void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
+void OrderDataViewer::on_dataView_customContextMenuRequested(const QPoint &p)
+{
   QMenu ctx;
   ctx.setToolTipsVisible(true);
   auto currentIndex = Ui()->dataView->indexAt(p);
-  auto orderBrowser = ctx.addAction("Lihat Data Order");
-  connect(orderBrowser, &QAction::triggered, this, &OrderDataViewer::openOrderBrowser);
 
-  if (currentIndex.isValid()) {
+  if (currentIndex.isValid())
+  {
     OrderManager om;
     auto contextOrder =
         om.getById(currentIndex.siblingAtColumn(0).data().toInt());
-    if (!contextOrder) {
+    if (!contextOrder)
+    {
       QMessageBox::critical(this, "Kesalahan", "Data order tidak ditemukan");
       return;
     }
     std::optional<QSqlRecord> contextInvoice = std::nullopt;
     bool contextInvoicePaid = false;
-    if (!contextOrder->value("invoice_id").isNull()) {
+    if (!contextOrder->value("invoice_id").isNull())
+    {
       InvoiceManager im;
       contextInvoice = im.getById(contextOrder->value("invoice_id").toInt());
       contextInvoicePaid =
           contextInvoice->value("remaining_amount").toInt() == 0;
     }
     QString contextStatus = contextOrder->value("staging_status").toString();
-    if (!contextInvoice) {
+    if (!contextInvoice)
+    {
       auto createInvoice = ctx.addAction("Buat Invoice");
       auto sep1 = ctx.addSeparator();
-      connect(createInvoice, &QAction::triggered, [this, currentIndex]() {
-        emit createInvoiceRequested(
-            currentIndex.siblingAtColumn(0).data().toInt());
-      });
+      connect(createInvoice, &QAction::triggered, [this, currentIndex]()
+              { emit createInvoiceRequested(
+                    currentIndex.siblingAtColumn(0).data().toInt()); });
     }
     auto viewOrderItems = ctx.addAction("Lihat");
     auto substatus = ctx.addMenu("Set Status");
     for (QString setStatus :
-         QList<QString>{"pending", "processing", "ready", "completed"}) {
+         QList<QString>{"pending", "processing", "ready", "completed"})
+    {
       QString label = setStatus[0].toUpper() + setStatus.sliced(1);
       auto setStatusAction = substatus->addAction(label);
-      if (setStatus == contextStatus) setStatusAction->setEnabled(false);
+      if (setStatus == contextStatus)
+        setStatusAction->setEnabled(false);
       connect(setStatusAction, &QAction::triggered,
-              [this, currentIndex, setStatus]() {
+              [this, currentIndex, setStatus]()
+              {
                 setOrderStatus(currentIndex, setStatus);
               });
     }
 
-    if (SessionManager::instance().currentUser().has_value()) {
-      if (currentIndex.siblingAtColumn(9).data().isNull()) {
+    if (SessionManager::instance().currentUser().has_value())
+    {
+      if (currentIndex.siblingAtColumn(9).data().isNull())
+      {
         // Hanya tambahkan jika order belum memiliki invoice
         auto setCanceled = substatus->addAction("Cancelled");
-        connect(setCanceled, &QAction::triggered, [this, currentIndex]() {
-          setOrderStatus(currentIndex, "cancelled");
-        });
+        connect(setCanceled, &QAction::triggered, [this, currentIndex]()
+                { setOrderStatus(currentIndex, "cancelled"); });
       }
     }
 
     auto sep2 = ctx.addSeparator();
     connect(viewOrderItems, &QAction::triggered,
-            [this, currentIndex]() { this->viewOrderItems(currentIndex); });
+            [this, currentIndex]()
+            { this->viewOrderItems(currentIndex); });
   }
 
   ctx.addAction(m_createOrderAction);
+  ctx.addSeparator();
+
+  auto orderBrowser = ctx.addAction("Lihat Data Order");
+  connect(orderBrowser, &QAction::triggered, this, &OrderDataViewer::openOrderBrowser);
+
   ctx.exec(Ui()->dataView->viewport()->mapToGlobal(p));
 }
 
-void OrderDataViewer::openCreateOrderDialog() {
+void OrderDataViewer::openCreateOrderDialog()
+{
   OrderDialog od;
   connect(&od, &QDialog::accepted, this, &DataViewer::refresh);
   connect(&od, &OrderDialog::orderCreated, this,

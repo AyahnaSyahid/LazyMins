@@ -13,15 +13,18 @@
 // ─────────────────────────────────────────────
 namespace OrderTreeCol {
     enum Column {
-        Name        = 0,   // Tanggal | Nama Customer | No. Order | Nama Item | Nama Finishing
-        Qty         = 1,   // – | – | – | qty unit | qty
-        Size        = 2,   // – | – | – | W×H | –
-        UnitPrice   = 3,   // – | – | – | sale_price | finishing_price
-        Subtotal    = 4,   // – | – | – | subtotal | subtotal
-        Discount    = 5,   // – | – | discount_amount | discount_amount | –
-        Total       = 6,   // – | – | total_amount | total | –
-        Notes       = 7,   // – | – | notes | notes | –
-        COUNT       = 8
+        Date        = 0,   // Tanggal (Date level only)
+        CustomerName= 1,   // Nama Customer (Customer level only)
+        OrderNumber = 2,   // No. Order (Order level only)
+        Name        = 3,   // – | – | – | Nama Item | Nama Finishing
+        Qty         = 4,   // – | – | – | qty unit | qty
+        Size        = 5,   // – | – | – | W×H | –
+        UnitPrice   = 6,   // – | – | – | sale_price | finishing_price
+        Subtotal    = 7,   // – | – | – | subtotal | subtotal
+        Discount    = 8,   // – | – | discount_amount | discount_amount | –
+        Total       = 9,   // – | – | total_amount | total | –
+        Notes       = 10,  // – | – | notes | notes | –
+        COUNT       = 11
     };
 }
 
@@ -44,8 +47,13 @@ struct TreeNode {
     NodeLevel           level       = NodeLevel::Root;
     int                 id          = -1;       // primary key for this level
     int                 parentId    = -1;       // parent's PK (for lazy-fetch queries)
-    QVector<QVariant>   columns;               // size == OrderTreeCol::COUNT
+    QVector<QVariant>   columns;                // size == OrderTreeCol::COUNT
     bool                childrenFetched = false;
+    bool                hasChildrenHint = true;  // early-fetch hint: does this node
+                                                  // actually have children? Determined
+                                                  // via EXISTS(...) at fetch time so the
+                                                  // expand/collapse arrow is only shown
+                                                  // when a node truly has children.
 
     TreeNode*           parent      = nullptr;
     QVector<TreeNode*>  children;

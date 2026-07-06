@@ -110,6 +110,10 @@ QVariant OrderTreeModel::data(const QModelIndex& index, int role) const
             case Discount:
             case Total:
                 return QVariant(Qt::AlignRight | Qt::AlignVCenter);
+            case Date:
+            case CustomerName:
+            case OrderNumber:
+            case Name:
             default:
                 return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         }
@@ -130,15 +134,18 @@ QVariant OrderTreeModel::headerData(int section, Qt::Orientation orientation,
 
     using namespace OrderTreeCol;
     switch (section) {
-        case Name:      return tr("Nama / Tanggal");
-        case Qty:       return tr("Qty");
-        case Size:      return tr("Ukuran (W×H)");
-        case UnitPrice: return tr("Harga Satuan");
-        case Subtotal:  return tr("Subtotal");
-        case Discount:  return tr("Diskon");
-        case Total:     return tr("Total");
-        case Notes:     return tr("Catatan");
-        default:        return {};
+        case Date:         return tr("Tanggal");
+        case CustomerName: return tr("Nama Customer");
+        case OrderNumber:  return tr("No. Order");
+        case Name:         return tr("Nama Item");
+        case Qty:          return tr("Qty");
+        case Size:         return tr("Ukuran (W×H)");
+        case UnitPrice:    return tr("Harga Satuan");
+        case Subtotal:     return tr("Subtotal");
+        case Discount:     return tr("Diskon");
+        case Total:        return tr("Total");
+        case Notes:        return tr("Catatan");
+        default:           return {};
     }
 }
 
@@ -153,8 +160,11 @@ bool OrderTreeModel::hasChildren(const QModelIndex& parentIndex) const
     // If children already fetched, answer directly
     if (node->childrenFetched) return !node->children.isEmpty();
 
-    // For un-fetched nodes: optimistically say true (except root is always pre-fetched)
-    return node->level != NodeLevel::Root;
+    // For un-fetched nodes: rely on the early-fetch hint (populated via an
+    // EXISTS(...) check when the node itself was fetched) instead of
+    // optimistically assuming true. Root is always pre-fetched.
+    if (node->level == NodeLevel::Root) return !node->children.isEmpty();
+    return node->hasChildrenHint;
 }
 
 bool OrderTreeModel::canFetchMore(const QModelIndex& parentIndex) const
@@ -162,7 +172,9 @@ bool OrderTreeModel::canFetchMore(const QModelIndex& parentIndex) const
     TreeNode* node = nodeFromIndex(parentIndex);
     if (!node) return false;
     if (node->level == NodeLevel::Finishing) return false;
-    return !node->childrenFetched;
+    if (node->childrenFetched) return false;
+    // No point issuing a fetch we already know will come back empty.
+    return node->hasChildrenHint;
 }
 
 void OrderTreeModel::fetchMore(const QModelIndex& parentIndex)
@@ -172,12 +184,12 @@ void OrderTreeModel::fetchMore(const QModelIndex& parentIndex)
 
     switch (node->level) {
         case NodeLevel::Date:
-            fetchCustomerNodes(node, node->columns[OrderTreeCol::Name].toDate());
+            fetchCustomerNodes(node, node->columns[OrderTreeCol::Date].toDate());
             break;
         case NodeLevel::Customer:
             fetchOrderNodes(node, node->id,
                             node->parent
-                                ? node->parent->columns[OrderTreeCol::Name].toDate()
+                                ? node->parent->columns[OrderTreeCol::Date].toDate()
                                 : QDate{});
             break;
         case NodeLevel::Order:
@@ -246,7 +258,10 @@ void OrderTreeModel::fetchDateNodes(TreeNode* parent)
         if (!localDate.isValid()) continue;
 
         auto* node = new TreeNode(NodeLevel::Date, -1, -1, parent);
-        node->columns[OrderTreeCol::Name] = localDate;
+        // Date nodes only ever come from dates that already have at least
+        // one qualifying order, so a Customer child is guaranteed.
+        node->hasChildrenHint = true;
+        node->columns[OrderTreeCol::Date] = localDate;
         newChildren.append(node);
     }
 
@@ -292,11 +307,15 @@ void OrderTreeModel::fetchCustomerNodes(TreeNode* parent, const QDate& date)
         const QString custPhone= q.value(2).toString();
 
         auto* node = new TreeNode(NodeLevel::Customer, custId, -1, parent);
-        // Col 0: "ID — Nama (Phone)"
-        node->columns[OrderTreeCol::Name] =
-            QStringLiteral("%1 — %2%3")
-                .arg(custId)
+        // Customer nodes are only ever created for a (date) that already has
+        // at least one matching order (see the WHERE below), so they are
+        // guaranteed to have at least one Order child.
+        node->hasChildrenHint = true;
+        // Col "Nama Customer": "ID — Nama (Phone)"
+        node->columns[OrderTreeCol::CustomerName] =
+            QStringLiteral("%1 [%2] - %3)")
                 .arg(custName)
+                .arg(custId)
                 .arg(custPhone.isEmpty() ? QString{} : QStringLiteral(" (%1)").arg(custPhone));
         newChildren.append(node);
     }
@@ -317,12 +336,13 @@ void OrderTreeModel::fetchOrderNodes(TreeNode* parent, int customerId, const QDa
 {
     QSqlQuery q(m_db);
     q.prepare(
-        "SELECT id, order_number, discount_amount, total_amount, notes "
-        "FROM orders "
-        "WHERE staging_status != 'cancelled' "
-        "  AND customer_id = :cid "
-        "  AND DATE(datetime(order_date, 'localtime')) = :localdate "
-        "ORDER BY order_date"
+        "SELECT o.id, o.order_number, o.discount_amount, o.total_amount, o.notes, "
+        "       EXISTS(SELECT 1 FROM order_items oi WHERE oi.order_id = o.id) AS has_items "
+        "FROM orders o "
+        "WHERE o.staging_status != 'cancelled' "
+        "  AND o.customer_id = :cid "
+        "  AND DATE(datetime(o.order_date, 'localtime')) = :localdate "
+        "ORDER BY o.order_date"
     );
     q.bindValue(":cid",       customerId);
     q.bindValue(":localdate", date.toString(Qt::ISODate));
@@ -341,15 +361,16 @@ void OrderTreeModel::fetchOrderNodes(TreeNode* parent, int customerId, const QDa
     while (q.next()) {
         const int orderId = q.value(0).toInt();
         auto* node = new TreeNode(NodeLevel::Order, orderId, customerId, parent);
+        node->hasChildrenHint = q.value(5).toBool();
 
-        // Col 0: "order_id — order_number"
-        node->columns[OrderTreeCol::Name] =
-            QStringLiteral("%1 — %2").arg(orderId).arg(q.value(1).toString());
-        // Col 5: discount
+        // Col "No. Order": "order_id — order_number"
+        node->columns[OrderTreeCol::OrderNumber] =
+            QStringLiteral("%2 [%1]").arg(orderId).arg(q.value(1).toString());
+        // Col Discount
         node->columns[OrderTreeCol::Discount] = formatCurrency(q.value(2).toInt());
-        // Col 6: total
+        // Col Total
         node->columns[OrderTreeCol::Total]    = formatCurrency(q.value(3).toInt());
-        // Col 7: notes
+        // Col Notes
         node->columns[OrderTreeCol::Notes]    = q.value(4);
 
         newChildren.append(node);
@@ -371,12 +392,14 @@ void OrderTreeModel::fetchItemNodes(TreeNode* parent, int orderId)
 {
     QSqlQuery q(m_db);
     q.prepare(
-        "SELECT id, product_name, quantity, unit, "
-        "       size_width, size_height, use_area, "
-        "       sale_price, subtotal, discount_amount, total, notes "
-        "FROM order_items "
-        "WHERE order_id = :oid "
-        "ORDER BY id"
+        "SELECT oi.id, oi.product_name, oi.quantity, oi.unit, "
+        "       oi.size_width, oi.size_height, oi.use_area, "
+        "       oi.sale_price, oi.subtotal, oi.discount_amount, oi.total, oi.notes, "
+        "       EXISTS(SELECT 1 FROM order_item_finishings f "
+        "              WHERE f.order_item_id = oi.id) AS has_finishings "
+        "FROM order_items oi "
+        "WHERE oi.order_id = :oid "
+        "ORDER BY oi.id"
     );
     q.bindValue(":oid", orderId);
 
@@ -394,6 +417,7 @@ void OrderTreeModel::fetchItemNodes(TreeNode* parent, int orderId)
     while (q.next()) {
         const int itemId = q.value(0).toInt();
         auto* node = new TreeNode(NodeLevel::Item, itemId, orderId, parent);
+        node->hasChildrenHint = q.value(12).toBool();
 
         // Col 0: product name
         node->columns[OrderTreeCol::Name] = q.value(1);
@@ -454,6 +478,7 @@ void OrderTreeModel::fetchFinishingNodes(TreeNode* parent, int orderItemId)
     while (q.next()) {
         const int fid = q.value(0).toInt();
         auto* node = new TreeNode(NodeLevel::Finishing, fid, orderItemId, parent);
+        node->hasChildrenHint = false; // Finishing is always a leaf level
 
         // Col 0: finishing name
         node->columns[OrderTreeCol::Name]      = q.value(1);

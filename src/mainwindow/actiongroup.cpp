@@ -25,6 +25,7 @@ void ActionGroup::on_buatAkunTransaksiAction_triggered() {
 
 void ActionGroup::on_catatPengeluaranAction_triggered() {
   ExpenseDialog ed(m_root);
+  connect(&ed, &ExpenseDialog::expenseAdded, this, &ActionGroup::expenseAdded);
   ed.exec();
 }
 

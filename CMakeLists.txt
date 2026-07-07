@@ -62,6 +62,10 @@ add_library(data_layer STATIC
     src/managers/itemflowservice.cpp
     src/managers/financialledgerservice.cpp
     src/controllers/infopercetakan.cpp
+    src/controllers/akuntransaksi.cpp
+    src/controllers/users.cpp
+    src/controllers/instantorder.cpp
+    src/controllers/expense.cpp
 )
 target_link_libraries(data_layer PUBLIC core_utils)
 
@@ -73,6 +77,7 @@ add_library(model_components STATIC
     src/models/finishinglistmodel.cpp
     src/models/priceleveleditormodel.cpp
     src/models/invoicecomposermodel.cpp
+    src/models/ordertreemodel.cpp
 )
 
 target_link_libraries(model_components PUBLIC data_layer)
@@ -132,6 +137,8 @@ add_library(ui_dialogs STATIC
     src/dialogs/createfinishingservicedialog.cpp
     src/customs/buttonguard.cpp
     src/dialogs/infopercetakandialog.cpp
+    src/display/adminsviewer.cpp
+    src/display/konsumenorderbrowser.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)

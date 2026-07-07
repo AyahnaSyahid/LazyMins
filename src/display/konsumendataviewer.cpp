@@ -10,6 +10,7 @@
 
 #include "src/dialogs/konsumendialog.h"
 #include "src/managers/konsumenmanager.h"
+#include "src/display/konsumenorderbrowser.h"
 
 namespace {
 class KonsumenDelegate : public QStyledItemDelegate {
@@ -70,13 +71,13 @@ KonsumenDataViewer::KonsumenDataViewer(QWidget* parent) : DataViewer(parent) {
                k.catatan,
                pl.level_name  AS price_level,
                k.is_active,
-               k.last_seen
+               date(k.last_seen, 'localtime') AS last_seen
           FROM konsumen k
           JOIN price_levels pl ON k.price_level_id = pl.id
     )--");
 
   setFilterColumnNames(
-      {"k.customer_code", "k.nama_lengkap", "k.nomor_telp", "k.email"});
+      {"customer_code", "nama_lengkap", "nomor_telp", "email"});
   ui->dataView->setItemDelegate(new KonsumenDelegate(this));
   ui->dataView->verticalHeader()->hide();
   ui->dataView->setEditTriggers(QTableView::NoEditTriggers);
@@ -155,6 +156,16 @@ void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId) {
   dlg.exec();
 }
 
+void KonsumenDataViewer::openOrderHistory(int konsumenId)
+{
+  KonsumenOrderBrowser kod(this);
+  if (! kod.setCustomerId(konsumenId)) {
+    QMessageBox::warning(this, "Kesalahan", "Riwayat tidak dapat ditemukan");
+    return;
+  }
+  kod.exec();
+}
+
 void KonsumenDataViewer::on_dataView_customContextMenuRequested(
     const QPoint& pt) {
   QMenu menu;
@@ -163,6 +174,16 @@ void KonsumenDataViewer::on_dataView_customContextMenuRequested(
   auto clickedIndex = ui->dataView->indexAt(pt);
   const bool hasSelection = clickedIndex.isValid();
   
+  auto historyAction = menu.addAction("Riwayat Order");
+  historyAction->setToolTip("Lihat riwayat pesanan terkait");
+  historyAction->setEnabled(hasSelection);
+
+  connect(historyAction, &QAction::triggered, [this, clickedIndex] {
+    if (clickedIndex.isValid()) {
+      openOrderHistory(clickedIndex.siblingAtColumn(0).data().toInt());
+    }
+  });
+
   auto editAction = menu.addAction("Edit");
   editAction->setToolTip("Edit data konsumen");
   editAction->setEnabled(hasSelection);

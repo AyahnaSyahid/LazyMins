@@ -20,6 +20,7 @@ class ActionGroup : public QObject
 
   signals:
     void newAkunTransaksiCreated();
+    void expenseAdded();
   
   private:
     QWidget *m_root = nullptr;

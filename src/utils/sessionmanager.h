@@ -5,7 +5,7 @@
 #include <QEvent>
 
 #ifndef SESSION_MAX_IDLE_TIME
-#define SESSION_MAX_IDLE_TIME 180'000 // 3 minutes
+#define SESSION_MAX_IDLE_TIME 300'000 // 5 minutes
 #endif
 
 class QTimer;

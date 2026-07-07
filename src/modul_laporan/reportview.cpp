@@ -117,14 +117,14 @@ void ReportView::addPageShadow()
 {
     // Bayangan tipis di belakang halaman
     auto* shadow = m_scene->addRect(
-        22, 22, 794, 2000,
+        22, 22, 794, 1122,
         QPen(Qt::NoPen),
         QBrush(QColor(0, 0, 0, 30)));
     shadow->setZValue(-2);
 
     // Kertas putih utama
     auto* page = m_scene->addRect(
-        20, 20, 794, 2000,
+        20, 20, 794, 1122,
         QPen(QColor("#cccccc"), 0.5),
         QBrush(Qt::white));
     page->setZValue(-1);

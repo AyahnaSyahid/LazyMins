@@ -37,7 +37,7 @@
 class ReportLoader
 {
 public:
-    ReportLoader(QSqlDatabase &db) : m_db(db) {}
+    ReportLoader(QSqlDatabase &db, int adminId=0) : m_db(db), m_adminId(adminId) {}
 
     // ---- harian ----
     DailySalesReport   loadDailySales  (const QDate& date);
@@ -52,7 +52,9 @@ public:
 
 private:
     QSqlDatabase &m_db;
+    int m_adminId;
     QString m_error;
+    QString asUtcString(const QDate local);
 
     // ---- shared ----
     CompanyInfo loadCompanyInfo();
@@ -87,12 +89,12 @@ private:
 
     // Filter harian: DATE(datetime(col, '+7 hours')) = :date
     static QString wibFilter() {
-        return "DATE(datetime(%1, '+7 hours')) = :date";
+        return "DATE(%1, 'localtime') = :date";
     }
 
     // Filter range: DATE(datetime(col, '+7 hours')) BETWEEN :from AND :to
     static QString wibRangeFilter() {
-        return "DATE(datetime(%1, '+7 hours')) BETWEEN :from AND :to";
+        return "DATE(%1, 'localtime') BETWEEN :from AND :to";
     }
 
     // Bind parameter range ke QSqlQuery

@@ -49,7 +49,7 @@ struct OrderHeader
     QString   order_number;
 
     // Validation helper
-    bool isValid() const { return admin_id != -1 && !customer_name.trimmed().isEmpty(); }
+    bool isValid() const { return admin_id > 0 && !customer_name.trimmed().isEmpty(); }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ public:
     // Discard all pending changes:
     //   • If the order was never saved (m_orderId == -1): resets to blank state.
     //   • Otherwise: reloads from the DB.
-    bool revert(QSqlDatabase &db);
+    bool revert(QSqlDatabase &db = BaseManager::connection);
 
     // True if header or any item has uncommitted changes.
     bool isDirty() const;

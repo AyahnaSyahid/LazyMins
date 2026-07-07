@@ -16,6 +16,7 @@
 #include "src/dialogs/productdialog.h"
 #include "src/dialogs/revokepassworddialog.h"
 #include "src/dialogs/userdialog.h"
+#include "src/display/adminsviewer.h"
 #include "src/display/akuntransaksidataviewer.h"
 #include "src/display/finishingservicesviewer.h"
 #include "src/display/invoicedataviewer.h"
@@ -23,8 +24,8 @@
 #include "src/display/orderdataviewer.h"
 #include "src/display/paymentsdataviewer.h"
 #include "src/display/produkdataviewer.h"
-#include "src/managers/adminmanager.h"
 #include "src/managers/appsettingsmanager.h"
+#include "src/modul_laporan/reportdialog.h"
 #include "src/modul_laporan/reportloader.h"
 #include "src/modul_laporan/reportview.h"
 #include "src/printer/printservice.h"
@@ -103,6 +104,7 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   connect(ui->actionOrderCreate, &QAction::triggered, ord1,
           &OrderDataViewer::openCreateOrderDialog);
   connect(ord1, &OrderDataViewer::orderCreated, dv1, &DataViewer::refresh);
+  connect(ord1, &OrderDataViewer::stockChanged, dv1, &DataViewer::refresh);
 
   auto idv = new InvoiceDataViewer;
   auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
@@ -142,9 +144,11 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
 
   // InvoiceDataViewer bisa membuat pembayaran
   connect(idv, &InvoiceDataViewer::paymentCreated, pdv, &DataViewer::refresh);
+  connect(idv, &InvoiceDataViewer::paymentCreated, atdv, &DataViewer::refresh);
 
   // PaymentsDataViewer bisa memverifikasi pembayaran
   connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
+  connect(pdv, &PaymentsDataViewer::paymentVerified, atdv, &DataViewer::refresh);
 
   tabifyDockWidget(dsP, dsF); // products, finishings
   dsP->raise();
@@ -165,12 +169,13 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
       },
       this);
   connect(ui->actionInstantOrderCreate, &QAction::triggered,
-          [this, dv1, idv]()
+          [this, dv1, idv, atdv]()
           {
             auto dialog = new InstantOrderDialog(this);
             dialog->setAttribute(Qt::WA_DeleteOnClose);
             connect(dialog, &QDialog::accepted, dv1, &DataViewer::refresh);
             connect(dialog, &QDialog::accepted, idv, &DataViewer::refresh);
+            connect(dialog, &QDialog::accepted, atdv, &DataViewer::refresh);
             dialog->open();
           });
 
@@ -180,7 +185,10 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   ui->menuTambah->addSeparator();
   ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
   ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
-
+  connect(actionGroup, &ActionGroup::newAkunTransaksiCreated,
+          atdv, &AkunTransaksiDataViewer::refresh);
+  connect(actionGroup, &ActionGroup::expenseAdded,
+          atdv, &AkunTransaksiDataViewer::refresh);
   // UserSession
   auto &sm = SessionManager::instance();
   connect(&sm, &SessionManager::loginSuccess, this,
@@ -211,7 +219,10 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
     if (!sm.isSuperAdminSession()) ud->setEditRoleDisabled();
     ud->setAttribute(Qt::WA_DeleteOnClose);
     ud->open(); });
-
+  auto actBrowseAkun = new QAction("Lihat", this);
+  actBrowseAkun->setObjectName("browseAkunAction");
+  ui->menuAkun->insertAction(actEditAkun, actBrowseAkun);
+  connect(actBrowseAkun, &QAction::triggered, this, &MainWindow::onBrowseAccounts);
   // Window Title
   AppSettingsManager apm;
   setWindowTitle(
@@ -238,10 +249,10 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
           &PrintService::onPaymentCreated);
   connect(&p_svc, &PrintService::unableToPrint, [this](const QString &m)
           { QMessageBox::warning(this, "Tidak dapat mencetak", m); });
-
+  setupAutoPrintStuctAction();
   // pengamanan
   auto app = qApp;
-  if (QDate::currentDate() >= QDate::fromString("2026-06-20", "yyyy-MM-dd"))
+  if (QDate::currentDate() >= QDate::fromString("2027-01-01", "yyyy-MM-dd"))
   {
     QTimer::singleShot(60000, [app]()
                        {
@@ -274,31 +285,16 @@ MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
 {
-  auto dl = new QDialog(this);
-  auto l = new QVBoxLayout(dl);
-  auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection);
-  auto de = rl.loadDailyExpense(QDate::currentDate());
-  rv->showExpenseReport(de);
-  dl->setLayout(l);
-  l->addWidget(rv);
+
+  auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
   dl->setAttribute(Qt::WA_DeleteOnClose);
-  rv->resetTransform();
   dl->open();
 }
 
 void MainWindow::on_actionLaporanPenjualanHariIni_triggered()
 {
-  auto dl = new QDialog(this);
-  auto l = new QVBoxLayout(dl);
-  auto rv = new ReportView(dl);
-  ReportLoader rl(BaseManager::connection);
-  auto de = rl.loadDailySales(QDate::currentDate());
-  rv->showSalesReport(de);
-  dl->setLayout(l);
-  l->addWidget(rv);
+  auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
   dl->setAttribute(Qt::WA_DeleteOnClose);
-  rv->resetTransform();
   dl->open();
 }
 
@@ -314,11 +310,40 @@ void MainWindow::on_actionTentangQt_triggered()
   QMessageBox::aboutQt(this, "Tentang Qt");
 }
 
+void MainWindow::onBrowseAccounts()
+{
+  if (!SessionManager::instance().isSuperAdminSession())
+  {
+    QMessageBox::warning(
+        this, "Tidak dapat melihat/edit akun",
+        "Hanya super admin yang dapat melihat daftar akun");
+    return;
+  }
+  auto wd = new QDialog(this);
+  auto l = new QVBoxLayout(wd);
+  auto rv = new AdminsViewer(wd);
+  l->addWidget(rv);
+  wd->setLayout(l);
+  wd->setWindowTitle("Daftar Akun");
+  wd->setAttribute(Qt::WA_DeleteOnClose);
+  wd->open();
+}
+
 void MainWindow::setupToolbarActions()
 {
   // currently no dynamic action setup is needed, but this function can be used
   // in the future if we want to enable/disable actions based on user role or
   // other conditions
+}
+
+#include <QSettings>
+void MainWindow::setupAutoPrintStuctAction()
+{
+  QSettings settings;
+  bool autoPrintStructDisabled = settings.value("printer/disableAutoPrint", false).toBool();
+  ui->actionAutoPrintStruct->setChecked(!autoPrintStructDisabled);
+  connect(ui->actionAutoPrintStruct, &QAction::triggered, [this](bool checked)
+          { PrintService::instance().enableAutoPrint(checked); });
 }
 
 void MainWindow::openLoginForm()

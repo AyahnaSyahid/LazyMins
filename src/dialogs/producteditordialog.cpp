@@ -28,6 +28,7 @@ bool ProductEditorDialog::setProductId(int p) {
   m_origActive = rec.value("is_active").toInt();
   m_origUnit = rec.value("unit").toString();
   m_origDesc = rec.value("description").toString();
+  m_origCalcArea = rec.value("use_area").toInt();
 
   // Set ke UI
   ui->namaLineEdit->setText(m_origName);
@@ -37,6 +38,7 @@ bool ProductEditorDialog::setProductId(int p) {
       m_origActive == 1 ? 0 : 1);  // Asumsi Index 0 = Ya, 1 = Tidak
   ui->comboUnit->setCurrentText(m_origUnit);
   ui->descPlainTextEdit->setPlainText(m_origDesc);
+  ui->comboArea->setCurrentIndex(m_origCalcArea);
 
   return true;
 }
@@ -52,7 +54,8 @@ bool ProductEditorDialog::isDirty() const {
          (m_origCatId != ui->productCategoriesComboBox->currentId()) ||
          (m_origActive != (ui->aktifComboBox->currentText() == "Ya" ? 1 : 0)) ||
          (m_origUnit != ui->comboUnit->currentText()) ||
-         (m_origDesc != ui->descPlainTextEdit->toPlainText().trimmed());
+         (m_origDesc != ui->descPlainTextEdit->toPlainText().trimmed()) ||
+         (m_origCalcArea != ui->comboArea->currentIndex());
 }
 
 void ProductEditorDialog::on_simpanButton_clicked() {
@@ -105,6 +108,10 @@ bool ProductEditorDialog::commit() {
   data["is_active"] = (ui->aktifComboBox->currentText() == "Ya" ? 1 : 0);
   data["unit"] = ui->comboUnit->currentText();
   data["description"] = ui->descPlainTextEdit->toPlainText().trimmed();
+
+  // TODO: recheck harusnya pastikan dulu data ukuran sebelumnya adalah 1x1, tapi sepertinya sudah
+  data["use_area"] = ui->comboArea->currentIndex();
+
 
   if (m_productId < 1) {
     auto res = pm.create(data);

@@ -249,11 +249,14 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << EscPosPrinter::JustificationCenter
     << line('=')
     << EscPosPrinter::PrintModes(fontNormal | EscPosPrinter::PrintModeDoubleWidth | EscPosPrinter::PrintModeDoubleHeight | EscPosPrinter::PrintModeEmphasized)
-    << receipt.companyName << "\n"
+    << receipt.companyName
+    << EscPosPrinter::PrintModes(fontKecil)
+    << "\n"
+    << EscPosPrinter::PrintModes(fontKecil | fontBold)
+    << receipt.companyAddress << "\n"
     << EscPosPrinter::PrintModes(fontKecil)
     << line('-')
     << EscPosPrinter::PrintModes(fontKecil | fontBold)
-    << receipt.companyAddress << "\n"
     << receipt.companyPhone << "\n";
   if (!receipt.companyPhone2.isEmpty())
      p << receipt.companyPhone2 << "\n";

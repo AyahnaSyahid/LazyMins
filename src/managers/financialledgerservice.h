@@ -15,9 +15,13 @@ public:
     // - Ensuring no concurrent calls with the same paymentId
     bool handlePayment(int paymentId);
     bool canBeHandled(int paymentId);
+    
+    bool isVerified(int paymentId) const;
+    bool cancel(int paymentId);
 
     // Transaction Locked
     bool createPayment(const QVariantMap& params, int *paymentId = nullptr);
+    bool verify(int paymentId, int by);
 
 private:
     void resetError() { m_errorString = ""; }

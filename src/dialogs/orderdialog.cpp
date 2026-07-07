@@ -319,8 +319,8 @@ void OrderDialog::on_simpanButton_clicked() {
   header.discount_percentage =
       static_cast<int>(ui->diskonDoubleSpinBox->value());
   // header.tax_amount         = ui->pajakRpSpinBox->value();
-  header.order_date = ui->tOrderDateTimeEdit->dateTime();
-  header.deadline_date = ui->dLineDateTimeEdit->dateTime();
+  header.order_date = ui->tOrderDateTimeEdit->dateTime().toUTC();
+  header.deadline_date = ui->dLineDateTimeEdit->dateTime().toUTC();
   // header.status             = "pending";
   header.priority = "normal";
   // header.payment_status     = "unpaid";

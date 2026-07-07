@@ -1,31 +1,25 @@
 #include "paymentmanager.h"
+
 #include "src/managers/financialledgerservice.h"
 #include "src/utils/sessionmanager.h"
 #include "src/utils/sqltransaction.h"
 
-QString
-PaymentManager::nextNumber()
-{
+QString PaymentManager::nextNumber() {
   return generateCode("payments", "payment_number", "PYM-", 5, true);
 }
 
 PaymentManager::PaymentManager() : BaseManager("payments", false) {}
 
-bool PaymentManager::beforeCreate(QVariantMap &params)
-{
-  if (!params.contains("payment_number") || params["payment_number"].toString().isEmpty())
-  {
+bool PaymentManager::beforeCreate(QVariantMap& params) {
+  if (!params.contains("payment_number") ||
+      params["payment_number"].toString().isEmpty()) {
     params["payment_number"] = nextNumber();
   }
-  if (!params.contains("admin_id") || params["admin_id"].toInt() <= 0)
-  {
+  if (!params.contains("admin_id") || params["admin_id"].toInt() <= 0) {
     int ca = SessionManager::instance().currentUserId();
-    if (ca > 0)
-    {
+    if (ca > 0) {
       params["admin_id"] = ca;
-    }
-    else
-    {
+    } else {
       setErrorString("Parameter admin_id tidak valid");
       return false;
     }
@@ -33,68 +27,50 @@ bool PaymentManager::beforeCreate(QVariantMap &params)
   return true;
 }
 
-QList<QSqlRecord>
-PaymentManager::getByInvoice(int invoiceId)
-{
-  return getWhere("invoice_id = :invoice_id",
-                  {{"invoice_id", invoiceId}}, "payment_date DESC");
+QList<QSqlRecord> PaymentManager::getByInvoice(int invoiceId) {
+  return getWhere("invoice_id = :invoice_id", {{"invoice_id", invoiceId}},
+                  "payment_date DESC");
 }
 
-QList<QSqlRecord>
-PaymentManager::getByStatus(const QString &verificationStatus)
-{
+QList<QSqlRecord> PaymentManager::getByStatus(
+    const QString& verificationStatus) {
   return getWhere("verification_status = :status COLLATE NOCASE",
                   {{"status", verificationStatus}}, "payment_date DESC");
 }
 
-bool PaymentManager::verify(int id, int verifiedByAdminId)
-{
+bool PaymentManager::verify(int id, int verifiedByAdminId) {
   auto opt_pay = getById(id);
 
-  if (!opt_pay)
-  {
+  if (!opt_pay) {
     setErrorString("Data pembayaran tidak ditemukan");
     return false;
   }
 
-  if (opt_pay->value("verification_status").toString() == "verified")
-  {
+  if (opt_pay->value("verification_status").toString() == "verified") {
     setErrorString("Pembayaran sudah diverifikasi");
     return false;
   }
 
-  if (opt_pay->value("verification_status").toString() == "cancelled")
-  {
+  if (opt_pay->value("verification_status").toString() == "cancelled") {
     setErrorString("Pembayaran sudah dibatalkan");
     return false;
   }
 
-  if (update(id,
-             {{"verification_status", "verified"}, {"verified_by", verifiedByAdminId}, {"updated_at", dateTimeToSql()}}))
-  {
-    FinancialLedgerService flc;
-    if (!flc.handlePayment(id))
-    {
-      setErrorString(flc.errorString());
-      return false;
-    }
-    return true;
-  }
-  return false;
+  return update(id, {{"verification_status", "verified"},
+                     {"verified_at", dateTimeToSql()},
+                     {"verified_by", verifiedByAdminId},
+                     {"updated_at", dateTimeToSql()}});
 }
 
-bool PaymentManager::cancel(int id, int admin_id)
-{
+bool PaymentManager::cancel(int id, int admin_id) {
   auto opt_pay = getById(id);
 
-  if (!opt_pay)
-  {
+  if (!opt_pay) {
     setErrorString("Data pembayaran tidak ditemukan");
     return false;
   }
 
-  if (opt_pay->value("verification_status").toString() == "cancelled")
-  {
+  if (opt_pay->value("verification_status").toString() == "cancelled") {
     setErrorString("Pembayaran sudah dibatalkan");
     return false;
   }
@@ -110,15 +86,13 @@ bool PaymentManager::cancel(int id, int admin_id)
   q.bindValue(":updated_at", dateTimeToSql());
   q.bindValue(":verified_by", admin_id);
   q.bindValue(":id", id);
-  if (!q.exec())
-  {
+  if (!q.exec()) {
     setErrorString(q.lastError().text());
     return false;
   }
-  if (q.numRowsAffected() > 0)
-  {
-    FinancialLedgerService flc;
-    return flc.handlePayment(id);
+  if (q.numRowsAffected() == 0) {
+    setErrorString("Pembayaran tidak ditemukan");
+    return false;
   }
-  return false;
+  return true;
 }

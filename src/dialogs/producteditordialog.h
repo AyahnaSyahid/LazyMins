@@ -31,6 +31,7 @@ private:
     int m_origActive;
     QString m_origUnit;
     QString m_origDesc;
+    int m_origCalcArea;
 
     bool isDirty() const;
     bool commit();

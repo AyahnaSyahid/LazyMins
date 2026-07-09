@@ -1,3 +1,6 @@
 [submodule "escpos-qt"]
 	path = escpos-qt
 	url = https://github.com/ceciletti/escpos-qt.git
+[submodule "static_openssl_3.5"]
+	path = static_openssl_3.5
+	url = https://github.com/clamwin/openssl.git

@@ -22,6 +22,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core5Compat
 )
 
+
 qt_standard_project_setup()
 
 # ==================== 1. Core & Utils Library ====================
@@ -206,6 +207,8 @@ target_link_libraries(LazyMins PRIVATE
     Qt6::SerialPort
     Qt6::Core5Compat
 )
+
+add_subdirectory(src/token)
 
 # ==================== Build Information ====================
 message(STATUS "========================================")

@@ -285,8 +285,8 @@ MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
 {
-
   auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
+  dl->setMode(ReportDialog::ExpenseMode);
   dl->setAttribute(Qt::WA_DeleteOnClose);
   dl->open();
 }

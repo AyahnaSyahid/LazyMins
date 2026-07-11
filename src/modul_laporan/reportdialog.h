@@ -13,8 +13,11 @@ class ReportDialog : public QDialog
 {
     Q_OBJECT
 public:
+    enum ReportMode { SalesMode, ExpenseMode };
     ReportDialog(QSqlDatabase &db, int adminId = 1, QWidget * parent = nullptr);
     ~ReportDialog();
+
+    void setMode(ReportMode rm);
 
 private slots:
     void on_simpanButton_clicked();
@@ -23,4 +26,5 @@ private slots:
 private:
     Ui::ReportDialog *ui;
     ReportLoader *loader;
+    ReportMode m_reportMode;
 };

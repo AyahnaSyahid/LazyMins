@@ -3,12 +3,13 @@
 #include "reportview.h"
 #include "ui_reportdialog.h"
 #include <QFileDialog>
-#include <QSqlDatabase>
 #include <QGraphicsScene>
+#include <QSqlDatabase>
 
 #include <QDate>
 
-ReportDialog::ReportDialog(QSqlDatabase &db, int adminId, QWidget *parent) : QDialog(parent), ui(new Ui::ReportDialog), loader(new ReportLoader(db, adminId))
+ReportDialog::ReportDialog(QSqlDatabase &db, int adminId, QWidget *parent)
+    : QDialog(parent), ui(new Ui::ReportDialog), loader(new ReportLoader(db, adminId)), m_reportMode(SalesMode)
 {
     ui->setupUi(this);
     ui->dateEdit->setDate(QDate::currentDate());
@@ -21,10 +22,24 @@ ReportDialog::~ReportDialog()
     delete loader;
 }
 
+void ReportDialog::setMode(ReportMode rm)
+{
+    m_reportMode = rm;
+}
+
 void ReportDialog::on_refreshButton_clicked()
 {
-    auto loaded = loader->loadDailySales(ui->dateEdit->date());
-    ui->graphicsView->showSalesReport(loaded);
+    QDate selectedDate = ui->dateEdit->date();
+    if (m_reportMode == SalesMode)
+    {
+        auto loaded = loader->loadDailySales(selectedDate);
+        ui->graphicsView->showSalesReport(loaded);
+    }
+    else
+    {
+        auto loaded = loader->loadDailyExpense(selectedDate);
+        ui->graphicsView->showExpenseReport(loaded);
+    }
 }
 
 void ReportDialog::on_simpanButton_clicked()

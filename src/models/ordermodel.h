@@ -71,6 +71,37 @@ struct FinishingItem
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+#include <QDebug>
+#include <type_traits>
+struct OrderItem;
+
+template <typename T>
+typename std::enable_if<std::is_same<T, OrderItem>::value, QDebug>::type
+operator<<(QDebug dbg, const T &item) {
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "OrderItem("
+                  << "id: " << item.id
+                  << ", order_id: " << item.order_id
+                  << ", product_id: " << item.product_id
+                  << ", product_name: " << item.product_name
+                  << ", sku: " << item.sku
+                  << ", quantity: " << item.quantity
+                  << ", unit: " << item.unit
+                  << ", size: " << item.size_width << "x" << item.size_height
+                  << ", use_area: " << item.use_area
+                  << ", sale_price: " << item.sale_price
+                  << ", base_price: " << item.base_price
+                  << ", discount_percentage: " << item.discount_percentage
+                  << ", discount_amount: " << item.discount_amount
+                  << ", finishing_total: " << item.finishing_total
+                  << ", subtotal: " << item.subtotal()
+                  << ", total: " << item.total()
+                  << ", notes: " << item.notes
+                  << ", finishings_count: " << item.finishings.count()
+                  << ")";
+    return dbg;
+}
+
 struct OrderItem
 {
     int     id         = -1,
@@ -171,8 +202,15 @@ public:
     // ── Accessors ─────────────────────────────────────────────────────────────
     const OrderItem &itemAt(int row) const { return m_items.at(row); }
     int  orderId() const { return m_orderId; }
-    OrderItem &itemRef(int ix) { return m_items[ix]; }
+    OrderItem itemCopy(int ix) const { 
+        if (ix < m_items.count())
+            return m_items[ix];
+        return OrderItem(); }
+
     const QList<OrderItem>& items() const { return m_items; }
+
+    bool setItem(int row, OrderItem item);
+
 signals:
     // Emitted after every in-memory mutation so a UI total label can update
     // immediately without waiting for commit().

@@ -45,7 +45,7 @@ constexpr int cColSku = 5;
 }  // namespace
 
 OrderItemDialog::OrderItemDialog(QWidget* parent)
-    : QDialog(parent), ui(new Ui::OrderItemDialog), m_mode(Create), m_orderItem {nullptr} {
+    : QDialog(parent), ui(new Ui::OrderItemDialog), m_mode(Create), m_itemEdit{} {
   ui->setupUi(this);
   setupProdukComboBox();
   setupFinishingView();
@@ -75,12 +75,11 @@ void OrderItemDialog::setupProdukComboBox() {
 
 OrderItemDialog::~OrderItemDialog() { delete ui; }
 
-void OrderItemDialog::setOrder(OrderItem* order) {
+void OrderItemDialog::setOrder(OrderItem order, int row)
+{
   m_mode = Modify;
-  m_orderItem = order;
-
-  // Block all input signals while we populate – avoids re-entrant
-  // recalculation triggered by individual setValue/setText calls.
+  m_itemEdit = order;
+  m_rowEdit = row;
   const QList<QWidget*> inputs{ui->namaLineEdit,    ui->qtySpinBox,
                                ui->hargaSpinBox,    ui->diskonDoubleSpinBox,
                                ui->diskonRpSpinBox, ui->widthBox,
@@ -90,36 +89,42 @@ void OrderItemDialog::setOrder(OrderItem* order) {
   // get the combobox index
   for (auto* w : inputs) w->blockSignals(true);
 
-  int currentProductId = order->product_id;
-  qDebug() << "Current Product ID:" << currentProductId;
+  int currentProductId = m_itemEdit.product_id;
+  // qDebug() << "Current Product ID:" << currentProductId;
   auto prmodel = ui->produkComboBox->model();
   auto indexes = prmodel->match(prmodel->index(0, 0), Qt::DisplayRole,
                                 currentProductId, 1, Qt::MatchExactly);
   if (indexes.isEmpty()) return;
   auto currentIndex = indexes.first().row();
   ui->produkComboBox->setCurrentIndex(currentIndex);
+  ui->namaLineEdit->setText(m_itemEdit.product_name);
 
-  ui->namaLineEdit->setText(order->product_name);
-  if (!order->use_area) {
+  if (!m_itemEdit.use_area) {
     ui->heightBox->setValue(1);
     ui->heightBox->setEnabled(false);
     ui->widthBox->setValue(1);
     ui->widthBox->setEnabled(false);
   } else {
-    ui->heightBox->setValue(order->size_height);
+    ui->heightBox->setValue(m_itemEdit.size_height);
     ui->heightBox->setEnabled(true);
-    ui->widthBox->setValue(order->size_width);
+    ui->widthBox->setValue(m_itemEdit.size_width);
     ui->widthBox->setEnabled(true);
   }
-  ui->hargaSpinBox->setValue(order->sale_price);
-  ui->diskonDoubleSpinBox->setValue(order->discount_percentage);
-  ui->diskonRpSpinBox->setValue(order->discount_amount);
-  ui->notesTextEdit->setPlainText(order->notes);
-  m_finishingListModel.setList(&order->finishings);
+  ui->hargaSpinBox->setValue(m_itemEdit.sale_price);
+  ui->diskonDoubleSpinBox->setValue(m_itemEdit.discount_percentage);
+  ui->diskonRpSpinBox->setValue(m_itemEdit.discount_amount);
+  ui->notesTextEdit->setPlainText(m_itemEdit.notes);
+  m_finishingListModel.setList(&m_itemEdit.finishings);
 
   for (auto* w : inputs) w->blockSignals(false);
+
   // Now do one clean recalculation with all values in place.
-  ui->qtySpinBox->setValue(order->quantity);
+  ui->qtySpinBox->setValue(m_itemEdit.quantity);
+}
+
+OrderItemDialog::OrderItemEditResult OrderItemDialog::editResult() const
+{
+    return OrderItemEditResult( m_itemEdit, m_rowEdit );
 }
 
 void OrderItemDialog::resetForm() { ui->produkComboBox->setCurrentIndex(-1); }
@@ -148,11 +153,7 @@ void OrderItemDialog::on_simpanButton_clicked() {
   if (m_mode == Create) {
     emit itemCreated(oi);
   } else {
-    // Edit mode: update the existing item in place
-    if (m_orderItem) {
-      *m_orderItem = oi;
-      emit editFinished();
-    }
+    emit editFinished();
   }
   accept();
 }
@@ -189,6 +190,7 @@ OrderItem OrderItemDialog::buildOrderItemFromUi(
   oi.discount_amount = ui->diskonRpSpinBox->value();
   oi.finishing_total = m_finishingListModel.total();
   oi.notes = ui->notesTextEdit->toPlainText();
+
   if (m_mode == Create) {
     oi.finishings.clear();
     auto p = m_finishingListModel.getItems();
@@ -196,6 +198,7 @@ OrderItem OrderItemDialog::buildOrderItemFromUi(
       oi.finishings << fp;
     }
   }
+
   return oi;
 }
 

@@ -18,6 +18,12 @@ public:
       Modify
     };
 
+    struct OrderItemEditResult {
+        OrderItem item;
+        int rowNumber;
+        OrderItemEditResult(OrderItem o, int r) : item(o), rowNumber(r) {}
+    };
+
     explicit OrderItemDialog(QWidget *parent = nullptr);
     ~OrderItemDialog();
 
@@ -26,10 +32,13 @@ public:
         m_customerPriceLevel = priceLevel;
     }
     
-    void setOrder(OrderItem *order);
-    
+    void setOrder(OrderItem order, int row=-1);
+
+    OrderItemEditResult editResult() const;
+
     const FinishingListModel& finishingModel() const { return m_finishingListModel; }
     const Mode &mode() { return m_mode; }
+
 
 public slots:
     void resetForm();
@@ -75,5 +84,6 @@ private:
     ProductPriceManager m_priceManager;
     ProductManager m_productManager;
     Mode m_mode;
-    OrderItem *m_orderItem = nullptr;
+    OrderItem m_itemEdit;
+    int m_rowEdit;
 };

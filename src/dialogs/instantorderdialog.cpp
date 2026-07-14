@@ -94,15 +94,16 @@ void InstantOrderDialog::on_orderListView_customContextMenuRequested(
     auto edit = context.addAction("Edit");
     connect(edit, &QAction::triggered, [this, &pIndex]() {
       auto dialog = new OrderItemDialog(this);
-      dialog->setAttribute(Qt::WA_DeleteOnClose);
-      dialog->setOrder(&omod.itemRef(pIndex.row()));
+      // dialog->setAttribute(Qt::WA_DeleteOnClose);
+      auto item = omod.itemCopy(pIndex.row());
+      dialog->setOrder(item, pIndex.row());
       dialog->setCustomerPriceLevel(
           ui->lHargaComboBox->model()
               ->index(ui->lHargaComboBox->currentIndex(), 0)
               .data()
               .toInt());
       connect(dialog, &OrderItemDialog::editFinished, this,
-              &InstantOrderDialog::recalculate);
+              &InstantOrderDialog::orderItemDialogFinished);
       dialog->open();
     });
   }
@@ -156,6 +157,18 @@ void InstantOrderDialog::setCustomerRecord(const QSqlRecord& record) {
   hdr.customer_id = customerSet.id;
   hdr.price_level_id = customerSet.price_level;
   omod.setHeaderField(hdr);
+}
+
+void InstantOrderDialog::orderItemDialogFinished()
+{
+  auto *oid = qobject_cast<OrderItemDialog*>(sender());
+  if(oid) {
+    auto result = oid->editResult();
+    if (omod.setItem(result.rowNumber, result.item)) {
+        recalculate();
+    }
+    oid->deleteLater();
+  }
 }
 
 bool InstantOrderDialog::checkInput() {

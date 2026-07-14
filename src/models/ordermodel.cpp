@@ -10,6 +10,17 @@
 #include <QSqlRecord>
 #include <QDebug>
 
+
+bool OrderModel::setItem(int row, OrderItem item)
+{
+    if (row > -1 && row < m_items.count()) {
+        m_items.replace(row, item);
+        emit dataChanged(index(row), index(row));
+        return true;
+    }
+    return false;
+}
+
 // ============================================================================
 // Helpers – pure in-memory recalculation
 // ============================================================================

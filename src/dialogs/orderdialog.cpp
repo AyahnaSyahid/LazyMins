@@ -231,6 +231,20 @@ void OrderDialog::setCustomer(const QSqlRecord& rc) {
   ui->konsumenLineEdit->setText(customerSet.name);
 }
 
+void OrderDialog::editOrderItemDialogFinished()
+{
+  OrderItemDialog *oid = qobject_cast<OrderItemDialog*>(sender());
+  if(oid){
+    auto er = oid->editResult();
+    if(er.rowNumber > -1 && er.rowNumber < m_model->rowCount()) {
+      if ( m_model->setItem(er.rowNumber, er.item) ) {
+        updateCalculation();
+        oid->deleteLater();
+      }
+    }
+  }
+}
+
 void OrderDialog::updateCalculation() {
   auto subtotal = 0;
   for (int i = 0; i < m_model->rowCount(); ++i) {
@@ -251,15 +265,16 @@ void OrderDialog::on_orderItemList_customContextMenuRequested(
     auto edit = contextMenu.addAction("Edit");
     connect(edit, &QAction::triggered, this, [this, row]() {
       auto editor = new OrderItemDialog(this);
-      editor->setAttribute(Qt::WA_DeleteOnClose);
+      // editor->setAttribute(Qt::WA_DeleteOnClose);
       auto priceLevel = ui->priceLevelComboBox->currentId();
       editor->setCustomerPriceLevel(priceLevel);
       // Pass a mutable copy; on accept we replace the item in the model
       // OrderItem item = m_model->itemAt(row);
-      auto& item = m_model->itemRef(row);
-      editor->setOrder(&item);
+      // auto& item = m_model->itemRef(row);
+      auto item = m_model->itemCopy(row);
+      editor->setOrder(item, row);
       connect(editor, &OrderItemDialog::editFinished, this,
-              &OrderDialog::updateCalculation);
+              &OrderDialog::editOrderItemDialogFinished);
       editor->open();
     });
 

@@ -29,6 +29,7 @@ private slots:
   void addItem(const OrderItem &item) { omod.addItem(item); }
   void recalculate();
   void setCustomerRecord(const QSqlRecord &record);
+  void orderItemDialogFinished();
 
 private:
   bool checkInput();

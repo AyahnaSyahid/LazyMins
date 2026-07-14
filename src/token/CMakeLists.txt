@@ -21,9 +21,11 @@
 # error yang jelas kalau tidak ketemu.
 # ------------------------------------------------------------------
 
-set(OPENSSL_CUSTOM_INCLUDE "${CMAKE_SOURCE_DIR}/static_openssl_3.5/include" CACHE PATH "" FORCE)
-set(OPENSSL_CUSTOM_SSL_LIB "${CMAKE_SOURCE_DIR}/static_openssl_3.5/lib/mingw/x64/libssl.a" CACHE FILEPATH "" FORCE)
-set(OPENSSL_CUSTOM_CRYPTO_LIB "${CMAKE_SOURCE_DIR}/static_openssl_3.5/lib/mingw/x64/libcrypto.a" CACHE FILEPATH "" FORCE)
+if (WIN32)
+    set(OPENSSL_CUSTOM_INCLUDE "${CMAKE_SOURCE_DIR}/static_openssl_3.5/include" CACHE PATH "" FORCE)
+    set(OPENSSL_CUSTOM_SSL_LIB "${CMAKE_SOURCE_DIR}/static_openssl_3.5/lib/mingw/x64/libssl.a" CACHE FILEPATH "" FORCE)
+    set(OPENSSL_CUSTOM_CRYPTO_LIB "${CMAKE_SOURCE_DIR}/static_openssl_3.5/lib/mingw/x64/libcrypto.a" CACHE FILEPATH "" FORCE)
+endif()
 
 if(OPENSSL_CUSTOM_INCLUDE AND OPENSSL_CUSTOM_SSL_LIB AND OPENSSL_CUSTOM_CRYPTO_LIB)
     set(OPENSSL_INCLUDE_DIR ${OPENSSL_CUSTOM_INCLUDE})

@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.23)
 project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
+# ================ Build Specific Setting =================
+
+set(APPLICATION_SET_ORGANIZATION_NAME "Aksarajaya" CACHE STRING "Dibuat untuk Organisasi/perusahaan" FORCE )
+set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default" FORCE )
+
+
 # ==================== Global Settings ====================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -190,6 +196,7 @@ else()
     qt_add_executable(LazyMins ${EXECUTABLE_SOURCES})
 endif()
 
+target_compile_definitions(LazyMins PRIVATE APP_ORGANIZATION="${APPLICATION_SET_ORGANIZATION_NAME}" PRIVATE APP_NAME="${APPLICATION_SET_NAME}")
 
 # Link semua modul ke target utama [cite: 6]
 target_link_libraries(LazyMins PRIVATE 
@@ -217,4 +224,6 @@ message(STATUS "Build Type       : ${CMAKE_BUILD_TYPE}")
 message(STATUS "Generator        : ${CMAKE_GENERATOR}")
 message(STATUS "CXX Standard     : C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Executable       : LazyMins")
+message(STATUS "AppOrg           : ${APPLICATION_SET_ORGANIZATION_NAME}")
+message(STATUS "AppName          : ${APPLICATION_SET_NAME}")
 message(STATUS "========================================")

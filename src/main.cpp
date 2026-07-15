@@ -14,8 +14,8 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     Q_INIT_RESOURCE(database_resources);
 
-    app.setOrganizationName("AksaraJaya");
-    app.setApplicationName("LazyAdmins");
+    app.setOrganizationName(APP_ORGANIZATION);
+    app.setApplicationName(APP_NAME);
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
     PrintService::instance().loadSettings();

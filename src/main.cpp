@@ -20,6 +20,8 @@ int main(int argc, char **argv)
 
     PrintService::instance().loadSettings();
 
+    auto &sman = SessionManager::instance();
+    app.connect(&app, &QCoreApplication::aboutToQuit, &sman, &SessionManager::logout);
     DatabaseManager &dbm = DatabaseManager::instance();
 
     if (dbm.isFirstRun()) {
@@ -45,6 +47,5 @@ int main(int argc, char **argv)
     app.installEventFilter(&SessionManager::instance());
     MainWindow mainWindow;
     // show() called from login dialog
-    
     return app.exec();
 }

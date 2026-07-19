@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuPengaturan">
@@ -66,13 +66,6 @@
     <property name="title">
      <string>Data</string>
     </property>
-    <widget class="QMenu" name="menuTambah">
-     <property name="title">
-      <string>Tambah</string>
-     </property>
-     <addaction name="actionProdukAdd"/>
-     <addaction name="actionAddKatProduk"/>
-    </widget>
     <widget class="QMenu" name="menuBuatLaporan">
      <property name="title">
       <string>Buat Laporan</string>
@@ -92,7 +85,6 @@
      <addaction name="menuPenjualan"/>
      <addaction name="menuPengeluaran"/>
     </widget>
-    <addaction name="menuTambah"/>
     <addaction name="menuBuatLaporan"/>
    </widget>
    <addaction name="menuPengaturan"/>
@@ -120,7 +112,6 @@
    <addaction name="actionAdminAdd"/>
    <addaction name="separator"/>
    <addaction name="actionKonsumenAdd"/>
-   <addaction name="actionProdukAdd"/>
   </widget>
   <widget class="QToolBar" name="transactionToolbar">
    <property name="windowTitle">
@@ -165,21 +156,6 @@
    </property>
    <property name="toolTip">
     <string>Tambah Konsumen</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionProdukAdd">
-   <property name="icon">
-    <iconset resource="../../resources/database_resources.qrc">
-     <normaloff>:/svg/svg/add-product.svg</normaloff>:/svg/svg/add-product.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Produk</string>
-   </property>
-   <property name="toolTip">
-    <string>Tambah Produk</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -237,11 +213,6 @@
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionAddKatProduk">
-   <property name="text">
-    <string>Kategori Produk</string>
    </property>
   </action>
   <action name="actionEscPosConfig">

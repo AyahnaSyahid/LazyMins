@@ -14,6 +14,7 @@ public:
     QAction* addProductAction();
     QAction* addCategoryProductAction();
 
+    bool initialize(MainWindowContext *ctx);
 
 public slots:
     // void openStockOpname(int product_id);

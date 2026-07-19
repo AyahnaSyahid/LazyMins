@@ -32,6 +32,7 @@
 #include "src/utils/posprintertestdialog.h"
 #include "src/utils/sessionmanager.h"
 #include "ui_mainwindow.h"
+#include "mainwindowcontext.h"
 
 namespace
 {
@@ -64,7 +65,7 @@ namespace
   }
 } // namespace
 
-MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
+MainWindow::MainWindow(QWidget *p) : QMainWindow(p), ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
   ui->menuToolbar->addAction(ui->addDataToolbar->toggleViewAction());
@@ -77,23 +78,20 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
     return dw;
   };
 
+  context = new MainWindowContext(this, menuBar(), this);
+
   auto dv1 = new ProdukDataViewer;
-  auto dsP = dockSetup(new QDockWidget(this), "Data Produk", dv1);
-  addDockWidget(Qt::TopDockWidgetArea, dsP);
-  dv1->setPageSize(100);
-  dv1->refresh();
-  ui->menuView->addAction(dsP->toggleViewAction());
-  connect(ui->actionProdukAdd, &QAction::triggered, dv1->addProductAction(),
-          &QAction::trigger);
-  connect(ui->actionAddKatProduk, &QAction::triggered,
-          dv1->addCategoryProductAction(), &QAction::trigger);
+  dv1->initialize(context);
 
   auto fs1 = new FinishingServicesViewer;
-  auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
-  addDockWidget(Qt::LeftDockWidgetArea, dsF);
+  fs1->initialize(context);
+  // auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
+  // addDockWidget(Qt::LeftDockWidgetArea, dsF);
   fs1->setPageSize(100);
   fs1->refresh();
-  ui->menuView->addAction(dsF->toggleViewAction());
+  // ui->menuView->addAction(dsF->toggleViewAction());
+
+  context->craftAll();
 
   auto ord1 = new OrderDataViewer;
   auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
@@ -150,8 +148,8 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   connect(pdv, &PaymentsDataViewer::paymentVerified, idv, &DataViewer::refresh);
   connect(pdv, &PaymentsDataViewer::paymentVerified, atdv, &DataViewer::refresh);
 
-  tabifyDockWidget(dsP, dsF); // products, finishings
-  dsP->raise();
+  // tabifyDockWidget(dsPy, dsF); // products, finishings
+  dsPy->raise();
 
   tabifyDockWidget(dsO, dsI);  // orders, invoices
   tabifyDockWidget(dsI, dsPy); // invoices, payments
@@ -181,10 +179,13 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
 
   // Various actions
   auto actionGroup = new ActionGroup(this);
+  auto _menuTambah = context->getOrCreateMenu("Data/Tambah");
   actionGroup->setRootWidget(this);
-  ui->menuTambah->addSeparator();
-  ui->menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
-  ui->menuTambah->addAction(actionGroup->catatPengeluaranAction);
+
+  _menuTambah->addSeparator();
+  _menuTambah->addAction(actionGroup->buatAkunTransaksiAction);
+  _menuTambah->addAction(actionGroup->catatPengeluaranAction);
+
   connect(actionGroup, &ActionGroup::newAkunTransaksiCreated,
           atdv, &AkunTransaksiDataViewer::refresh);
   connect(actionGroup, &ActionGroup::expenseAdded,
@@ -354,17 +355,9 @@ void MainWindow::openLoginForm()
     return;
   }
   // hide();
-  auto ld = new LoginDialog();
+  auto ld = new LoginDialog(this);
+  ld->adjustSize();
   connect(ld, &LoginDialog::accepted, this, &QWidget::show);
-  connect(ld, &LoginDialog::rejected, [this]()
-          {
-    if (QMessageBox::question(
-            this, "Batal Masuk",
-            "Anda yakin membatalkan masuk ?\nIni akan menutup aplikasi",
-            QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-      qApp->quit();
-    else
-      this->openLoginForm(); });
   ld->setAttribute(Qt::WA_DeleteOnClose);
   ld->open();
 }

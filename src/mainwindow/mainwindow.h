@@ -6,6 +6,7 @@ namespace Ui {
   class MainWindow;
 }
 
+class MainWindowContext;
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
@@ -25,7 +26,7 @@ class MainWindow : public QMainWindow
     void onBrowseAccounts();
 
   private:
-
+    MainWindowContext *context;
     void setupToolbarActions();
     Ui::MainWindow *ui;
 

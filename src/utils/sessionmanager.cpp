@@ -72,7 +72,7 @@ bool SessionManager::eventFilter(QObject *obj, QEvent *event)
       event->type() == QEvent::TouchBegin) {
     restartIdleTimer();
   }
-  return QObject::eventFilter(obj, event);
+  return false;
 }
 
 std::optional<QSqlRecord> SessionManager::currentUser() const {

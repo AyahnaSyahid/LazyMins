@@ -1,7 +1,7 @@
 
 #include <cstddef>
 namespace Migration {
-    namespace SqliteV1 {
+    namespace Sqlite::V1 {
 
         // ====================================================================
         // 1. CREATE TABLES

@@ -215,6 +215,12 @@ FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
 
 FinishingServicesViewer::~FinishingServicesViewer() {}
 
+bool FinishingServicesViewer::initialize(MainWindowContext *ctx)
+{
+    ctx->addDock(this, "Data Finishing", Qt::TopDockWidgetArea, "top_left");
+    return true;
+}
+
 void FinishingServicesViewer::on_dataView_customContextMenuRequested(const QPoint& p) {
   auto &m = model();
   QMenu context;

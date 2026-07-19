@@ -186,12 +186,11 @@ void ProdukDataViewer::openPriceEditorDialog(int productId)
 
 QAction* ProdukDataViewer::addProductAction()
 {
-  if(m_addProductAction == nullptr) {
+  if(!m_addProductAction) {
     m_addProductAction = new QAction("Produk", this);
     m_addProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
     m_addProductAction->setObjectName("addProductAction");
     m_addProductAction->setToolTip("Tambah Produk baru");
-    connect(m_addProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddProductActionTriggered);
   }
   return m_addProductAction;
 }
@@ -200,19 +199,27 @@ void ProdukDataViewer::onAddProductActionTriggered() {
   ProductDialog pd(this);
   pd.prepareCreate();
   connect(&pd, &QDialog::accepted, this, &DataViewer::refresh);
-  pd.setWindowTitle("Form Produk Baru");
+  pd.setWindowTitle("Tambah Produk");
   pd.exec();
 }
 
 QAction* ProdukDataViewer::addCategoryProductAction() {
-  if(m_addCategoryProductAction == nullptr) {
+  if(!m_addCategoryProductAction) {
     m_addCategoryProductAction = new QAction("Kategori Produk", this);
-    // m_addCategoryProductAction->setIcon(QIcon(":/svg/svg/add-product.svg"));
     m_addCategoryProductAction->setObjectName("addCategoryProductAction");
     m_addCategoryProductAction->setToolTip("Tambah Kategori Produk baru");
-    connect(m_addCategoryProductAction, &QAction::triggered, this, &ProdukDataViewer::onAddCategoryProductActionTriggered);
   }
   return m_addCategoryProductAction;
+}
+
+bool ProdukDataViewer::initialize(MainWindowContext *ctx)
+{
+    auto docked = ctx->addDock(this, "Data Produk", Qt::TopDockWidgetArea, "top_left", true);
+    ctx->addMenuAction("Data/Produk", addProductAction(), [this] { onAddProductActionTriggered(); });
+    ctx->addMenuAction("Data/Produk", addCategoryProductAction(), [this] { onAddCategoryProductActionTriggered(); });
+    ctx->addDockToggleMenu(docked, "View");
+    ctx->onEvent("order_created", this, [this](QVariant va){ refresh(); });
+    return true;
 }
 
 void ProdukDataViewer::onAddCategoryProductActionTriggered() {

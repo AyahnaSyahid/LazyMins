@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "src/models/advancedquerymodel.h"
 #include <QTimer>
+#include "src/mainwindow/mainwindowcontext.h"
 
 namespace Ui {
     class DataViewer;
@@ -11,6 +12,7 @@ namespace Ui {
 class DataViewer : public QWidget
 {
     Q_OBJECT
+
 public:
     DataViewer(QWidget *parent = nullptr);
     virtual ~DataViewer();
@@ -20,6 +22,8 @@ public:
     void setColumnVisible(int col, bool vis);
     void setFilterColumnNames(const QStringList& sl);
     void setEditable(bool editable);
+    
+    virtual bool initialize(MainWindowContext *mwc) { return false; }
 
 public slots:
     void refresh();

@@ -2,6 +2,7 @@
 
 #include "dataviewer.h"
 
+class MainWindowContext;
 class FinishingServicesViewer : public DataViewer
 {
   Q_OBJECT
@@ -9,6 +10,8 @@ class FinishingServicesViewer : public DataViewer
 public:
   explicit FinishingServicesViewer(QWidget * = nullptr);
   ~FinishingServicesViewer();
+
+  bool initialize(MainWindowContext* ctx) override;
 
 public slots:
   void openCreateFinishingDialog();

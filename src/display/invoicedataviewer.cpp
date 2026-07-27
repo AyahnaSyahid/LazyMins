@@ -82,6 +82,15 @@ DataViewer(p)
 
 InvoiceDataViewer::~InvoiceDataViewer() {}
 
+bool InvoiceDataViewer::initialize(MainWindowContext *ctx)
+{
+  auto dock = ctx->addDock(this, "Data Invoice", Qt::TopDockWidgetArea, "top_right");
+  ctx->addDockToggleMenu(dock, "View");
+  ctx->addMenuAction("Buat", "Invoice", [this](){ onCreateInvoice(); });
+  setPageSize(100);
+  return true;
+}
+
 void InvoiceDataViewer::onCreateInvoice() {
   InvoiceComposerDialog ids(this);
   connect(&ids, &QDialog::accepted, this, &DataViewer::refresh);

@@ -15,6 +15,7 @@ class InvoiceDataViewer : public DataViewer
     InvoiceDataViewer(QWidget * = nullptr);
     ~InvoiceDataViewer();
     QAction *createInvoiceAction() { return m_createInvoiceAction; }
+    bool initialize(MainWindowContext *ctx);
 
   public slots:
     void onCreateInvoice();

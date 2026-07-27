@@ -14,6 +14,7 @@ public:
     // Filter opsional berdasarkan invoice
     void filterByInvoiceId(int invoiceId);
     void clearInvoiceFilter();
+    bool initialize(MainWindowContext *ctx) override;
 
     QAction *addPaymentAction();
 

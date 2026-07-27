@@ -11,6 +11,7 @@ public:
   explicit OrderDataViewer(QWidget *p=nullptr);
   ~OrderDataViewer();
   const QAction *createOrderAction() const { return m_createOrderAction; };
+  bool initialize(MainWindowContext *ctx) override;
 
 public slots:
   void openCreateOrderDialog();

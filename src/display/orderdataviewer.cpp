@@ -84,6 +84,7 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
 {
   auto ui = DataViewer::Ui();
   auto mod = &DataViewer::model();
+  setObjectName("orderDataViewer");
 
   setQueryArgs(R"--(
     SELECT o.id AS id,
@@ -133,6 +134,16 @@ OrderDataViewer::OrderDataViewer(QWidget *p) : DataViewer(p)
 }
 
 OrderDataViewer::~OrderDataViewer() {}
+
+bool OrderDataViewer::initialize(MainWindowContext *ctx)
+{
+  auto dock = ctx->addDock(this, "Data Order", Qt::TopDockWidgetArea, "top_right", true);
+  ctx->addDockToggleMenu(dock, "View");
+  ctx->onEvent("order_created", this, [this](QVariant v) {refresh();});
+  ctx->addMenuAction("Buat", "Order", [this]{openCreateOrderDialog();});
+  setPageSize(100);
+  return true;
+}
 
 void OrderDataViewer::setOrderStatus(const QModelIndex &ix,
                                      const QString &status)

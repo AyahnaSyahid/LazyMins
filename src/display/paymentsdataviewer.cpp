@@ -140,6 +140,13 @@ void PaymentsDataViewer::clearInvoiceFilter()
     refresh();
 }
 
+bool PaymentsDataViewer::initialize(MainWindowContext *ctx)
+{
+    auto dock = ctx->addDock(this, "Pembayaran", Qt::TopDockWidgetArea, "top_right");
+    ctx->addDockToggleMenu(dock, "View");
+    return true;
+}
+
 QAction *PaymentsDataViewer::addPaymentAction()
 {
     if (m_addPaymentAction == nullptr)

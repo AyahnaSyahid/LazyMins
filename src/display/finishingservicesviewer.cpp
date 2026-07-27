@@ -217,7 +217,9 @@ FinishingServicesViewer::~FinishingServicesViewer() {}
 
 bool FinishingServicesViewer::initialize(MainWindowContext *ctx)
 {
-    ctx->addDock(this, "Data Finishing", Qt::TopDockWidgetArea, "top_left");
+    auto dock = ctx->addDock(this, "Data Finishing", Qt::TopDockWidgetArea, "top_left");
+    setPageSize(100);
+    ctx->addDockToggleMenu(dock, "View");
     return true;
 }
 

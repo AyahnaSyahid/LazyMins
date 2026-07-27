@@ -6,6 +6,7 @@
 #include <QTimer>
 
 #include "actiongroup.h"
+#include "mainwindowcontext.h"
 #include "src/dialogs/configureserialposdialog.h"
 #include "src/dialogs/edituserdialog.h"
 #include "src/dialogs/instantorderdialog.h"
@@ -32,7 +33,6 @@
 #include "src/utils/posprintertestdialog.h"
 #include "src/utils/sessionmanager.h"
 #include "ui_mainwindow.h"
-#include "mainwindowcontext.h"
 
 namespace
 {
@@ -85,31 +85,19 @@ MainWindow::MainWindow(QWidget *p) : QMainWindow(p), ui(new Ui::MainWindow)
 
   auto fs1 = new FinishingServicesViewer;
   fs1->initialize(context);
-  // auto dsF = dockSetup(new QDockWidget(this), "Data Finishing", fs1);
-  // addDockWidget(Qt::LeftDockWidgetArea, dsF);
-  fs1->setPageSize(100);
-  fs1->refresh();
-  // ui->menuView->addAction(dsF->toggleViewAction());
-
-  context->craftAll();
-
+  
   auto ord1 = new OrderDataViewer;
-  auto dsO = dockSetup(new QDockWidget(this), "Data Orders", ord1);
-  addDockWidget(Qt::TopDockWidgetArea, dsO);
-  ord1->setPageSize(50);
-  ord1->refresh();
-  ui->menuView->addAction(dsO->toggleViewAction());
+  ord1->initialize(context);
+
   connect(ui->actionOrderCreate, &QAction::triggered, ord1,
           &OrderDataViewer::openCreateOrderDialog);
+
   connect(ord1, &OrderDataViewer::orderCreated, dv1, &DataViewer::refresh);
   connect(ord1, &OrderDataViewer::stockChanged, dv1, &DataViewer::refresh);
 
   auto idv = new InvoiceDataViewer;
-  auto dsI = dockSetup(new QDockWidget(this), "Data Invoice", idv);
-  addDockWidget(Qt::TopDockWidgetArea, dsI);
-  idv->setPageSize(50);
-  idv->refresh();
-  ui->menuView->addAction(dsI->toggleViewAction());
+  idv->initialize(context);
+
   connect(ui->actionInvoiceCreate, &QAction::triggered, idv,
           &InvoiceDataViewer::onCreateInvoice);
   connect(idv, &DataViewer::refreshed, ord1,
@@ -134,11 +122,9 @@ MainWindow::MainWindow(QWidget *p) : QMainWindow(p), ui(new Ui::MainWindow)
           &KonsumenDataViewer::openCreateKonsumenDialog);
 
   auto pdv = new PaymentsDataViewer;
-  auto dsPy = dockSetup(new QDockWidget(this), "Pembayaran", pdv);
-  addDockWidget(Qt::RightDockWidgetArea, dsPy);
+  pdv->initialize(context);
   pdv->setPageSize(100);
   pdv->refresh();
-  ui->menuView->addAction(dsPy->toggleViewAction());
 
   // InvoiceDataViewer bisa membuat pembayaran
   connect(idv, &InvoiceDataViewer::paymentCreated, pdv, &DataViewer::refresh);
@@ -149,11 +135,11 @@ MainWindow::MainWindow(QWidget *p) : QMainWindow(p), ui(new Ui::MainWindow)
   connect(pdv, &PaymentsDataViewer::paymentVerified, atdv, &DataViewer::refresh);
 
   // tabifyDockWidget(dsPy, dsF); // products, finishings
-  dsPy->raise();
+  // dsPy->raise();
 
-  tabifyDockWidget(dsO, dsI);  // orders, invoices
-  tabifyDockWidget(dsI, dsPy); // invoices, payments
-  dsO->raise();
+  // tabifyDockWidget(dsO, dsI);  // orders, invoices
+  // tabifyDockWidget(dsI, dsPy); // invoices, payments
+  // dsO->raise();
 
   tabifyDockWidget(dsK, dsAT); // AkunTransaksi, konsumen
   dsK->raise();
@@ -177,6 +163,7 @@ MainWindow::MainWindow(QWidget *p) : QMainWindow(p), ui(new Ui::MainWindow)
             dialog->open();
           });
 
+  context->craftAll();
   // Various actions
   auto actionGroup = new ActionGroup(this);
   auto _menuTambah = context->getOrCreateMenu("Data/Tambah");

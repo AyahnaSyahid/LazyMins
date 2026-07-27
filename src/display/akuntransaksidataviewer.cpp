@@ -54,6 +54,7 @@ namespace {
 AkunTransaksiDataViewer::AkunTransaksiDataViewer(QWidget *parent) :  DataViewer(parent)
 {
     ui = Ui();
+    setObjectName("akunTransaksiDataViewer");
     auto m = &model();
 
     setQueryArgs(R"--(

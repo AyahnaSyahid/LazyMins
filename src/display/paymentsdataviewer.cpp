@@ -79,7 +79,7 @@ PaymentsDataViewer::PaymentsDataViewer(QWidget *parent) : DataViewer(parent)
 {
     ui = Ui();
     auto m = &model();
-
+    setObjectName("paymentsDataViewer");
     setQueryArgs(R"--(
         SELECT p.id,
                p.payment_number,

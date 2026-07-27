@@ -63,6 +63,7 @@ ProdukDataViewer::ProdukDataViewer(QWidget *parent)
 {
     ui = Ui();
     auto m = &model();
+    setObjectName("productDataViewer");
     setQueryArgs(R"--(
 SELECT p.id, sku, name, category_name,
        p.description, unit, stock, min_stock, 

@@ -7,6 +7,7 @@
 #include "src/customs/invoicebrowserdelegate.h"
 
 InvoiceBrowser::InvoiceBrowser(QWidget* parent) : DataViewer(parent) {
+  setObjectName("invoiceBrowser");
   QString query = R"-(
 SELECT inv.id,
        inv.invoice_number,

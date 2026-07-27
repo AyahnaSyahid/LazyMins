@@ -188,6 +188,7 @@ namespace {
 
 FinishingServicesViewer::FinishingServicesViewer(QWidget *p) : DataViewer(p) {
   auto ui = Ui();
+  setObjectName("finishingServiceViewer");
   auto mod = &model();
 
   setQueryArgs("SELECT * FROM finishing_services");

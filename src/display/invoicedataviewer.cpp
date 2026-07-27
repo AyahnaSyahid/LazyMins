@@ -44,6 +44,7 @@ InvoiceDataViewer::InvoiceDataViewer(QWidget *p):
 DataViewer(p)
 {
   ui = DataViewer::Ui();
+  setObjectName("invoiceDataViewer");
   setQueryArgs(R"-(
     SELECT i.id, i.invoice_number, i.customer_name, i.remaining_amount, date(i.issue_date, 'localtime'), date(i.due_date, 'localtime')
       FROM invoices i WHERE is_active = 1 AND settlement_status <> 'paid' AND staging_status <> 'canceled'

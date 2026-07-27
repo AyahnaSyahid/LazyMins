@@ -56,7 +56,7 @@ class KonsumenDelegate : public QStyledItemDelegate {
 KonsumenDataViewer::KonsumenDataViewer(QWidget* parent) : DataViewer(parent) {
   ui = Ui();
   auto m = &model();
-
+  setObjectName("konsumenDataViewer");
   setQueryArgs(R"--(
         SELECT k.id,
                k.customer_code,

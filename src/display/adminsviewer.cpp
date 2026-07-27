@@ -37,6 +37,7 @@ namespace
 AdminsViewer::AdminsViewer(QWidget *parent) : DataViewer(parent)
 {
     ui = Ui();
+    setObjectName("adminsViewer");
     setWindowTitle("Data Admins");
     setQueryArgs(R"-(
         SELECT admins.id, 

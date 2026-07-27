@@ -3,8 +3,8 @@ project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
 # ================ Build Specific Setting =================
 
-set(APPLICATION_SET_ORGANIZATION_NAME "Aksarajaya" CACHE STRING "Dibuat untuk Organisasi/perusahaan" FORCE )
-set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default" FORCE )
+set(APPLICATION_SET_ORGANIZATION_NAME "Aksarajaya" CACHE STRING "Dibuat untuk Organisasi/perusahaan")
+set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default")
 
 
 # ==================== Global Settings ====================

@@ -59,7 +59,7 @@ class DailySalesRenderer : public ReportRendererBase {
     addDocFooter(y, "Disusun oleh sistem POS " + m_data.company.name,
                  "Halaman 1 dari 1");
 
-    m_scene->setSceneRect(0, 0, m_theme.pageWidth + m_theme.marginRight, y + 30);
+    m_scene->setSceneRect(0, 0, m_theme.pageWidth + m_theme.marginRight, m_theme.pageHeight + m_theme.marginRight);
     return y + 30;
   }
 
@@ -87,12 +87,12 @@ class DailySalesRenderer : public ReportRendererBase {
   qreal renderOrderTable(qreal y) {
     const qreal L = m_theme.marginLeft;
     QList<ColDef> cols = {
-        {"No. Order",  L,       100, Qt::AlignLeft},
-        {"Pelanggan",  L + 155, 110, Qt::AlignLeft},
-        {"Produk",     L + 275, 120, Qt::AlignLeft},
-        {"Produksi",   L + 380, 120, Qt::AlignLeft},
-        {"Total (Rp)", L + 460,  90, Qt::AlignRight},
-        {"Pembayaran", L + 585,  70, Qt::AlignLeft},
+        {"No. Order",         L,       100, Qt::AlignLeft},
+        {"Pelanggan",         L + 120, 110, Qt::AlignLeft},
+        {"Produk",            L + 205, 200, Qt::AlignLeft},
+        {"Status Produksi",   L + 430, 120, Qt::AlignCenter},
+        {"Total (Rp)",        L + 520,  90, Qt::AlignRight},
+        {"Pembayaran",        L + 635,  70, Qt::AlignLeft},
     };
     y = addTableHeader(cols, y);
 
@@ -103,13 +103,13 @@ class DailySalesRenderer : public ReportRendererBase {
       addCell(row.productSummary, cols[2], y);
 
       // production badge
-      addStatusBadge(row.productionStatus, cols[3].x + 2, y + 3);
+      addStatusBadge(row.productionStatus, cols[3].x + 35, y + 3);
 
       addCell(QLocale(QLocale::Indonesian).toString(row.totalAmount), cols[4],
               y, {}, {});
 
       // payment badge
-      addPaymentBadge(row.paymentStatus, cols[5].x + 2, y + 3);
+      addPaymentBadge(row.paymentStatus, cols[5].x + 17, y + 3);
 
       addThinRule(y + m_theme.rowHeight);
       y += m_theme.rowHeight;

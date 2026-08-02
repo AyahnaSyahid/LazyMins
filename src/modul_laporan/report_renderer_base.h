@@ -169,11 +169,13 @@ protected:
         auto* t = m_scene->addText(text, f);
         t->setDefaultTextColor(c);
         t->setTextWidth(col.width);
+        
         QTextOption opt;
         opt.setAlignment(col.align);
         t->document()->setDefaultTextOption(opt);
         t->setPos(col.x, y + 2 - 5);
     }
+
 
     qreal addTableRow(const QList<ColDef>& cols,
                       const QList<QString>& values,

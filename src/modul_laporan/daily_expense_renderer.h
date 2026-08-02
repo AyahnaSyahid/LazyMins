@@ -94,11 +94,11 @@ private:
         const qreal L = m_theme.marginLeft;
         QList<ColDef> cols = {
             { "No. transaksi", L,      100, Qt::AlignLeft  },
-            { "Deskripsi",     L+105,  130, Qt::AlignLeft  },
-            { "Kategori",      L+240,   90, Qt::AlignLeft  },
-            { "Akun",          L+335,   90, Qt::AlignLeft  },
-            { "Dicatat oleh",  L+430,   70, Qt::AlignLeft  },
-            { "Jumlah (Rp)",   L+505,   95, Qt::AlignRight },
+            { "Deskripsi",     L+100,  210, Qt::AlignLeft  },
+            { "Kategori",      L+320,   90, Qt::AlignLeft  },
+            { "Akun",          L+425,   90, Qt::AlignLeft  },
+            { "Dicatat oleh",  L+525,   70, Qt::AlignLeft  },
+            { "Jumlah (Rp)",   L+600,   95, Qt::AlignRight },
         };
         y = addTableHeader(cols, y);
 
@@ -149,7 +149,7 @@ private:
         const qreal L = m_theme.marginLeft;
         QList<ColDef> cols = {
             { "Kategori",          L,     220, Qt::AlignLeft  },
-            { "Jumlah transaksi",  L+225, 140, Qt::AlignRight },
+            { "Jumlah transaksi",  L+220, 140, Qt::AlignRight },
             { "Total (Rp)",        L+370, 110, Qt::AlignRight },
             { "%",                 L+485,  75, Qt::AlignRight },
         };
@@ -181,9 +181,9 @@ private:
     {
         const qreal L = m_theme.marginLeft;
         QList<ColDef> cols = {
-            { "Akun",              L,     240, Qt::AlignLeft  },
-            { "Jumlah transaksi",  L+245, 150, Qt::AlignRight },
-            { "Total keluar (Rp)", L+400, 120, Qt::AlignRight },
+            { "Akun",              L,     200, Qt::AlignLeft  },
+            { "Jumlah transaksi",  L+220, 140, Qt::AlignRight },
+            { "Total keluar (Rp)", L+370, 120, Qt::AlignRight },
         };
         y = addTableHeader(cols, y);
 

@@ -38,9 +38,10 @@ struct ReportTheme {
     QColor colorSuccess { "#1e6b36" };
 
     // Layout
-    qreal pageWidth    = 794.0;   // A4 72dpi ~794px
-    qreal marginLeft   = 40.0;
-    qreal marginRight  = 40.0;
+    qreal pageWidth    = 794.0;   // A4 96dpi ~794px
+    qreal pageHeight   = 1123;
+    qreal marginLeft   = 50.0;
+    qreal marginRight  = 30.0;
     qreal contentWidth = pageWidth - marginLeft - marginRight;
     qreal rowHeight    = 20.0;
     qreal sectionGap   = 14.0;

@@ -40,6 +40,7 @@ void ReportDialog::on_refreshButton_clicked()
         auto loaded = loader->loadDailyExpense(selectedDate);
         ui->graphicsView->showExpenseReport(loaded);
     }
+    
 }
 
 void ReportDialog::on_simpanButton_clicked()

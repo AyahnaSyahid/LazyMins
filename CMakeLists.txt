@@ -147,6 +147,7 @@ add_library(ui_dialogs STATIC
     src/display/adminsviewer.cpp
     src/display/konsumenorderbrowser.cpp
     src/mainwindow/mainwindowcontext.cpp
+    src/display/konsumenrankviewer.cpp
 )
 
 target_link_libraries(ui_dialogs PUBLIC ui_components Qt6::Widgets Qt6::Gui)

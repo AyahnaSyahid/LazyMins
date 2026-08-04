@@ -88,22 +88,22 @@ class DailySalesRenderer : public ReportRendererBase {
     const qreal L = m_theme.marginLeft;
     QList<ColDef> cols = {
         {"No. Order",         L,       100, Qt::AlignLeft},
-        {"Pelanggan",         L + 120, 110, Qt::AlignLeft},
-        {"Produk",            L + 205, 200, Qt::AlignLeft},
-        {"Status Produksi",   L + 430, 120, Qt::AlignCenter},
-        {"Total (Rp)",        L + 520,  90, Qt::AlignRight},
-        {"Pembayaran",        L + 635,  70, Qt::AlignLeft},
+        {"Pelanggan",         L + 112, 110, Qt::AlignLeft},
+        {"Produk",            L + 234, 165, Qt::AlignLeft},
+        {"Status Produksi",   L + 411,  90, Qt::AlignCenter},
+        {"Total (Rp)",        L + 513,  90, Qt::AlignRight},
+        {"Pembayaran",        L + 615,  90, Qt::AlignLeft},
     };
     y = addTableHeader(cols, y);
 
     for (const auto& row : m_data.orders) {
       // production status badge
-      addCell(row.orderNumber, cols[0], y);
-      addCell(row.customerName, cols[1], y);
+      addCell(row.orderNumber.mid(4), cols[0], y);      // Truncate 'ORD-' parts
+      addCell(row.customerName.mid(0, 15), cols[1], y, {}, {}, false, false);  // Limiting too long string
       addCell(row.productSummary, cols[2], y);
 
       // production badge
-      addStatusBadge(row.productionStatus, cols[3].x + 35, y + 3);
+      addStatusBadge(row.productionStatus, cols[3].x + 20, y + 3);
 
       addCell(QLocale(QLocale::Indonesian).toString(row.totalAmount), cols[4],
               y, {}, {});

@@ -3,18 +3,24 @@
 #include <QWidget>
 
 class QSqlQueryModel;
-class KonsumenRankViewer: public QWidget
-{
-  public:
-    KonsumenRankViewer(QWidget *parent=nullptr);
-    ~KonsumenRankViewer();
-  
-  public slots:
-    void fetchData();
+class QDateEdit;
+class KonsumenRankViewer : public QWidget {
+  Q_OBJECT
+ public:
+  KonsumenRankViewer(QWidget* parent = nullptr);
+  ~KonsumenRankViewer();
 
-  private slots:
-    void onDataReady();
+ public slots:
+  void fetchData();
 
-  private:
-    QSqlQueryModel *_model;  
+ private slots:
+  void onDataReady();
+  void handleFilterEdit();
+
+ private:
+  void initDateFilter();
+  QTimer* filterTimer;
+  QDateEdit* startDateEdit;
+  QDateEdit* endDateEdit;
+  QSqlQueryModel* _model;
 };

@@ -21,6 +21,7 @@ private slots:
     void onAddKonsumenActionTriggered();
     void openEditKonsumenDialog(int konsumenId);
     void openOrderHistory(int konsumenId);
+    void openKonsumenRankDialog();
 
 private:
     Ui::DataViewer *ui;

@@ -156,7 +156,7 @@ protected:
     // Single table cell
     void addCell(const QString& text, const ColDef& col, qreal y,
                  const QFont& font = {}, const QColor& color = {},
-                 bool isGroupRow = false)
+                 bool isGroupRow = false, bool setWidth = true)
     {
         if (isGroupRow)
             addRect(m_theme.marginLeft, y,
@@ -168,7 +168,7 @@ protected:
 
         auto* t = m_scene->addText(text, f);
         t->setDefaultTextColor(c);
-        t->setTextWidth(col.width);
+        if(setWidth) t->setTextWidth(col.width); 
         
         QTextOption opt;
         opt.setAlignment(col.align);

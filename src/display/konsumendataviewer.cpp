@@ -1,5 +1,5 @@
 #include "konsumendataviewer.h"
-
+#include "konsumenrankviewer.h"
 #include "ui_dataviewer.h"
 
 // TODO: Buat dialog untuk tambah/edit konsumen
@@ -166,6 +166,17 @@ void KonsumenDataViewer::openOrderHistory(int konsumenId)
   kod.exec();
 }
 
+void KonsumenDataViewer::openKonsumenRankDialog() {
+  auto dlg = QDialog(this);
+  auto layout = new QHBoxLayout();
+  dlg.setLayout(layout);
+
+  auto rankWidget = new KonsumenRankViewer(&dlg);
+  layout->addWidget(rankWidget);
+
+  dlg.exec();
+}
+
 void KonsumenDataViewer::on_dataView_customContextMenuRequested(
     const QPoint& pt) {
   QMenu menu;
@@ -213,6 +224,10 @@ void KonsumenDataViewer::on_dataView_customContextMenuRequested(
   auto submenu = menu.addMenu("Data baru");
   submenu->setToolTipsVisible(true);
   submenu->addAction(addKonsumenAction());
+
+  auto rankAction = menu.addAction("Lihat Rank");
+  connect(rankAction, &QAction::triggered, this, &KonsumenDataViewer::openKonsumenRankDialog);
+
 
   connect(editAction, &QAction::triggered, [this, clickedIndex]() {
     if (clickedIndex.isValid())

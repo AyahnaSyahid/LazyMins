@@ -29,7 +29,7 @@ class KRDelegate : public QStyledItemDelegate {
     QStyledItemDelegate::initStyleOption(opt, ix);
     if (ix.column() == 2 or ix.column() == 3) {
       opt->text = QLocale().toString(ix.data().toInt());
-      if (ix.column() == 4) {
+      if (ix.column() == 3) {
         opt->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
       } else {
         opt->displayAlignment = Qt::AlignCenter;
@@ -67,15 +67,15 @@ KonsumenRankViewer::KonsumenRankViewer(QWidget* parent)
   auto proxy = new QSortFilterProxyModel(this);
   proxy->setSourceModel(_model);
   view->setModel(proxy);
-  // view->setItemDelegate(new KRDelegate(this));
+  view->setItemDelegate(new KRDelegate(this));
   view->setEditTriggers(QAbstractItemView::NoEditTriggers);
   view->setSelectionBehavior(QAbstractItemView::SelectRows);
   view->setSelectionMode(QAbstractItemView::SingleSelection);
   view->verticalHeader()->hide();
   view->verticalHeader()->setMinimumSectionSize(18);
   view->verticalHeader()->setDefaultSectionSize(18);
+  view->setSortingEnabled(true);
 
-  layout->setContentsMargins(0, 0, 0, 0);
   layout->addLayout(filterLayout);
   layout->addWidget(view, 1);
 
@@ -146,8 +146,8 @@ void KonsumenRankViewer::fetchData() {
         JOIN payments p ON i.id = p.invoice_id
         WHERE p.verification_status = 'verified' AND p.payment_date BETWEEN :startDate AND :endDate
         GROUP BY k.id
-        ORDER BY "Total Pembayaran" DESC
-        LIMIT 50
+        ORDER BY "Total" DESC
+        LIMIT 100
     )-";
 
   QSqlQuery q(BaseManager::connection);
@@ -171,9 +171,13 @@ void KonsumenRankViewer::onDataReady() {
   if (view) {
     view->horizontalHeader()->setStretchLastSection(false);
     view->resizeColumnsToContents();
+
     auto min_dialog_width = view->horizontalHeader()->length() +
-                            (layout()->contentsMargins().right() * 2);
+                            // (layout()->contentsMargins().right() * 2);
+                            view->verticalScrollBar()->width();
     setMinimumWidth(min_dialog_width);
+
     view->horizontalHeader()->setStretchLastSection(true);
+    view->sortByColumn(3, Qt::DescendingOrder);
   }
 }

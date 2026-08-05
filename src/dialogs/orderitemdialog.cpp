@@ -90,7 +90,6 @@ void OrderItemDialog::setOrder(OrderItem order, int row)
   for (auto* w : inputs) w->blockSignals(true);
 
   int currentProductId = m_itemEdit.product_id;
-  // qDebug() << "Current Product ID:" << currentProductId;
   auto prmodel = ui->produkComboBox->model();
   auto indexes = prmodel->match(prmodel->index(0, 0), Qt::DisplayRole,
                                 currentProductId, 1, Qt::MatchExactly);
@@ -153,6 +152,7 @@ void OrderItemDialog::on_simpanButton_clicked() {
   if (m_mode == Create) {
     emit itemCreated(oi);
   } else {
+    m_itemEdit = oi;
     emit editFinished();
   }
   accept();

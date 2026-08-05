@@ -4,16 +4,39 @@
 #include <QDebug>
 #include <QHeaderView>
 #include <QLabel>
+#include <QScrollBar>
 #include <QShortcut>
+#include <QSortFilterProxyModel>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
+#include <QStyledItemDelegate>
 #include <QTableView>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QValidator>
 
 #include "src/managers/basemanager.h"
+
+class KRDelegate : public QStyledItemDelegate {
+ public:
+  KRDelegate(QObject* parent = nullptr) {}
+  ~KRDelegate() {}
+
+ protected:
+  void initStyleOption(QStyleOptionViewItem* opt,
+                       const QModelIndex& ix) const override {
+    QStyledItemDelegate::initStyleOption(opt, ix);
+    if (ix.column() == 2 or ix.column() == 3) {
+      opt->text = QLocale().toString(ix.data().toInt());
+      if (ix.column() == 4) {
+        opt->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+      } else {
+        opt->displayAlignment = Qt::AlignCenter;
+      }
+    }
+  }
+};
 
 KonsumenRankViewer::KonsumenRankViewer(QWidget* parent)
     : QWidget(parent),
@@ -22,8 +45,13 @@ KonsumenRankViewer::KonsumenRankViewer(QWidget* parent)
       endDateEdit(new QDateEdit(this)),
       _model(new QSqlQueryModel(this)) {
   // Inisialisasi UI
-  startDateEdit->setDisplayFormat("dd-MM-yyyy");
-  endDateEdit->setDisplayFormat("dd-MM-yyyy");
+  startDateEdit->setDisplayFormat("yyyy-MM-dd");
+  endDateEdit->setDisplayFormat("yyyy-MM-dd");
+  for (auto sp : QList<QDateEdit*>{startDateEdit, endDateEdit}) {
+    sp->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    sp->setAlignment(Qt::AlignCenter);
+    sp->setCurrentSection(QDateTimeEdit::YearSection);
+  }
   auto layout = new QVBoxLayout(this);
   auto view = new QTableView(this);
   auto filterLayout = new QHBoxLayout();
@@ -32,16 +60,18 @@ KonsumenRankViewer::KonsumenRankViewer(QWidget* parent)
   filterTimer->setInterval(300);
   filterLayout->addWidget(l1);
   filterLayout->addWidget(startDateEdit);
+  filterLayout->addSpacerItem(new QSpacerItem(20, 0));
   filterLayout->addWidget(endDateEdit);
 
   connect(filterTimer, &QTimer::timeout, this, &KonsumenRankViewer::fetchData);
-
-  view->setModel(_model);
+  auto proxy = new QSortFilterProxyModel(this);
+  proxy->setSourceModel(_model);
+  view->setModel(proxy);
+  // view->setItemDelegate(new KRDelegate(this));
   view->setEditTriggers(QAbstractItemView::NoEditTriggers);
   view->setSelectionBehavior(QAbstractItemView::SelectRows);
   view->setSelectionMode(QAbstractItemView::SingleSelection);
   view->verticalHeader()->hide();
-  view->horizontalHeader()->setStretchLastSection(true);
   view->verticalHeader()->setMinimumSectionSize(18);
   view->verticalHeader()->setDefaultSectionSize(18);
 
@@ -109,8 +139,8 @@ void KonsumenRankViewer::fetchData() {
         SELECT 
             k.nama_lengkap AS "Nama Konsumen",
             k.customer_code AS "Kode",
-            COUNT(i.id) AS "Jumlah Invoice",
-            SUM(p.amount) AS "Total Pembayaran"
+            COUNT(i.id) AS "Invoice",
+            SUM(p.amount) AS "Total"
         FROM konsumen k
         JOIN invoices i ON k.id = i.customer_id
         JOIN payments p ON i.id = p.invoice_id
@@ -139,6 +169,11 @@ void KonsumenRankViewer::onDataReady() {
   // Kita perlu mencari QTableView di layout atau menyimpannya sebagai member
   auto view = findChild<QTableView*>();
   if (view) {
+    view->horizontalHeader()->setStretchLastSection(false);
     view->resizeColumnsToContents();
+    auto min_dialog_width = view->horizontalHeader()->length() +
+                            (layout()->contentsMargins().right() * 2);
+    setMinimumWidth(min_dialog_width);
+    view->horizontalHeader()->setStretchLastSection(true);
   }
 }

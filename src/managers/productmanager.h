@@ -1,6 +1,22 @@
 #pragma once
 #include "basemanager.h"
 
+struct Product {
+    int id;
+    QString sku;
+    QString name;
+    int category_id;
+    QString description;
+    QString unit;
+    qreal stock;
+    qreal minStock;
+    qreal cost_price;
+    bool use_area;
+    bool is_active;
+    QDateTime created_at;
+    QDateTime updated_at;
+};
+
 class ProductManager : public BaseManager
 {
 public:
@@ -13,6 +29,9 @@ public:
     QList<QSqlRecord> getLowStock();
     bool deactivate(int id);
     bool adjustStock(int id, double delta);
+
+    static Product fromRecord(const QSqlRecord& rec);
+    bool save(Product& product);
 
 protected:
     bool beforeCreate(QVariantMap& params) override;

@@ -90,21 +90,21 @@ bool ProductManager::save(Product& product) {
                                {"updated_at", dateTimeToSql()}});
   }
   auto newProduct = create({{"sku", product.sku},
-                 {"name", product.name},
-                 {"category_id", product.category_id},
-                 {"description", product.description},
-                 {"unit", product.unit},
-                 {"stock", product.stock},
-                 {"min_stock", product.minStock},
-                 {"cost_price", product.cost_price},
-                 {"use_area", product.use_area},
-                 {"is_active", product.is_active},
-                 {"created_at", dateTimeToSql()},
-                 {"updated_at", dateTimeToSql()}});
+                            {"name", product.name},
+                            {"category_id", product.category_id},
+                            {"description", product.description},
+                            {"unit", product.unit},
+                            {"stock", product.stock},
+                            {"min_stock", product.minStock},
+                            {"cost_price", product.cost_price},
+                            {"use_area", product.use_area},
+                            {"is_active", product.is_active},
+                            {"created_at", dateTimeToSql()},
+                            {"updated_at", dateTimeToSql()}});
 
   if (newProduct) {
     product.id = newProduct->value("id").toInt();
-    return true;    
+    return true;
   }
   return false;
 }

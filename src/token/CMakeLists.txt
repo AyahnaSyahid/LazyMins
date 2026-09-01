@@ -64,7 +64,7 @@ set(TOOLS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/tools)
 # ------------------------------------------------------------------
 # Executable: keygen
 # ------------------------------------------------------------------
-add_executable(keygen tools/keygen.cpp)
+add_executable(keygen ../../tools/keygen.cpp)
 target_include_directories(keygen PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(keygen PRIVATE ${OPENSSL_LIBRARIES})
 if(WIN32)
@@ -75,14 +75,14 @@ set_target_properties(keygen PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TOOLS_OUTPUT_
 # ------------------------------------------------------------------
 # Executable demo (opsional, contoh pemakaian library)
 # ------------------------------------------------------------------
-add_executable(sign_demo tools/sign_demo.cpp)
+add_executable(sign_demo ../../tools/sign_demo.cpp)
 target_link_libraries(sign_demo PRIVATE license_helper)
 set_target_properties(sign_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TOOLS_OUTPUT_DIR})
 
-add_executable(verify_demo tools/verify_demo.cpp)
+add_executable(verify_demo ../../tools/verify_demo.cpp)
 target_link_libraries(verify_demo PRIVATE license_helper)
 set_target_properties(verify_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TOOLS_OUTPUT_DIR})
 
-add_executable(hwid tools/hwid.cpp)
+add_executable(hwid ../../tools/hwid.cpp)
 target_link_libraries(hwid PRIVATE license_helper)
 set_target_properties(hwid PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TOOLS_OUTPUT_DIR})

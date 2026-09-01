@@ -30,7 +30,7 @@
 #include "src/modul_laporan/reportloader.h"
 #include "src/modul_laporan/reportview.h"
 #include "src/printer/printservice.h"
-#include "src/utils/posprintertestdialog.h"
+#include "src/printer/posprintertestdialog.h"
 #include "src/utils/sessionmanager.h"
 #include "ui_mainwindow.h"
 

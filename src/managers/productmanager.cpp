@@ -54,25 +54,23 @@ bool ProductManager::adjustStock(int id, double delta) {
 }
 
 Product ProductManager::fromRecord(const QSqlRecord& rec) {
+  Product p;
   if (!rec.isEmpty()) {
-    if (!rec.field(0).tableName() == "products") {
-      Product p;
-      p.id = rec.value("id").toInt();
-      p.sku = rec.value("sku").toString();
-      p.name = rec.value("name").toString();
-      p.category_id = rec.value("category_id").toInt();
-      p.description = rec.value("description").toString();
-      p.unit = rec.value("unit").toString();
-      p.stock = rec.value("stock").toDouble();
-      p.minStock = rec.value("min_stock").toDouble();
-      p.cost_price = rec.value("cost_price").toDouble();
-      p.use_area = rec.value("use_area").toInt();
-      p.is_active = rec.value("is_active").toInt();
-      p.created_at = rec.value("created_at").toDateTime().toLocalTime();
-      p.updated_at = rec.value("updated_at").toDateTime().toLocalTime();
-      return p;
-    }
+    p.id = rec.value("id").toInt();
+    p.sku = rec.value("sku").toString();
+    p.name = rec.value("name").toString();
+    p.category_id = rec.value("category_id").toInt();
+    p.description = rec.value("description").toString();
+    p.unit = rec.value("unit").toString();
+    p.stock = rec.value("stock").toDouble();
+    p.minStock = rec.value("min_stock").toDouble();
+    p.cost_price = rec.value("cost_price").toDouble();
+    p.use_area = rec.value("use_area").toInt();
+    p.is_active = rec.value("is_active").toInt();
+    p.created_at = rec.value("created_at").toDateTime().toLocalTime();
+    p.updated_at = rec.value("updated_at").toDateTime().toLocalTime();
   }
+  return p;
 }
 
 bool ProductManager::save(Product& product) {

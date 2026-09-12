@@ -1,11 +1,16 @@
+set( SOURCES 
+     ${CMAKE_CURRENT_SOURCE_DIR}/testDatabase.cpp )
+
+qt_add_resources(SOURCES ${CMAKE_SOURCE_DIR}/resources/database_resources.qrc)
+
 qt_add_executable(tstDatabase 
-    ${CMAKE_CURRENT_SOURCE_DIR}/tstdatabase.cpp 
-    ${PROJECT_SOURCE_DIR}/resources/database_resources.qrc
+    ${SOURCES}
 )
+
 
 # 2. Include directory & Link libraries
 target_include_directories(tstDatabase PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(tstDatabase PRIVATE data_layer Qt6::Test)
+target_link_libraries(tstDatabase PRIVATE core_utils data_layer Qt6::Test)
 
 # 3. Definisikan Test (Sudah diperbaiki dengan generator expression)
 add_test(NAME DatabaseTest COMMAND $<TARGET_FILE:tstDatabase>)

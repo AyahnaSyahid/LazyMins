@@ -1,6 +1,6 @@
 <RCC>
   <qresource prefix="schema">
-    <file alias="main.sql">schema/percetakan_schema_improved.sql</file>
+    <file >schema/v1.sql</file>
   </qresource>
   <qresource prefix="svg">
     <file>svg/cash-flow.svg</file>

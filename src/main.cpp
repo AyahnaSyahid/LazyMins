@@ -9,6 +9,7 @@
 #include <QMessageBox>
 #include <QSqlError>
 
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
@@ -45,6 +46,5 @@ int main(int argc, char **argv)
     app.installEventFilter(&SessionManager::instance());
     MainWindow mainWindow;
     // show() called from login dialog
-    
     return app.exec();
 }

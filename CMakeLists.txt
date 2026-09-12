@@ -3,7 +3,7 @@ project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
 # ================ Build Specific Setting =================
 
-set(APPLICATION_SET_ORGANIZATION_NAME "Aksarajaya" CACHE STRING "Dibuat untuk Organisasi/perusahaan" FORCE )
+set(APPLICATION_SET_ORGANIZATION_NAME "BlackCircle" CACHE STRING "Nama organisasi pembuat" FORCE )
 set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default" FORCE )
 
 
@@ -186,9 +186,11 @@ set(EXECUTABLE_SOURCES
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
-    resources/database_resources.qrc
     resources/res.rc
     )
+
+qt_add_resources(EXECUTABLE_SOURCES "resources/database_resources.qrc")
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
     qt_add_executable(LazyMins WIN32 ${EXECUTABLE_SOURCES})

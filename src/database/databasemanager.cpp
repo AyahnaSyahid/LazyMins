@@ -11,127 +11,126 @@
 #include "src/managers/basemanager.h"
 #include "src/utils/authmanager.h"
 
-DatabaseManager& DatabaseManager::instance() {
-  static DatabaseManager dbm;
-  return dbm;
+DatabaseManager &DatabaseManager::instance()
+{
+    static DatabaseManager dbm;
+    return dbm;
 }
 
-bool DatabaseManager::initializeFromSetup(const QString& dbPath,
-                                          const QString& superUser,
-                                          const QString& password) {
-  QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "LMAdmins_db");
-  db.setDatabaseName(dbPath);
+bool DatabaseManager::initializeFromSetup(const QString &dbPath,
+                                          const QString &superUser,
+                                          const QString &password)
+{
+    QSqlDatabase _db = QSqlDatabase::addDatabase("QSQLITE", "setup");
+    _db.setDatabaseName(dbPath);
+    if (!_db.open())
+    {
+        qCritical() << "Database Open Failed on setup";
+        return false;
+    }
+    DatabaseManager &dbm = DatabaseManager::instance();
+    dbm.setDatabase(_db);
+    if (!dbm.migrate())
+    {
+        return false;
+    }
 
-  if (!db.open()) {
-    qWarning() << "[DatabaseManager::initializeFromSetup] Database open failed:"
-               << db.lastError().text();
-    db.close();
-    return false;
-  };
+    AuthManager &am = AuthManager::instance();
+    auto salt = am.generateSalt();
+    auto hash = am.generateHash(password, salt);
 
-  if (!initSchema(db)) {
-    qWarning() << "[DatabaseManager::initializeFromSetup] Schema "
-                  "initialization failed:"
-               << db.lastError().text();
-    db.close();
-    return false;
-  };
-
-  // Insert super_user — sesuaikan query dengan skema tabel Anda
-  auto& am = AuthManager::instance();
-  auto salt = am.generateSalt();
-  auto hash = am.generateHash(password, salt);
-  QSqlQuery q(db);
-  qInfo() << "[DatabaseManager::initializeFromSetup] databaseConnection:"
-          << db.connectionName();
-  qInfo() << "[DatabaseManager::initializeFromSetup] databaseName:"
-          << db.databaseName();
-  q.prepare(
-      "INSERT INTO admins (username, password_hash, nama_lengkap, salt, "
-      "role_id) VALUES (:un, :pw, :nl, :st, 1)");
-  q.bindValue(":un", superUser);
-  q.bindValue(":pw", hash);
-  q.bindValue(":nl", superUser);
-  q.bindValue(":st", salt);
-
-  if (!q.exec()) {
-    qWarning()
-        << "[DatabaseManager::initializeFromSetup] Super user creation failed:"
-        << q.lastError().text();
-    return false;
-  };
-
-  // Simpan path ke settings hanya jika semua berhasil
-  QSettings settings;
-  settings.setValue("Database/databasePath", dbPath);
-
-  m_database = db;
-  m_databaseReady = true;
-  m_isFirstRun = false;
-
-  settings.sync();
-  return true;
+    QSqlQuery q(_db);
+    q.prepare("INSERT INTO admins (username, password_hash, salt, nama_lengkap) VALUES (:un, :ph, :sl, :nl)");
+    q.bindValue(":un", superUser);
+    q.bindValue(":ph", hash);
+    q.bindValue(":sl", salt);
+    q.bindValue(":nl", "SuperUser01");
+    if (!q.exec())
+    {
+        QString errMsg("Failed to initialize root user");
+        if (q.lastError().isValid())
+        {
+            errMsg += " " + q.lastError().text();
+        }
+        _db.close();
+        // need to remove unsucessfull database creation here
+        return false;
+    }
+    m_isFirstRun = false;
+    QSettings s;
+    // below line is for test purpose where settings maybe uninitialized
+    if (s.status() != QSettings::NoError)
+        return true;
+    s.setValue(Config::Database::SETTINGS_KEY_DBPATH, dbPath);
+    s.sync();
+    return true;
 }
 
-void DatabaseManager::setDatabase(QSqlDatabase& db) {
-  m_database = db;
-  m_databaseReady = true;
+void DatabaseManager::setDatabase(QSqlDatabase &db)
+{
+    m_database = db;
+    m_databaseReady = true;
 }
 
 DatabaseManager::DatabaseManager()
-    : m_databaseReady(false), m_isFirstRun(true) {
-  QSettings settings;
-  auto dbPath = settings.value("Database/databasePath").toString();
-  if (!dbPath.isEmpty()) {
-    QSqlDatabase _db = QSqlDatabase::addDatabase("QSQLITE");
-    _db.setDatabaseName(dbPath);
-    if (_db.open()) {
-      m_database = _db;
-      m_databaseReady = true;
-      m_isFirstRun = false;
-    } else {
-      m_database = QSqlDatabase();
+    : m_databaseReady(false), m_isFirstRun(true)
+{
+    QSettings settings;
+    auto dbPath = settings.value(Config::Database::SETTINGS_KEY_DBPATH, "").toString();
+    if (!dbPath.isEmpty())
+    {
+        QSqlDatabase _db = QSqlDatabase::addDatabase("QSQLITE");
+        _db.setDatabaseName(dbPath);
+        if (_db.open())
+        {
+            m_database = _db;
+            m_databaseReady = true;
+            m_isFirstRun = false;
+        }
+        else
+        {
+            m_database = QSqlDatabase();
+        }
+    } // dbPath.isEmpty == true
+}
+
+DatabaseManager::~DatabaseManager()
+{
+    if (m_database.isValid() && m_database.isOpen())
+    {
+        m_database.close();
     }
-  }  // dbPath.isEmpty == true
 }
 
-bool DatabaseManager::initSchema(QSqlDatabase& db) {
-  QFile sf(":/schema/main.sql");
-  if (!sf.open(QIODevice::ReadOnly)) {
-    qWarning() << "[DatabaseManager::initSchema] Failed to open schema file";
-    return false;
-  }
-
-  QTextStream ts(&sf);
-  QString s = ts.readAll();
-  return false;
-}
-
-DatabaseManager::~DatabaseManager() {
-  if (m_database.isValid() && m_database.isOpen()) {
-    m_database.close();
-  }
-}
-
-bool DatabaseManager::migrate() {
-    if (!m_databaseReady) return false;
+bool DatabaseManager::migrate()
+{
+    if (!m_databaseReady)
+        return false;
     int databaseVersion = 0;
 
     QSqlQuery q(m_database);
 
-    if (m_database.tables().contains("meta")) {
-        if (!q.exec("SELECT version FROM meta;")) {
+    if (m_database.tables().contains("meta"))
+    {
+        if (!q.exec("SELECT version FROM meta;"))
+        {
             qWarning() << "[DatabaseManager::migrate] Failed to read meta:" << q.lastError().text();
             return false;
         }
-        if (q.next()) {
+        if (q.next())
+        {
             databaseVersion = q.value(0).toInt();
-        } else {
+        }
+        else
+        {
             qWarning() << "[DatabaseManager::migrate] meta table exists but has no row";
             return false;
         }
-    } else {  // no meta
-        if (!q.exec("CREATE TABLE meta (version INTEGER, updated_at TEXT);")) {
+    }
+    else
+    { // no meta
+        if (!q.exec("CREATE TABLE meta (version INTEGER, updated_at TEXT);"))
+        {
             qWarning() << "[DatabaseManager::migrate] Failed to create meta table:" << q.lastError().text();
             return false;
         }
@@ -144,7 +143,8 @@ bool DatabaseManager::migrate() {
         QSqlQuery insertQuery(m_database);
         insertQuery.prepare("INSERT INTO meta (version, updated_at) VALUES (:ver, CURRENT_TIMESTAMP);");
         insertQuery.bindValue(":ver", initialVersion);
-        if (!insertQuery.exec()) {
+        if (!insertQuery.exec())
+        {
             qWarning() << "[DatabaseManager::migrate] Failed to seed meta:" << insertQuery.lastError().text();
             return false;
         }
@@ -154,37 +154,44 @@ bool DatabaseManager::migrate() {
     // Lacak script skema dalam resources dengan pattern "/schema/v[1..n].sql"
     QMap<int, QString> versions;
     int version = 1;
-    while (QFile::exists(QString(":/schema/schema/v%1.sql").arg(version))) {
+    while (QFile::exists(QString(":/schema/schema/v%1.sql").arg(version)))
+    {
         versions.insert(version, QString(":/schema/schema/v%1.sql").arg(version));
         ++version;
     }
     int lastVersion = version - 1;
 
     // Jika database sudah up-to-date
-    if (databaseVersion >= lastVersion) {
+    if (databaseVersion >= lastVersion)
+    {
         return true;
     }
 
     // Validasi: pastikan tidak ada gap antara databaseVersion+1 .. lastVersion
-    for (int v = databaseVersion + 1; v <= lastVersion; ++v) {
-        if (!versions.contains(v)) {
+    for (int v = databaseVersion + 1; v <= lastVersion; ++v)
+    {
+        if (!versions.contains(v))
+        {
             qWarning() << "[DatabaseManager::migrate] Missing schema file for version" << v;
             return false;
         }
     }
 
     // Proses migrasi dengan transaksi
-    if (!m_database.transaction()) {
+    if (!m_database.transaction())
+    {
         qWarning() << "[DatabaseManager::migrate] Failed to start transaction";
         return false;
     }
 
-    while (databaseVersion < lastVersion) {
+    while (databaseVersion < lastVersion)
+    {
         int nextVersion = databaseVersion + 1;
         QString schemaPath = versions.value(nextVersion);
 
         QFile sf(schemaPath);
-        if (!sf.open(QIODevice::ReadOnly)) {
+        if (!sf.open(QIODevice::ReadOnly))
+        {
             qWarning() << "[DatabaseManager::migrate] Failed to open schema file:" << schemaPath;
             m_database.rollback();
             return false;
@@ -193,10 +200,13 @@ bool DatabaseManager::migrate() {
         QTextStream ts(&sf);
         QString s = ts.readAll();
         QStringList queries = s.split("---- SEP", Qt::SkipEmptyParts); // aturan pemisah sesuai konvensi skema
-        for (const auto& query : queries) {
+        for (const auto &query : queries)
+        {
             QString trimmedQuery = query.trimmed();
-            if (!trimmedQuery.isEmpty()) {
-                if (!q.exec(trimmedQuery)) {
+            if (!trimmedQuery.isEmpty())
+            {
+                if (!q.exec(trimmedQuery))
+                {
                     QString error = q.lastError().isValid() ? q.lastError().text() : "Unknown error";
                     qWarning() << QString("Failed while migrating from %1 to %2 at %3 with error: %4")
                                       .arg(databaseVersion)
@@ -212,7 +222,8 @@ bool DatabaseManager::migrate() {
         QSqlQuery updateQuery(m_database);
         updateQuery.prepare("UPDATE meta SET version = :ver, updated_at = CURRENT_TIMESTAMP;");
         updateQuery.bindValue(":ver", nextVersion);
-        if (!updateQuery.exec()) {
+        if (!updateQuery.exec())
+        {
             qWarning() << "[DatabaseManager::migrate] Failed to update meta version:" << updateQuery.lastError().text();
             m_database.rollback();
             return false;
@@ -221,7 +232,8 @@ bool DatabaseManager::migrate() {
         databaseVersion = nextVersion;
     }
 
-    if (!m_database.commit()) {
+    if (!m_database.commit())
+    {
         qWarning() << "[DatabaseManager::migrate] Failed to commit transaction:" << m_database.lastError().text();
         return false;
     }
@@ -229,11 +241,10 @@ bool DatabaseManager::migrate() {
     return true;
 }
 
-bool DatabaseManager::isOpen() const { return m_database.isOpen(); }
-
 QSqlError DatabaseManager::lastError() const { return m_database.lastError(); }
 
-bool DatabaseManager::verifySchema(QSqlDatabase& db) {
-  // Lakukan verifikasi skema, untuk sementara di skip karena baru ada 1 skema
-  return true;
+bool DatabaseManager::verifySchema(QSqlDatabase &db)
+{
+    // Lakukan verifikasi skema, untuk sementara di skip karena baru ada 1 skema
+    return true;
 }

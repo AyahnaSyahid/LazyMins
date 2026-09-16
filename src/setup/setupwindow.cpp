@@ -159,5 +159,5 @@ void SetupWindow::on_installButton_clicked()
     // force login for this initial setup
     SessionManager::instance().login(opt_adm->value("username").toString(), params["password"]);
     emit setupFinished();     // Signal yang sudah Anda definisikan
-    // close() akan dilakukan di main() melalui lambda yang terhubung ke signal ini
+    accept();
 }

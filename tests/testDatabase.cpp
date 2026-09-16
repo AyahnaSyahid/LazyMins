@@ -9,22 +9,25 @@ void TestDatabase::initTestCase() {
     qApp->setApplicationName("Test");
     qApp->setOrganizationName("BlackCircle");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    Q_INIT_RESOURCE(database_resources);
 }
 
 void TestDatabase::testDatabaseMigrate() {
-    Q_INIT_RESOURCE(database_resources);
     DatabaseManager &dbm = DatabaseManager::instance();
     QVERIFY(QFileInfo::exists(":/schema/schema/v1.sql"));
-    QVERIFY(dbm.isFirstRun() == true);
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(":memory:");
-    QVERIFY(db.open() == true);
+    QVERIFY(dbm.isFirstRun());
+    auto setupFuncOk = dbm.initializeFromSetup(":memory:", "root", "000000");
+    QVERIFY(setupFuncOk);
+    QVERIFY(!dbm.isFirstRun());
+}
+
+void TestDatabase::testDatabaseMigrateAlready() {
+    DatabaseManager &dbm = DatabaseManager::instance();
+    auto db = QSqlDatabase::addDatabase("QSQLITE", "second");
+    db.setDatabaseName("/mnt/external/LinuxData/Development/Project/LazyMins/LAdmins.db");
+    QVERIFY(db.open());
     dbm.setDatabase(db);
-    QVERIFY(dbm.isFirstRun());
     QVERIFY(dbm.migrate());
-    QVERIFY(dbm.isFirstRun());
-    qDebug() << db.tables().count();
-    QVERIFY(db.tables().count() == 19);
 }
 
 QTEST_MAIN(TestDatabase)

@@ -8,4 +8,5 @@ class TestDatabase: public QObject
 private slots:
     void initTestCase();
     void testDatabaseMigrate();
+    void testDatabaseMigrateAlready();
 };

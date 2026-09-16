@@ -64,9 +64,15 @@ namespace
   }
 } // namespace
 
-MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
+MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p), setupDone(false)
 {
   ui->setupUi(this);
+}
+
+MainWindow::~MainWindow() { delete ui; }
+
+void MainWindow::continueSetup()
+{
   ui->menuToolbar->addAction(ui->addDataToolbar->toggleViewAction());
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
   auto dockSetup = [](QDockWidget *dw, const QString &title,
@@ -278,8 +284,6 @@ MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p)
   // Login
   openLoginForm();
 }
-
-MainWindow::~MainWindow() { delete ui; }
 
 #include <QVBoxLayout>
 

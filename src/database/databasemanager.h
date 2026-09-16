@@ -1,27 +1,28 @@
 #pragma once
 
-#include <QSqlDatabase>
-class DatabaseManager {
- public:
-  static bool initSchema(QSqlDatabase& db);
-  static DatabaseManager& instance();
-  DatabaseManager(const DatabaseManager&) = delete;
-  DatabaseManager& operator=(DatabaseManager&) = delete;
-  bool initializeFromSetup(const QString& dbPath, const QString& superUser,
-                           const QString& password);
-  void setDatabase(QSqlDatabase& db);
-  bool isOpen() const;
+#include "database_config.h"
 
-  QSqlDatabase& database() { return m_database; }
+#include <QSqlDatabase>
+class DatabaseManager
+{
+public:
+  static DatabaseManager &instance();
+  DatabaseManager(const DatabaseManager &) = delete;
+  DatabaseManager &operator=(DatabaseManager &) = delete;
+  void setDatabase(QSqlDatabase &db);
+  bool initializeFromSetup(const QString &dbPath, const QString &superUser,
+                           const QString &password);
+
+  QSqlDatabase &database() { return m_database; }
   QSqlError lastError() const;
 
   bool isFirstRun() const { return m_isFirstRun; }
   bool migrate();
 
- private:
+private:
   DatabaseManager();
   ~DatabaseManager();
-  bool verifySchema(QSqlDatabase& db);
+  bool verifySchema(QSqlDatabase &db);
 
   QSqlDatabase m_database;
 

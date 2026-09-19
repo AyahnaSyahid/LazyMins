@@ -190,34 +190,112 @@ bool DatabaseManager::migrate()
         QString schemaPath = versions.value(nextVersion);
 
         QFile sf(schemaPath);
-        if (!sf.open(QIODevice::ReadOnly))
+        if (!sf.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             qWarning() << "[DatabaseManager::migrate] Failed to open schema file:" << schemaPath;
             m_database.rollback();
             return false;
         }
 
+        // Parse schema file line-by-line, accumulating statements.
+        // This handles multi-statement chunks (e.g. PRAGMA + BEGIN + CREATE TABLE)
+        // that the ---- SEP split cannot handle.
         QTextStream ts(&sf);
-        QString s = ts.readAll();
-        QStringList queries = s.split("---- SEP", Qt::SkipEmptyParts); // aturan pemisah sesuai konvensi skema
-        for (const auto &query : queries)
+        QString statement;
+        bool insideCreateTrigger = false;
+        int caseDepth = 0;
+
+        while (!ts.atEnd())
         {
-            QString trimmedQuery = query.trimmed();
-            if (!trimmedQuery.isEmpty())
+            QString line = ts.readLine();
+
+            if (line.trimmed().isEmpty()) continue;
+            if (line.trimmed().startsWith("--")) continue;
+
+            if (line.toLower().contains("create trigger"))
             {
-                if (!q.exec(trimmedQuery))
+                insideCreateTrigger = true;
+                caseDepth = 0;
+                statement += "\n" + line;
+                continue;
+            }
+
+            if (insideCreateTrigger)
+            {
+                QString stripped = line.trimmed().toLower();
+                if (stripped.startsWith("case")) caseDepth++;
+                statement += "\n" + line;
+                if (stripped.contains("end;"))
                 {
-                    QString error = q.lastError().isValid() ? q.lastError().text() : "Unknown error";
-                    qWarning() << QString("Failed while migrating from %1 to %2 at %3 with error: %4")
-                                      .arg(databaseVersion)
-                                      .arg(nextVersion)
-                                      .arg(queries.indexOf(query))
-                                      .arg(error);
-                    m_database.rollback();
-                    return false;
+                    if (caseDepth > 0) { caseDepth--; }
+                    else
+                    {
+                        insideCreateTrigger = false;
+                        if (!q.exec(statement.trimmed()))
+                        {
+                            QString error = q.lastError().isValid() ? q.lastError().text() : "Unknown error";
+                            qWarning() << QString("[DatabaseManager::migrate] Failed migrating %1->%2 trigger: %3")
+                                          .arg(databaseVersion).arg(nextVersion).arg(error);
+                            m_database.rollback();
+                            return false;
+                        }
+                        statement.clear();
+                    }
                 }
+                continue;
+            }
+
+            if (line.contains(";"))
+            {
+                statement += "\n" + line;
+                QString trimmed = statement.trimmed();
+                if (!trimmed.isEmpty())
+                {
+                    // Skip transaction control statements — migrate() manages
+                    // the outer transaction wrapper.
+                    QString lower = trimmed.toLower();
+                    if (lower.startsWith("begin transaction") ||
+                        lower.startsWith("commit"))
+                    {
+                        statement.clear();
+                        continue;
+                    }
+                    // Skip CREATE TABLE meta — migrate() handles meta table itself
+                    if (lower.startsWith("create table meta"))
+                    {
+                        statement.clear();
+                        continue;
+                    }
+                    if (!q.exec(trimmed))
+                    {
+                        QString error = q.lastError().isValid() ? q.lastError().text() : "Unknown error";
+                        qWarning() << QString("[DatabaseManager::migrate] Failed migrating %1->%2: %3")
+                                      .arg(databaseVersion).arg(nextVersion).arg(error);
+                        m_database.rollback();
+                        return false;
+                    }
+                }
+                statement.clear();
+                continue;
+            }
+
+            statement += "\n" + line;
+        }
+
+        // Flush any remaining statement
+        if (!statement.trimmed().isEmpty())
+        {
+            if (!q.exec(statement.trimmed()))
+            {
+                QString error = q.lastError().isValid() ? q.lastError().text() : "Unknown error";
+                qWarning() << QString("[DatabaseManager::migrate] Failed migrating %1->%2 (flush): %3")
+                              .arg(databaseVersion).arg(nextVersion).arg(error);
+                m_database.rollback();
+                return false;
             }
         }
+
+        sf.close();
 
         QSqlQuery updateQuery(m_database);
         updateQuery.prepare("UPDATE meta SET version = :ver, updated_at = CURRENT_TIMESTAMP;");

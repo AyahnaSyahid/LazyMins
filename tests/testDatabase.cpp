@@ -10,6 +10,14 @@ void TestDatabase::initTestCase() {
     qApp->setOrganizationName("BlackCircle");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     Q_INIT_RESOURCE(database_resources);
+
+    // Clear any stale databasePath setting left by a prior run.
+    // If the singleton constructor sees it, m_isFirstRun becomes false
+    // and testDatabaseMigrate's pre-setup assertion fails.
+    QSettings s;
+    if (s.status() == QSettings::NoError) {
+        s.remove(Config::Database::SETTINGS_KEY_DBPATH);
+    }
 }
 
 void TestDatabase::testDatabaseMigrate() {

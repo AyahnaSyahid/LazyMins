@@ -280,9 +280,6 @@ void MainWindow::continueSetup()
       else
         {csm.logout();}
     } });
-
-  // Login
-  openLoginForm();
 }
 
 #include <QVBoxLayout>
@@ -290,7 +287,6 @@ void MainWindow::continueSetup()
 void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
 {
   auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
-  dl->setMode(ReportDialog::ExpenseMode);
   dl->setAttribute(Qt::WA_DeleteOnClose);
   dl->open();
 }

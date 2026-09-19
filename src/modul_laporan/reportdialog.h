@@ -13,7 +13,7 @@ class ReportDialog : public QDialog
 {
     Q_OBJECT
 public:
-    enum ReportMode { SalesMode, ExpenseMode };
+    enum ReportMode { SalesMode, ExpenseMode, RangeSalesMode, RangeExpenseMode };
     ReportDialog(QSqlDatabase &db, int adminId = 1, QWidget * parent = nullptr);
     ~ReportDialog();
 

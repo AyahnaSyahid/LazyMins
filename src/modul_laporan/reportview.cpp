@@ -11,6 +11,8 @@
 #include "report_renderer_base.h"
 #include "daily_expense_renderer.h"
 #include "daily_sales_renderer.h"
+#include "range_expense_renderer.h"
+#include "range_sales_renderer.h"
 
 ReportView::ReportView(QWidget* parent)
     : QGraphicsView(parent)
@@ -43,6 +45,24 @@ void ReportView::showExpenseReport(const DailyExpenseReport& data, const ReportT
     m_scene->clear();
     addPageShadow();
     DailyExpenseRenderer renderer(m_scene, data, theme);
+    renderer.render(20);
+    resetZoom();
+}
+
+void ReportView::showRangeSalesReport(const RangeSalesReport& data, const ReportTheme& theme)
+{
+    m_scene->clear();
+    addPageShadow();
+    RangeSalesRenderer renderer(m_scene, data, theme);
+    renderer.render(20);
+    resetZoom();
+}
+
+void ReportView::showRangeExpenseReport(const RangeExpenseReport& data, const ReportTheme& theme)
+{
+    m_scene->clear();
+    addPageShadow();
+    RangeExpenseRenderer renderer(m_scene, data, theme);
     renderer.render(20);
     resetZoom();
 }

@@ -44,6 +44,7 @@ endif()
 # ------------------------------------------------------------------
 add_library(license_helper STATIC
     src/license_helper.cpp
+    src/trial_record.cpp
 )
 target_include_directories(license_helper PUBLIC
     include

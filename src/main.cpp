@@ -1,3 +1,4 @@
+#include "src/utils/licensegate.h"
 #include "src/database/databasemanager.h"
 #include "src/database/database_config.h"
 #include "src/mainwindow/mainwindow.h"
@@ -9,6 +10,7 @@
 #include <QApplication>
 #include <QSettings>
 #include <QDebug>
+#include <QMessageBox>
 
 int main(int argc, char **argv)
 {
@@ -48,6 +50,28 @@ int main(int argc, char **argv)
         qDebug() << "[Flow] existing DB at" << dbPath << "- skipping setup";
         mainWindow.continueSetup();
     }
+    // ——— License gate ———
+    licensegate::initialize();
+    auto gateRes = licensegate::result();
+
+    if (gateRes.state == licensegate::GateState::Reminder) {
+        licensegate::showReminder(gateRes.daysUsed, gateRes.hardwareId, &mainWindow);
+    } else if (gateRes.state == licensegate::GateState::Blocked) {
+        if (!licensegate::showBlockDialog(gateRes.hardwareId, &mainWindow)) {
+            app.quit();
+            return 0;
+        }
+    } else if (gateRes.state == licensegate::GateState::Error) {
+        QMessageBox::warning(
+            &mainWindow,
+            "Peringatan Lisensi",
+            QString("Terjadi masalah dengan record lisensi:\n%1\n\n"
+                    "Aplikasi akan tetap berjalan, namun fitur lisensi mungkin tidak bekerja."
+            ).arg(gateRes.errorMessage),
+            QMessageBox::Ok
+        );
+    }
+
     app.installEventFilter(&SessionManager::instance());
     mainWindow.openLoginForm();
     return app.exec();

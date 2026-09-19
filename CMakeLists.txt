@@ -186,6 +186,7 @@ set(EXECUTABLE_SOURCES
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
+    src/utils/licensegate.cpp
     resources/res.rc
     )
 
@@ -209,6 +210,7 @@ target_link_libraries(LazyMins PRIVATE
     printing_module
     printer_setup_module
     modul_laporan
+    license_helper
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network

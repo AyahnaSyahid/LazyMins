@@ -1,6 +1,5 @@
 #include "testMigration.h"
-#include "src/database/databasemanager.h"
-#include "src/database/initializeschema.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QResource>
@@ -10,13 +9,16 @@
 #include <QTest>
 #include <QTextStream>
 
+#include "src/database/databasemanager.h"
+#include "src/database/initializeschema.h"
+
 void TestMigration::initTestCase() {
   qApp->setApplicationName("Test");
   qApp->setOrganizationName("BlackCircle");
   Q_INIT_RESOURCE(database_resources);
 }
 
-QSqlDatabase TestMigration::openInMemoryDb(const QString &connectionName) {
+QSqlDatabase TestMigration::openInMemoryDb(const QString& connectionName) {
   QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
   db.setDatabaseName(":memory:");
   if (!db.open()) {
@@ -26,7 +28,7 @@ QSqlDatabase TestMigration::openInMemoryDb(const QString &connectionName) {
   return db;
 }
 
-bool TestMigration::createV1Schema(QSqlDatabase &db) {
+bool TestMigration::createV1Schema(QSqlDatabase& db) {
   QFile f(":/schema/schema/v1.sql");
   if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
     qCritical() << "Cannot open v1.sql resource";
@@ -42,10 +44,8 @@ bool TestMigration::createV1Schema(QSqlDatabase &db) {
   while (!ts.atEnd()) {
     QString line = ts.readLine();
 
-    if (line.trimmed().isEmpty())
-      continue;
-    if (line.trimmed().startsWith("--"))
-      continue;
+    if (line.trimmed().isEmpty()) continue;
+    if (line.trimmed().startsWith("--")) continue;
 
     if (line.toLower().contains("create trigger")) {
       insideCreateTrigger = true;
@@ -116,15 +116,16 @@ bool TestMigration::createV1Schema(QSqlDatabase &db) {
   return true;
 }
 
-bool TestMigration::setMetaVersion(QSqlDatabase &db, int version) {
+bool TestMigration::setMetaVersion(QSqlDatabase& db, int version) {
   QSqlQuery q(db);
-  q.prepare("INSERT OR REPLACE INTO meta (version, updated_at) VALUES (:ver, "
-            "CURRENT_TIMESTAMP)");
+  q.prepare(
+      "INSERT OR REPLACE INTO meta (version, updated_at) VALUES (:ver, "
+      "CURRENT_TIMESTAMP)");
   q.bindValue(":ver", version);
   return q.exec();
 }
 
-bool TestMigration::hasAllV1Tables(QSqlDatabase &db) {
+bool TestMigration::hasAllV1Tables(QSqlDatabase& db) {
   QStringList expectedTables = {"roles",
                                 "admins",
                                 "price_levels",
@@ -146,9 +147,8 @@ bool TestMigration::hasAllV1Tables(QSqlDatabase &db) {
                                 "stock_movements",
                                 "activity_logs"};
   QStringList actualTables = db.tables();
-  for (const QString &table : expectedTables) {
-    if (!actualTables.contains(table))
-      return false;
+  for (const QString& table : expectedTables) {
+    if (!actualTables.contains(table)) return false;
   }
   return true;
 }
@@ -157,7 +157,7 @@ void TestMigration::testNewDatabaseEmpty() {
   QSqlDatabase db = openInMemoryDb("test_new_db");
   QVERIFY2(db.isOpen(), "Failed to open in-memory DB");
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   QVERIFY(!db.tables().contains("meta"));
@@ -181,7 +181,7 @@ void TestMigration::testAlreadyCurrent() {
   QVERIFY(createV1Schema(db));
   QVERIFY(setMetaVersion(db, 1));
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -207,7 +207,7 @@ void TestMigration::testOutOfDateDatabase() {
   QVERIFY(!db.tables().contains("admins"));
   QVERIFY(!db.tables().contains("roles"));
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -227,7 +227,7 @@ void TestMigration::testErrorRollback() {
   QVERIFY(createV1Schema(db));
   QVERIFY(setMetaVersion(db, 0));
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -247,20 +247,21 @@ void TestMigration::testPreExistingDbWithAdmins() {
   QVERIFY2(db.isOpen(), "Failed to open in-memory DB");
 
   QSqlQuery q(db);
-  QVERIFY(q.exec("CREATE TABLE admins ("
-                 "  id INTEGER PRIMARY KEY,"
-                 "  role_id INTEGER NOT NULL DEFAULT 3,"
-                 "  username TEXT NOT NULL UNIQUE,"
-                 "  password_hash TEXT NOT NULL,"
-                 "  salt TEXT NOT NULL,"
-                 "  nama_lengkap TEXT NOT NULL,"
-                 "  email TEXT,"
-                 "  nomor_telp TEXT,"
-                 "  is_active INTEGER DEFAULT 1,"
-                 "  last_login DATETIME,"
-                 "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                 "  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"
-                 ")"));
+  QVERIFY(
+      q.exec("CREATE TABLE admins ("
+             "  id INTEGER PRIMARY KEY,"
+             "  role_id INTEGER NOT NULL DEFAULT 3,"
+             "  username TEXT NOT NULL UNIQUE,"
+             "  password_hash TEXT NOT NULL,"
+             "  salt TEXT NOT NULL,"
+             "  nama_lengkap TEXT NOT NULL,"
+             "  email TEXT,"
+             "  nomor_telp TEXT,"
+             "  is_active INTEGER DEFAULT 1,"
+             "  last_login DATETIME,"
+             "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+             "  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+             ")"));
   QVERIFY(q.exec(
       "INSERT INTO admins (id, username, password_hash, salt, nama_lengkap) "
       "VALUES (1, 'admin', 'hash', 'salt', 'Admin User')"));
@@ -271,7 +272,7 @@ void TestMigration::testPreExistingDbWithAdmins() {
   QVERIFY(!tables.contains("roles"));
   QVERIFY(!tables.contains("products"));
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -301,7 +302,7 @@ void TestMigration::testVersionGreaterThanLast() {
   QVERIFY(q.exec(
       "INSERT INTO meta (version, updated_at) VALUES (5, CURRENT_TIMESTAMP)"));
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -318,7 +319,7 @@ void TestMigration::testMetaTableStructure() {
   QSqlDatabase db = openInMemoryDb("test_meta_structure_db");
   QVERIFY2(db.isOpen(), "Failed to open in-memory DB");
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -351,7 +352,7 @@ void TestMigration::testAllTablesExistAfterMigration() {
   QSqlDatabase db = openInMemoryDb("test_all_tables_db");
   QVERIFY2(db.isOpen(), "Failed to open in-memory DB");
 
-  DatabaseManager &dbm = DatabaseManager::instance();
+  DatabaseManager& dbm = DatabaseManager::instance();
   dbm.setDatabase(db);
 
   bool result = dbm.migrate();
@@ -379,7 +380,7 @@ void TestMigration::testAllTablesExistAfterMigration() {
                           "transaksi"};
 
   QStringList actual = db.tables();
-  for (const QString &t : expected) {
+  for (const QString& t : expected) {
     QVERIFY2(actual.contains(t), QString("Table '%1' missing after migration. "
                                          "Available: %2")
                                      .arg(t)
@@ -389,30 +390,27 @@ void TestMigration::testAllTablesExistAfterMigration() {
   }
 }
 
-void TestMigration::init()
-{
-    DatabaseManager &dbm = DatabaseManager::instance();
-    if (dbm.database().isValid() && dbm.database().isOpen()) {
-        dbm.database().close();
-    }
+void TestMigration::init() {
+  DatabaseManager& dbm = DatabaseManager::instance();
+  if (dbm.database().isValid() && dbm.database().isOpen()) {
+    dbm.database().close();
+  }
 }
 
-void TestMigration::cleanupTestCase()
-{
-    // Release DatabaseManager's hold on the last connection so
-    // removeDatabase doesn't complain about "still in use".
-    DatabaseManager &dbm = DatabaseManager::instance();
-    if (dbm.database().isValid() && dbm.database().isOpen()) {
-        dbm.database().close();
-    }
-    static QSqlDatabase nullDb;
-    dbm.setDatabase(nullDb);
+void TestMigration::cleanupTestCase() {
+  // Release DatabaseManager's hold on the last connection so
+  // removeDatabase doesn't complain about "still in use".
+  DatabaseManager& dbm = DatabaseManager::instance();
+  if (dbm.database().isValid() && dbm.database().isOpen()) {
+    dbm.database().close();
+  }
+  static QSqlDatabase nullDb;
+  dbm.setDatabase(nullDb);
 
-    QStringList connections = QSqlDatabase::connectionNames();
-    for (const QString &conn : connections) {
-        QSqlDatabase::removeDatabase(conn);
-    }
+  QStringList connections = QSqlDatabase::connectionNames();
+  for (const QString& conn : connections) {
+    QSqlDatabase::removeDatabase(conn);
+  }
 }
 
 QTEST_MAIN(TestMigration)
-#include "testMigration.moc"

@@ -45,12 +45,14 @@ endif()
 add_library(license_helper STATIC
     src/license_helper.cpp
     src/trial_record.cpp
+    ${CMAKE_SOURCE_DIR}/resources/secret.qrc
 )
+
 target_include_directories(license_helper PUBLIC
     include
     ${OPENSSL_INCLUDE_DIR}
 )
-target_link_libraries(license_helper PUBLIC ${OPENSSL_LIBRARIES})
+target_link_libraries(license_helper PUBLIC ${OPENSSL_LIBRARIES} Qt6::Core)
 
 # Kalau target Windows + link OpenSSL static, biasanya perlu ws2_32/crypt32
 if(WIN32)

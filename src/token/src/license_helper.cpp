@@ -17,6 +17,7 @@
 #ifdef _WIN32
   #include <windows.h>
 #endif
+#include <QTemporaryFile>
 
 namespace fs = std::filesystem;
 
@@ -423,6 +424,18 @@ std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
     if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
         return results;
     }
+    auto pemPath = publicKeyPemPath;
+    QTemporaryFile tf;
+    if (pemPath.empty()) {
+        if (tf.open()) {
+            QFile resourceFile(":/secret/public_key.pem");
+            if (resourceFile.open(QIODevice::ReadOnly)) {
+                tf.write(resourceFile.readAll());
+                pemPath = tf.fileName().toStdString();
+            }
+            tf.close();
+        }
+    }
 
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         if (!entry.is_regular_file()) continue;
@@ -430,7 +443,7 @@ std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
 
         ScanEntry se;
         se.filepath = entry.path().string();
-        se.result = verifyTokenFile(se.filepath, publicKeyPemPath, &se.token);
+        se.result = verifyTokenFile(se.filepath, pemPath, &se.token);
         results.push_back(std::move(se));
     }
     return results;

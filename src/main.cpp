@@ -1,78 +1,80 @@
-#include "src/utils/licensegate.h"
-#include "src/database/databasemanager.h"
-#include "src/database/database_config.h"
-#include "src/mainwindow/mainwindow.h"
-#include "src/setup/setupwindow.h"
-#include "src/printer/printservice.h"
-#include "src/utils/sessionmanager.h"
-#include "src/managers/basemanager.h"
-
 #include <QApplication>
-#include <QSettings>
 #include <QDebug>
 #include <QMessageBox>
+#include <QSettings>
 
-int main(int argc, char **argv)
-{
-    QApplication app(argc, argv);
-    Q_INIT_RESOURCE(database_resources);
+#include "src/database/database_config.h"
+#include "src/database/databasemanager.h"
+#include "src/mainwindow/mainwindow.h"
+#include "src/managers/basemanager.h"
+#include "src/printer/printservice.h"
+#include "src/setup/setupwindow.h"
+#include "src/utils/licensegate.h"
+#include "src/utils/sessionmanager.h"
 
-    app.setOrganizationName("BlackCircle");
-    app.setApplicationName("LazyMins");
-    QSettings::setDefaultFormat(QSettings::IniFormat);
+int main(int argc, char** argv) {
+  QApplication app(argc, argv);
+  Q_INIT_RESOURCE(database_resources);
 
-    PrintService::instance().loadSettings();
+  app.setOrganizationName("BlackCircle");
+  app.setApplicationName("LazyMins");
+  QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    QSettings s;
-    auto dbPath = s.value(Config::Database::SETTINGS_KEY_DBPATH, "").toString();
-    qDebug() << "[DBPath] resolved:" << dbPath << "(isEmpty:" << dbPath.isEmpty() << ")";
+  PrintService::instance().loadSettings();
 
-    // Force DatabaseManager singleton to open the database now.
-    // Its constructor reads dbPath from QSettings and opens it; on first-run
-    // the path is empty so it stays closed until initializeFromSetup replaces it.
-    DatabaseManager &dbm = DatabaseManager::instance();
-    if (!dbPath.isEmpty()) {
-        BaseManager::connection = dbm.database();
+  QSettings s;
+  auto dbPath = s.value(Config::Database::SETTINGS_KEY_DBPATH, "").toString();
+  qDebug() << "[DBPath] resolved:" << dbPath << "(isEmpty:" << dbPath.isEmpty()
+           << ")";
+
+  // Force DatabaseManager singleton to open the database now.
+  // Its constructor reads dbPath from QSettings and opens it; on first-run
+  // the path is empty so it stays closed until initializeFromSetup replaces it.
+  DatabaseManager& dbm = DatabaseManager::instance();
+  if (!dbPath.isEmpty()) {
+    BaseManager::connection = dbm.database();
+  }
+
+  MainWindow mainWindow;
+
+  if (dbPath.isEmpty()) {
+    qDebug() << "[Flow] first-run: showing SetupWindow";
+    SetupWindow sw;
+    QObject::connect(&sw, &SetupWindow::setupFinished, &mainWindow,
+                     &MainWindow::continueSetup);
+    if (sw.exec() != QDialog::Accepted) {
+      app.quit();
+      return 0;
     }
+  } else {
+    qDebug() << "[Flow] existing DB at" << dbPath << "- skipping setup";
+    mainWindow.continueSetup();
+  }
+  // ——— License gate ———
+  licensegate::initialize();
+  auto gateRes = licensegate::result();
 
-    MainWindow mainWindow;
-
-    if (dbPath.isEmpty()) {
-        qDebug() << "[Flow] first-run: showing SetupWindow";
-        SetupWindow sw;
-        QObject::connect(&sw, &SetupWindow::setupFinished,
-                         &mainWindow, &MainWindow::continueSetup);
-        if (sw.exec() != QDialog::Accepted) {
-            app.quit();
-            return 0;
-        }
-    } else {
-        qDebug() << "[Flow] existing DB at" << dbPath << "- skipping setup";
-        mainWindow.continueSetup();
+  if (gateRes.state == licensegate::GateState::Reminder) {
+    licensegate::showReminder(gateRes.daysUsed, gateRes.hardwareId,
+                              &mainWindow);
+  } else if (gateRes.state == licensegate::GateState::Blocked) {
+    if (!licensegate::showBlockDialog(gateRes.hardwareId, &mainWindow)) {
+      app.quit();
+      return 0;
     }
-    // ——— License gate ———
-    licensegate::initialize();
-    auto gateRes = licensegate::result();
+  } else if (gateRes.state == licensegate::GateState::Error) {
+    QMessageBox::warning(
+        &mainWindow, "Peringatan Lisensi",
+        QString("Terjadi masalah dengan record lisensi:\n%1\n\n"
+                "Aplikasi akan ditutup, silahkan hubungi developer.")
+            .arg(gateRes.errorMessage),
+        QMessageBox::Ok);
+    // Keluar aplikasi jika terdeteksi error di record lisensi
+    app.quit();
+    return 0;
+  }
 
-    if (gateRes.state == licensegate::GateState::Reminder) {
-        licensegate::showReminder(gateRes.daysUsed, gateRes.hardwareId, &mainWindow);
-    } else if (gateRes.state == licensegate::GateState::Blocked) {
-        if (!licensegate::showBlockDialog(gateRes.hardwareId, &mainWindow)) {
-            app.quit();
-            return 0;
-        }
-    } else if (gateRes.state == licensegate::GateState::Error) {
-        QMessageBox::warning(
-            &mainWindow,
-            "Peringatan Lisensi",
-            QString("Terjadi masalah dengan record lisensi:\n%1\n\n"
-                    "Aplikasi akan tetap berjalan, namun fitur lisensi mungkin tidak bekerja."
-            ).arg(gateRes.errorMessage),
-            QMessageBox::Ok
-        );
-    }
-
-    app.installEventFilter(&SessionManager::instance());
-    mainWindow.openLoginForm();
-    return app.exec();
+  app.installEventFilter(&SessionManager::instance());
+  mainWindow.openLoginForm();
+  return app.exec();
 }

@@ -82,8 +82,8 @@ struct ScanEntry {
 };
 
 std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
-                                        const std::string& publicKeyPemPath,
-                                        const std::string& extension = ".token");
+                                        const std::string& publicKeyPemPath = "",
+                                        const std::string& extension = ".tok");
 
 // ------------------------------------------------------------------
 // EMBEDDED PUBLIC KEY (baru — untuk aplikasi distribusi tanpa file PEM terpisah)

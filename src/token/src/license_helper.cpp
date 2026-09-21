@@ -17,6 +17,7 @@
 #ifdef _WIN32
   #include <windows.h>
 #endif
+#include <QTemporaryFile>
 
 namespace fs = std::filesystem;
 
@@ -423,6 +424,18 @@ std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
     if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
         return results;
     }
+    auto pemPath = publicKeyPemPath;
+    QTemporaryFile tf;
+    if (pemPath.empty()) {
+        if (tf.open()) {
+            QFile resourceFile(":/secret/public_key.pem");
+            if (resourceFile.open(QIODevice::ReadOnly)) {
+                tf.write(resourceFile.readAll());
+                pemPath = tf.fileName().toStdString();
+            }
+            tf.close();
+        }
+    }
 
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         if (!entry.is_regular_file()) continue;
@@ -430,10 +443,104 @@ std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
 
         ScanEntry se;
         se.filepath = entry.path().string();
-        se.result = verifyTokenFile(se.filepath, publicKeyPemPath, &se.token);
+        se.result = verifyTokenFile(se.filepath, pemPath, &se.token);
         results.push_back(std::move(se));
     }
     return results;
+}
+
+// ============================================================
+// Embedded public key (cached EVP_PKEY*)
+// ============================================================
+static EVP_PKEY* g_embeddedPublicKey = nullptr;
+
+void initEmbeddedPublicKey(std::string_view derBytes) {
+    if (g_embeddedPublicKey) {
+        EVP_PKEY_free(g_embeddedPublicKey);
+        g_embeddedPublicKey = nullptr;
+    }
+
+    // Load public key dari DER bytes
+    const unsigned char* p = reinterpret_cast<const unsigned char*>(derBytes.data());
+    const unsigned char* end = p + derBytes.size();
+
+    g_embeddedPublicKey = d2i_PUBKEY(nullptr, &p, static_cast<long>(derBytes.size()));
+    if (!g_embeddedPublicKey) {
+        throw std::runtime_error("Gagal memuat public key dari DER bytes: " + opensslLastError());
+    }
+
+    // Verifikasi bahwa ini adalah EC key (P-256)
+    int pkeyId = EVP_PKEY_id(g_embeddedPublicKey);
+    if (pkeyId != EVP_PKEY_EC) {
+        EVP_PKEY_free(g_embeddedPublicKey);
+        g_embeddedPublicKey = nullptr;
+        throw std::runtime_error("Public key DER bukan EC key (ditemukan: " +
+                                 std::to_string(pkeyId) + ")");
+    }
+}
+
+void clearEmbeddedPublicKey() {
+    if (g_embeddedPublicKey) {
+        EVP_PKEY_free(g_embeddedPublicKey);
+        g_embeddedPublicKey = nullptr;
+    }
+}
+
+ValidationResult verifyTokenStringEmbedded(std::string_view json,
+                                            TokenData* outToken) {
+    if (!g_embeddedPublicKey) {
+        return ValidationResult::KeyError;
+    }
+
+    TokenData t;
+    if (!jsonToToken(std::string(json), t)) {
+        return ValidationResult::ParseError;
+    }
+    if (outToken) *outToken = t;
+
+    std::string canon = canonicalize(t);
+    std::vector<unsigned char> sig;
+    try {
+        sig = base64Decode(t.signature);
+    } catch (...) {
+        return ValidationResult::ParseError;
+    }
+
+    bool sigOk = rawVerify(canon, sig, g_embeddedPublicKey);
+    if (!sigOk) return ValidationResult::InvalidSignature;
+
+    try {
+        if (isExpired(t.valid_until)) return ValidationResult::Expired;
+    } catch (...) {
+        return ValidationResult::ParseError;
+    }
+
+    // hardware_id kosong = token tidak dikunci ke mesin tertentu
+    if (!t.hardware_id.empty()) {
+        std::string currentHwId;
+        try {
+            currentHwId = getHardwareId();
+        } catch (...) {
+            return ValidationResult::KeyError;
+        }
+        if (currentHwId != t.hardware_id) {
+            return ValidationResult::HardwareMismatch;
+        }
+    }
+
+    return ValidationResult::Valid;
+}
+
+ValidationResult verifyTokenFileEmbedded(std::string_view filePath,
+                                          TokenData* outToken) {
+    if (!fs::exists(std::string(filePath))) return ValidationResult::FileNotFound;
+
+    std::ifstream f(std::string(filePath), std::ios::binary);
+    if (!f) return ValidationResult::FileNotFound;
+
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    return verifyTokenStringEmbedded(ss.str(), outToken);
 }
 
 } // namespace license

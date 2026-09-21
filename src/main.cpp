@@ -1,51 +1,97 @@
+#include <QApplication>
+#include <QDebug>
+#include <QMessageBox>
+#include <QSettings>
+
+#include "src/database/database_config.h"
 #include "src/database/databasemanager.h"
 #include "src/mainwindow/mainwindow.h"
-#include "src/setup/setupwindow.h"
+#include "src/managers/basemanager.h"
 #include "src/printer/printservice.h"
+#include "src/setup/setupwindow.h"
+#include "src/utils/licensegate.h"
 #include "src/utils/sessionmanager.h"
-
-#include <QApplication>
-#include <QSettings>
-#include <QMessageBox>
-#include <QSqlError>
 
 int main(int argc, char **argv)
 {
-    QApplication app(argc, argv);
-    Q_INIT_RESOURCE(database_resources);
+  QApplication app(argc, argv);
+  Q_INIT_RESOURCE(database_resources);
 
-    app.setOrganizationName(APP_ORGANIZATION);
-    app.setApplicationName(APP_NAME);
-    QSettings::setDefaultFormat(QSettings::IniFormat);
+  app.setOrganizationName("BlackCircle");
+  app.setApplicationName("LazyMins");
+  QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    PrintService::instance().loadSettings();
+  PrintService::instance().loadSettings();
 
-    auto &sman = SessionManager::instance();
-    app.connect(&app, &QCoreApplication::aboutToQuit, &sman, &SessionManager::logout);
-    DatabaseManager &dbm = DatabaseManager::instance();
+  QSettings s;
+  auto dbPath = s.value(Config::Database::SETTINGS_KEY_DBPATH, "").toString();
+  qDebug() << "[DBPath] resolved:" << dbPath << "(isEmpty:" << dbPath.isEmpty()
+           << ")";
 
-    if (dbm.isFirstRun()) {
-        SetupWindow setupWindow;
+  // Force DatabaseManager singleton to open the database now.
+  // Its constructor reads dbPath from QSettings and opens it; on first-run
+  // the path is empty so it stays closed until initializeFromSetup replaces it.
+  DatabaseManager &dbm = DatabaseManager::instance();
+  if (!dbPath.isEmpty())
+  {
+    BaseManager::connection = dbm.database();
+  }
 
-        QObject::connect(&setupWindow, &SetupWindow::setupFinished,
-                         &setupWindow, &QDialog::accept);
-        QObject::connect(&setupWindow, &SetupWindow::setupFailed,
-                         qApp, &QApplication::quit);
+  MainWindow mainWindow;
 
-        if (setupWindow.exec() != QDialog::Accepted) {
-            return 0;
-        }
+  bool firstInstall = true;
+
+  if (dbPath.isEmpty())
+  {
+    qDebug() << "[Flow] first-run: showing SetupWindow";
+    SetupWindow sw;
+    QObject::connect(&sw, &SetupWindow::setupFinished, &mainWindow,
+                     &MainWindow::continueSetup);
+    if (sw.exec() != QDialog::Accepted)
+    {
+      app.quit();
+      return 0;
     }
+  }
+  else
+  {
+    qDebug() << "[Flow] existing DB at" << dbPath << "- skipping setup";
+    mainWindow.continueSetup();
+    firstInstall = false;
+  }
+  // ——— License gate ———
+  licensegate::initialize();
+  auto gateRes = licensegate::result();
 
-    if (!dbm.isOpen()) {
-        QMessageBox::critical(nullptr, "Fatal Error",
-                              "Tidak dapat membuka database:\n"
-                              + dbm.lastError().text());
-        return 1;
+  if (gateRes.state == licensegate::GateState::Reminder)
+  {
+    licensegate::showReminder(gateRes.daysUsed, gateRes.hardwareId,
+                              &mainWindow);
+  }
+  else if (gateRes.state == licensegate::GateState::Blocked)
+  {
+    if (!licensegate::showBlockDialog(gateRes.hardwareId, &mainWindow))
+    {
+      app.quit();
+      return 0;
     }
-
-    app.installEventFilter(&SessionManager::instance());
-    MainWindow mainWindow;
-    // show() called from login dialog
-    return app.exec();
+  }
+  else if (gateRes.state == licensegate::GateState::Error)
+  {
+    QMessageBox::warning(
+        &mainWindow, "Peringatan Lisensi",
+        QString("Terjadi masalah dengan record lisensi:\n%1\n\n"
+                "Aplikasi akan ditutup, silahkan hubungi developer.")
+            .arg(gateRes.errorMessage),
+        QMessageBox::Ok);
+    // Keluar aplikasi jika terdeteksi error di record lisensi
+    app.quit();
+    return 0;
+  }
+  app.installEventFilter(&SessionManager::instance());
+  if (firstInstall)
+    mainWindow.show();
+  else
+    mainWindow.openLoginForm();
+  return app.exec();
 }

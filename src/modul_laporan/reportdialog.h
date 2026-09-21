@@ -2,6 +2,7 @@
 
 #include <QDialog>
 #include <QSqlDatabase>
+#include <QDate>
 
 namespace Ui
 {
@@ -9,11 +10,12 @@ namespace Ui
 }
 
 class ReportLoader;
+
 class ReportDialog : public QDialog
 {
     Q_OBJECT
 public:
-    enum ReportMode { SalesMode, ExpenseMode };
+    enum ReportMode { SalesMode, ExpenseMode, RangeSalesMode, RangeExpenseMode };
     ReportDialog(QSqlDatabase &db, int adminId = 1, QWidget * parent = nullptr);
     ~ReportDialog();
 
@@ -22,6 +24,9 @@ public:
 private slots:
     void on_simpanButton_clicked();
     void on_refreshButton_clicked();
+    void on_refreshButton_2_clicked();
+    void on_dailyRadio_toggled(bool checked);
+    void on_rangeRadio_toggled(bool checked);
 
 private:
     Ui::ReportDialog *ui;

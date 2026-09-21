@@ -3,8 +3,8 @@ project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
 # ================ Build Specific Setting =================
 
-set(APPLICATION_SET_ORGANIZATION_NAME "Aksarajaya" CACHE STRING "Dibuat untuk Organisasi/perusahaan")
-set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default")
+set(APPLICATION_SET_ORGANIZATION_NAME "BlackCircle" CACHE STRING "Nama organisasi pembuat" FORCE )
+set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default" FORCE )
 
 
 # ==================== Global Settings ====================
@@ -188,9 +188,12 @@ set(EXECUTABLE_SOURCES
     src/mainwindow/mainwindow.cpp
     src/mainwindow/actiongroup.cpp
     src/setup/setupwindow.cpp
-    resources/database_resources.qrc
+    src/utils/licensegate.cpp
     resources/res.rc
     )
+
+qt_add_resources(EXECUTABLE_SOURCES "resources/database_resources.qrc")
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
     qt_add_executable(LazyMins WIN32 ${EXECUTABLE_SOURCES})
@@ -209,6 +212,7 @@ target_link_libraries(LazyMins PRIVATE
     printing_module
     printer_setup_module
     modul_laporan
+    license_helper
     Qt6::Widgets 
     Qt6::Sql 
     Qt6::Network

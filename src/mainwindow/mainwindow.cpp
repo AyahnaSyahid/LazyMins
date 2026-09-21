@@ -61,8 +61,15 @@ void connectModifyActionToFormDialog(QAction* action, const QString& formTitle,
 }
 }  // namespace
 
-MainWindow::MainWindow(QWidget* p) : QMainWindow(p), ui(new Ui::MainWindow) {
+MainWindow::MainWindow(QWidget *p) : ui(new Ui::MainWindow), QMainWindow(p), setupDone(false)
+{
   ui->setupUi(this);
+}
+
+MainWindow::~MainWindow() { delete ui; }
+
+void MainWindow::continueSetup()
+{
   ui->menuToolbar->addAction(ui->addDataToolbar->toggleViewAction());
   ui->menuToolbar->addAction(ui->transactionToolbar->toggleViewAction());
   auto dockSetup = [](QDockWidget* dw, const QString& title,
@@ -72,7 +79,7 @@ MainWindow::MainWindow(QWidget* p) : QMainWindow(p), ui(new Ui::MainWindow) {
     return dw;
   };
 
-  context = new MainWindowContext(this, menuBar(), this);
+  auto context = new MainWindowContext(this, menuBar(), this);
 
   auto dv1 = new ProdukDataViewer;
   dv1->initialize(context);
@@ -252,26 +259,18 @@ MainWindow::MainWindow(QWidget* p) : QMainWindow(p), ui(new Ui::MainWindow) {
     auto& csm = SessionManager::instance();
     if (csm.currentUserId() > 0) {
       RevokePasswordDialog rv(this);
-      if (QDialog::Accepted == rv.exec()) {
-        csm.restartIdleTimer();
-      } else {
-        csm.logout();
-      }
-    }
-  });
-
-  // Login
-  openLoginForm();
+      if (QDialog::Accepted == rv.exec())
+        {csm.restartIdleTimer();}
+      else
+        {csm.logout();}
+    } });
 }
-
-MainWindow::~MainWindow() { delete ui; }
 
 #include <QVBoxLayout>
 
-void MainWindow::on_actionLaporanPengeluaranHariIni_triggered() {
-  auto dl = new ReportDialog(BaseManager::connection,
-                             SessionManager::instance().currentUserId(), this);
-  dl->setMode(ReportDialog::ExpenseMode);
+void MainWindow::on_actionLaporanPengeluaranHariIni_triggered()
+{
+  auto dl = new ReportDialog(BaseManager::connection, SessionManager::instance().currentUserId(), this);
   dl->setAttribute(Qt::WA_DeleteOnClose);
   dl->open();
 }

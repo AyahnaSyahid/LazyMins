@@ -15,6 +15,7 @@ class MainWindow : public QMainWindow
     ~MainWindow();
   
   public slots:
+    void continueSetup();
     void openLoginForm();
   
   private slots:
@@ -26,9 +27,8 @@ class MainWindow : public QMainWindow
     void onBrowseAccounts();
 
   private:
-    MainWindowContext *context;
-    void setupToolbarActions();
     Ui::MainWindow *ui;
-
+    void setupToolbarActions();
     void setupAutoPrintStuctAction();
+    bool setupDone;
 };

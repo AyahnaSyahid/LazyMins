@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace license {
 
@@ -55,7 +56,7 @@ std::string getHardwareId();
 std::string signToken(TokenData token, const std::string& privateKeyPemPath);
 
 // ------------------------------------------------------------------
-// VERIFICATION
+// VERIFICATION (PEM file path — existing API, unchanged)
 // Dipakai di aplikasi yang didistribusikan, hanya butuh public_key.pem.
 // outToken (opsional) akan diisi field-field token jika parsing berhasil,
 // walau signature ternyata invalid (agar kamu tetap bisa lihat isi token).
@@ -81,7 +82,55 @@ struct ScanEntry {
 };
 
 std::vector<ScanEntry> scanTokenFolder(const std::string& folderPath,
-                                        const std::string& publicKeyPemPath,
-                                        const std::string& extension = ".token");
+                                        const std::string& publicKeyPemPath = "",
+                                        const std::string& extension = ".tok");
+
+// ------------------------------------------------------------------
+// EMBEDDED PUBLIC KEY (baru — untuk aplikasi distribusi tanpa file PEM terpisah)
+// Inisialisasi satu kali dari DER bytes public key. Public key dicache
+// di dalam library; semua verify*Embedded() berikutnya pakai cache ini.
+// Thread safety: inisialisasi harus dilakukan sebelum verify call,
+// idealnya di startup single-threaded.
+// ------------------------------------------------------------------
+
+// Inisialisasi public key dari DER bytes. Melempar std::runtime_error
+// jika DER tidak valid atau bukan public key ECDSA yang didukung.
+void initEmbeddedPublicKey(std::string_view derBytes);
+
+// Hapus public key yang dicache. Setelah dipanggil, verify*Embedded()
+// akan mengembalikan KeyError sampai initEmbeddedPublicKey() dipanggil lagi.
+void clearEmbeddedPublicKey();
+
+// Verifikasi token dari string JSON menggunakan embedded public key.
+// outToken (opsional) diisi jika parsing berhasil.
+// Melemmpat std::runtime_error jika belum diinisialisasi (akan return KeyError
+// tanpa throw — lihat implementasi).
+ValidationResult verifyTokenStringEmbedded(std::string_view json,
+                                            TokenData* outToken = nullptr);
+
+// Verifikasi token dari file .token menggunakan embedded public key.
+ValidationResult verifyTokenFileEmbedded(std::string_view filePath,
+                                         TokenData* outToken = nullptr);
+
+// ------------------------------------------------------------------
+// TRIAL RECORD (baru — untuk offline trial clock)
+// Menulis/membaca file .lm_trial yang ditandatangani HMAC-SHA256.
+// ------------------------------------------------------------------
+
+// Struktur hasil baca trial record.
+struct TrialRecord {
+    std::string install_date;   // tanggal install (format yyyy-MM-dd)
+    bool valid;                  // true jika HMAC cocok (tidak dimodifikasi)
+};
+
+// Tulis trial record baru dengan install_date yang diberikan.
+// File disimpan di per-user AppData path dengan nama ".lm_trial".
+// Mengembalikan absolute path file yang ditulis.
+// Melempar std::runtime_error jika gagal menulis.
+std::string writeTrialRecord(std::string_view installDate);
+
+// Baca trial record dari file. Mengembalikan nullopt jika file tidak ada
+// atau HMAC tidak cocok (file rusak/dimodifikasi).
+std::optional<TrialRecord> readTrialRecord();
 
 } // namespace license

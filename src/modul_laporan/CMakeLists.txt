@@ -25,3 +25,4 @@ target_link_libraries(modul_laporan PUBLIC
 
 add_executable(ReportViewer WIN32 main_example.cpp)
 target_link_libraries(ReportViewer PRIVATE modul_laporan Qt6::Widgets)
+set_target_properties(ReportViewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/ModuleTest)

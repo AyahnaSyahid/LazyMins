@@ -68,10 +68,11 @@ class DailySalesRenderer : public ReportRendererBase {
 
   qreal renderSummaryCards(qreal y) {
     qreal cw = (m_theme.contentWidth - m_theme.cardGap * 3) / 4;
-    auto card = [&](int i, const QString& label, const QString& value,
-                    const QColor& vc = {}) {
+    QList<QColor> colors = { {}, {}, m_theme.colorSuccess, m_theme.colorWarning };
+    auto card = [&, colors](int i, const QString& label, const QString& value,
+                    const QColor& vc = {}, const QColor& colorCardBg = {}) {
       addMetricCard(m_theme.marginLeft + i * (cw + m_theme.cardGap), y, cw,
-                    label, value, vc);
+                    label, value, vc, colorCardBg);
     };
 
     card(0, "Total order", QString::number(m_data.summary.totalOrders));
@@ -88,11 +89,11 @@ class DailySalesRenderer : public ReportRendererBase {
     const qreal L = m_theme.marginLeft;
     QList<ColDef> cols = {
         {"No. Order",  L,       100, Qt::AlignLeft},
-        {"Pelanggan",  L + 155, 110, Qt::AlignLeft},
-        {"Produk",     L + 275, 120, Qt::AlignLeft},
-        {"Produksi",   L + 380, 120, Qt::AlignLeft},
-        {"Total (Rp)", L + 460,  90, Qt::AlignRight},
-        {"Pembayaran", L + 585,  70, Qt::AlignLeft},
+        {"Pelanggan",  L + 135, 140, Qt::AlignLeft},
+        {"Produk",     L + 260, 205, Qt::AlignLeft},
+        {"Produksi",   L + 480, 120, Qt::AlignLeft},
+        {"Total (Rp)", L + 520,  90, Qt::AlignRight},
+        {"Pembayaran", L + 635,  70, Qt::AlignCenter},
     };
     y = addTableHeader(cols, y);
 
@@ -109,7 +110,7 @@ class DailySalesRenderer : public ReportRendererBase {
               y, {}, {});
 
       // payment badge
-      addPaymentBadge(row.paymentStatus, cols[5].x + 2, y + 3);
+      addPaymentBadge(row.paymentStatus, cols[5].x + 15, y + 3);
 
       addThinRule(y + m_theme.rowHeight);
       y += m_theme.rowHeight;

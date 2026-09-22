@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 project(Qt6_LazyMins VERSION 1.0.0 LANGUAGES CXX)
 
-# ================ Build Specific Setting =================
-
-set(APPLICATION_SET_ORGANIZATION_NAME "BlackCircle" CACHE STRING "Nama organisasi pembuat" FORCE )
-set(APPLICATION_SET_NAME "LazyAdmins" CACHE STRING "Nama Aplikasi Default" FORCE )
-
-
 # ==================== Global Settings ====================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

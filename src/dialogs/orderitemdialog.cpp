@@ -2,7 +2,6 @@
 
 #include <QMenu>
 #include <QMessageBox>
-#include <QStyledItemDelegate>
 #include <QTimer>
 #include <cmath>
 #include <memory>
@@ -14,8 +13,6 @@
 #include "src/models/finishinglistmodel.h"
 #include "src/models/ordermodel.h"
 #include "ui_orderitemdialog.h"
-
-void debugMap(const QVariantMap &);
 
 namespace
 {

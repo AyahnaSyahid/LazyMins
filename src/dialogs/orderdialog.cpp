@@ -1,16 +1,12 @@
 #include "orderdialog.h"
 
 #include <QAction>
-#include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPainter>
-#include <QSqlTableModel>
 #include <QTimer>
 #include <cmath>
 
 #include "src/customs/buttonguard.h"
-#include "src/customs/flexibledelegate.h"
 #include "src/customs/orderitemdelegate.h"
 #include "src/dialogs/customerpickerdialog.h"
 #include "src/dialogs/orderitemdialog.h"
@@ -19,92 +15,6 @@
 #include "ui_orderdialog.h"
 
 namespace {
-const QHash<int, QString> Column{
-    {0, "id"},
-    {1, "order_id"},
-    {2, "product_id"},
-    {3, "product_name"},
-    {4, "sku"},
-    {5, "quantity"},
-    {6, "unit"},
-    {7, "size_width"},
-    {8, "size_height"},
-    {9, "use_area"},
-    {10, "sale_price"},
-    {11, "base_price"},
-    {12, "discount_percentage"},
-    {13, "discount_amount"},
-    {14, "subtotal"},
-    {15, "notes"},
-    {16, "created_at"},
-    {17, "updated_at"},
-};
-
-class ProductDelegate : public QStyledItemDelegate {
- public:
-  explicit ProductDelegate(QObject* parent = nullptr)
-      : QStyledItemDelegate(parent), m_productModel(new QSqlTableModel(this)) {
-    m_productModel->setTable("products");
-    m_productModel->select();
-  }
-
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
-                        const QModelIndex& index) const override {
-    auto editor = new QueryComboBox(parent);
-    editor->setQuery(
-        "SELECT id, name, description, use_area, cost_price FROM products");
-    editor->showColumn(3, false);  // Sembunyikan kolom use_area
-    editor->showColumn(4, false);  // Sembunyikan kolom cost_price
-    editor->setModelColumn(1);     // Tampilkan nama produk di combo box
-    editor->setEditable(true);
-    editor->boxViewAutoResize();
-    return editor;
-  }
-  void setEditorData(QWidget* editor, const QModelIndex& index) const override {
-    auto combo = qobject_cast<QueryComboBox*>(editor);
-    if (combo) {
-      int productId = index.data().toInt();
-      int currentIndex = combo->findValue(productId);
-      combo->setCurrentIndex(currentIndex);
-    }
-  }
-  void setModelData(QWidget* editor, QAbstractItemModel* model,
-                    const QModelIndex& index) const override {
-    auto combo = qobject_cast<QueryComboBox*>(editor);
-    if (combo) {
-      auto qmod = combo->model();
-      int selectedRow = combo->currentIndex();
-      if (selectedRow >= 0) {
-        int productId = qmod->index(selectedRow, 0).data().toInt();
-        QString productName = qmod->index(selectedRow, 1).data().toString();
-        model->setData(index, productId);  // Simpan product_id di model
-        // model->setData(index.siblingAtColumn(3), productName); // Simpan nama
-        // produk di kolom tersembunyi
-      }
-    }
-  }
-  QString displayText(const QVariant& value,
-                      const QLocale& locale) const override {
-    // Tampilkan nama produk berdasarkan product_id
-    int productId = value.toInt();
-    if (productId == 0) return "";  // Jika belum dipilih, tampilkan kosong
-    int row = m_productModel
-                  ->match(m_productModel->index(0, 0), Qt::DisplayRole,
-                          productId, 1, Qt::MatchExactly)
-                  .value(0)
-                  .row();
-    if (row >= 0) {
-      return m_productModel->index(row, 2)
-          .data()
-          .toString();  // Tampilkan nama produk
-    }
-    return QString("Unknown Product (ID: %1)").arg(productId);
-  }
-
- private:
-  QSqlTableModel* m_productModel;
-};
-
 void disableSignalAndSet(
     std::variant<QLineEdit*, QSpinBox*, QDoubleSpinBox*, QPlainTextEdit*>
         editor,
@@ -149,7 +59,7 @@ OrderDialog::OrderDialog(QWidget* p)
 OrderDialog::~OrderDialog() { delete ui; }
 
 void OrderDialog::addOrderItem(const OrderItem& oi) {
-  auto ix = m_model->addItem(oi);
+  m_model->addItem(oi);
 }
 
 void OrderDialog::on_diskonDoubleSpinBox_valueChanged(double percent) {

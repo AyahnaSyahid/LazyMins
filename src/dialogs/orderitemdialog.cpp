@@ -170,7 +170,8 @@ void OrderItemDialog::on_simpanButton_clicked()
   }
   else
   {
-    emit editFinished();
+  m_itemEdit = oi;
+  emit editFinished();
   }
   accept();
 }

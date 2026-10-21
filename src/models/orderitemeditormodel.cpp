@@ -448,7 +448,7 @@ double OrderItemEditorModel::calculateSubtotal() const
 }
 
 int OrderItemEditorModel::orderItemIdForRow(int row) const {
-  if (row < 0 && row >= rowCount()) return -1;
+  if (row < 0 || row >= rowCount()) return -1;
   auto ix = index(row, 0);
   return ix.data(Qt::EditRole).toInt();
 }

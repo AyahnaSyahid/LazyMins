@@ -62,6 +62,28 @@ inline PrinterConfig defaultTMU220DConfig() {
     return cfg;
 }
 
+// ==================== Printer Error Categories ====================
+// Used for structured error detection so callers can present specific
+// guidance (reconnect, reconfigure, etc.) rather than a generic message.
+enum class PrinterError {
+    NoError = 0,
+    // Connection-level errors
+    NotConnected,
+    PortNotFound,
+    PortOpenFailed,
+    PortBusy,
+    PermissionDenied,
+    UnknownPortError,
+    // I/O-level errors during printing
+    WriteFailed,
+    WriteTimeout,
+    DeviceDisconnected,  // unplugged mid-session
+    // Configuration / state errors
+    NotConfigured,
+    // Catch-all
+    UnknownError
+};
+
 // ==================== POS Printer Manager ====================
 
 class PosPrinter : public QObject
@@ -112,6 +134,15 @@ public:
     // ---- Error Handling ----
     QString lastError() const;
     void clearError();
+    
+    // Structured error category for programmatic handling
+    PrinterError errorCategory() const;
+    QString errorCategoryToString(PrinterError err) const;
+    
+    // Verify printer is physically connected and ready before printing.
+    // Attempts a write-and-flush cycle on the serial port to detect a
+    // device that was unplugged after open().
+    bool ensurePrinterReady();
 
 public slots:
     void onPrintSerialReceiptRequested(const Receipt& receipt);
@@ -136,6 +167,15 @@ private:
     
     // Internal helper: pastikan ESC/POS printer siap dipakai
     bool ensureEscPosReady();
+    
+    // Internal helper: write raw data to serial port with error detection.
+    // Returns the number of bytes written, or -1 on failure (sets m_lastError
+    // and m_errorCategory accordingly).
+    qint64 writeSerialData(const QByteArray& data);
+    
+    // Internal helper: map QSerialPort::SerialPortError to PrinterError
+    static PrinterError mapSerialPortError(QSerialPort::SerialPortError err,
+                                           const QString& portName = {});
 
     // Internal QPrinter drawing methods
     void drawReceipt(QPainter& painter, const Receipt& receipt, const QPageSize& pageSize);
@@ -167,5 +207,6 @@ private:
     QString m_currentPrinter;
     PrinterConfig m_config;
     QString m_lastError;
+    PrinterError m_errorCategory = PrinterError::NoError;
     QSet<QString> m_errorPorts;
 };

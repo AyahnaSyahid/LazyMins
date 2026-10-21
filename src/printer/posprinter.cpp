@@ -143,8 +143,62 @@ bool PosPrinter::connectSerialPort(const QString& portName, int baudRate) {
     }
     if (m_serialPort.portName() != portName ) m_serialPort.setPort(QSerialPortInfo(portName));
     if (m_serialPort.baudRate() != baudRate ) m_serialPort.setBaudRate(baudRate);
-    m_serialPort.open(QIODevice::ReadWrite);
-    return m_serialPort.isOpen();
+    
+    // Clear previous error state
+    m_lastError.clear();
+    m_errorCategory = PrinterError::NoError;
+    
+    if (m_serialPort.open(QIODevice::ReadWrite)) {
+        // Successfully opened — verify the port is actually present by
+        // checking if it's a valid port. An empty isOpen() after a "successful"
+        // open can happen on some platforms with stale handles.
+        return m_serialPort.isOpen();
+    }
+    
+    // Open failed — classify the error based on QSerialPort::error()
+    QSerialPort::SerialPortError err = m_serialPort.error();
+    m_errorCategory = mapSerialPortError(err, portName);
+    m_lastError = errorCategoryToString(m_errorCategory);
+    qWarning() << "Serial port open failed on" << portName
+               << "error:" << err << "→" << m_lastError;
+    return false;
+}
+
+PrinterError PosPrinter::mapSerialPortError(QSerialPort::SerialPortError err,
+                                             const QString& portName) {
+    switch (err) {
+    case QSerialPort::NoError:
+        return PrinterError::NoError;
+    case QSerialPort::DeviceNotFoundError:
+        // Port doesn't exist on this machine — most likely unplugged or wrong port
+        if (!portName.isEmpty()) {
+            bool found = false;
+            for (const auto& info : QSerialPortInfo::availablePorts()) {
+                if (info.portName() == portName) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return PrinterError::PortNotFound;
+        }
+        return PrinterError::DeviceDisconnected;
+    case QSerialPort::PermissionError:
+        return PrinterError::PermissionDenied;
+    case QSerialPort::OpenError:
+        return PrinterError::PortOpenFailed;
+    case QSerialPort::ResourceError:
+        // Port is in use or resource unavailable
+        return PrinterError::PortBusy;
+    case QSerialPort::UnknownError:
+        return PrinterError::UnknownPortError;
+    case QSerialPort::WriteError:
+        // Write failed — device likely disconnected mid-operation
+        return PrinterError::DeviceDisconnected;
+    case QSerialPort::TimeoutError:
+        return PrinterError::WriteTimeout;
+    default:
+        return PrinterError::UnknownError;
+    }
 }
 
 bool PosPrinter::disconnectSerialPort() {
@@ -172,10 +226,49 @@ bool PosPrinter::ensureEscPosReady() {
   return m_serialPort.isOpen();
 }
 
+bool PosPrinter::ensurePrinterReady() {
+    if (!m_serialPort.isOpen()) {
+        m_lastError = "Printer belum terhubung. Buka koneksi serial terlebih dahulu.";
+        m_errorCategory = PrinterError::NotConnected;
+        return false;
+    }
+    
+    // Proactive write-flush to detect a device that was unplugged
+    // after the port was opened. QSerialPort does not emit an error
+    // for a physically disconnected device until you attempt I/O.
+    // Sending the ESC @ init command is a safe no-op that will fail
+    // if the device is gone.
+    const char initCmd[] = { 0x1B, '@' };
+    qint64 written = m_serialPort.write(initCmd, sizeof(initCmd));
+    if (written < 0) {
+        m_errorCategory = mapSerialPortError(m_serialPort.error(), m_serialPortName);
+        m_lastError = errorCategoryToString(m_errorCategory);
+        qWarning() << "Printer write probe failed:" << m_serialPort.error()
+                   << "→" << m_lastError;
+        // Clean up the dead connection
+        disconnectSerialPort();
+        emit serialPortError(m_lastError);
+        return false;
+    }
+    // Flush to ensure the bytes actually reach the device
+    if (!m_serialPort.waitForBytesWritten(3000)) {
+        m_errorCategory = PrinterError::WriteTimeout;
+        m_lastError = "Tidak dapat mengirim data ke printer (timeout). "
+                      "Printer mungkin tidak terhubung atau sedang error.";
+        qWarning() << "Printer write flush timed out";
+        return false;
+    }
+    return true;
+}
+
 // ==================== ESC/POS Commands ====================
 
 bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
-  if (!ensureEscPosReady()) return false;
+  // Use ensurePrinterReady() instead of ensureEscPosReady() to detect
+  // unplugged devices and I/O failures before and during sending data.
+  if (!ensurePrinterReady()) return false;
+  m_lastError.clear();
+  m_errorCategory = PrinterError::NoError;
   EscPosPrinter p(&m_serialPort);
   
   auto line = [](QChar ch, int width=40) { 
@@ -414,11 +507,21 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
     << "dapat ditukar/dikembalikan.\n";
   p.paperFeed(7);
   p.partialCut();
+  // Final flush — verify all buffered data reached the printer
+  if (!m_serialPort.waitForBytesWritten(5000)) {
+      m_errorCategory = PrinterError::WriteTimeout;
+      m_lastError = "Data terkirim ke port, namun tidak dapat memastikan "
+                    "printer menerima (timeout). Printer mungkin tidak terhubung.";
+      qWarning() << "printReceiptViaEscPos: final flush timed out";
+      emit serialPortError(m_lastError);
+      return false;
+  }
+  emit printFinished(receipt);
   return true;
 }
 
 bool PosPrinter::testPrintViaEscPos() {
-    if (!ensureEscPosReady()) return false;
+    if (!ensurePrinterReady()) return false;
     
     EscPosPrinter p(&m_serialPort);
     // Init(reset) the printer and set some encoding
@@ -984,9 +1087,94 @@ int PosPrinter::calculateMaxCharsPerLine() const {
 
 void PosPrinter::onSerialPortError(QSerialPort::SerialPortError error) {
   qDebug() << "Serial port error: " << error;
+  
+  if (error == QSerialPort::NoError) return;
+  
+  m_errorCategory = mapSerialPortError(error, m_serialPortName);
+  m_lastError = errorCategoryToString(m_errorCategory);
+  
   m_errorPorts << m_serialPortName;
   disconnectSerialPort();
-  emit serialPortError("Error Code : " + QString::number(error));
+  emit serialPortError(m_lastError);
+}
+
+PrinterError PosPrinter::errorCategory() const {
+    return m_errorCategory;
+}
+
+QString PosPrinter::errorCategoryToString(PrinterError err) const {
+    switch (err) {
+    case PrinterError::NoError:
+        return "Printer siap.";
+    case PrinterError::NotConnected:
+        return "Printer belum terhubung. Buka koneksi serial terlebih dahulu.";
+    case PrinterError::PortNotFound:
+        return "Port serial printer tidak ditemukan. Pastikan kabel USB "
+               "terhubung dan printer sudah dicolokkan.";
+    case PrinterError::PortOpenFailed:
+        return "Gagal membuka port serial. Port mungkin sudah dipakai "
+               "program lain atau driver tidak responsif.";
+    case PrinterError::PortBusy:
+        return "Port serial sedang dipakai oleh program lain.";
+    case PrinterError::PermissionDenied:
+        return "Tidak ada izin untuk membuka port serial. "
+               "Jalankan aplikasi sebagai administrator.";
+    case PrinterError::UnknownPortError:
+        return "Port serial tidak dikenali oleh sistem.";
+    case PrinterError::WriteFailed:
+        return "Gagal mengirim data ke printer. Kabel mungkin longgar "
+               "atau printer tidak merespons.";
+    case PrinterError::WriteTimeout:
+        return "Data tidak selesai dikirim ke printer dalam waktu "
+               "yang ditentukan. Printer mungkin tidak terhubung "
+               "atau sedang error.";
+    case PrinterError::DeviceDisconnected:
+        return "Printer dicabut dari port. Pastikan printer masih "
+               "terhubung dan menyalakan kembali, lalu coba lagi.";
+    case PrinterError::NotConfigured:
+        return "Printer belum dikonfigurasi. Buka pengaturan printer "
+               "terlebih dahulu.";
+    case PrinterError::UnknownError:
+    default:
+        return "Terjadi kesalahan yang tidak diketahui pada modul printer.";
+    }
+}
+
+qint64 PosPrinter::writeSerialData(const QByteArray& data) {
+    if (!m_serialPort.isOpen()) {
+        m_errorCategory = PrinterError::NotConnected;
+        m_lastError = errorCategoryToString(m_errorCategory);
+        return -1;
+    }
+    
+    qint64 written = m_serialPort.write(data);
+    if (written < 0) {
+        m_errorCategory = mapSerialPortError(m_serialPort.error(), m_serialPortName);
+        m_lastError = errorCategoryToString(m_errorCategory);
+        qWarning() << "writeSerialData failed:" << m_serialPort.error()
+                   << "category:" << static_cast<int>(m_errorCategory);
+        return -1;
+    }
+    
+    if (written < data.size()) {
+        // Partial write — this can happen on serial ports when the OS buffer
+        // fills up, but combined with no flush it indicates a problem.
+        m_errorCategory = PrinterError::WriteFailed;
+        m_lastError = "Hanya " + QString::number(written) + " dari "
+                      + QString::number(data.size())
+                      + " byte berhasil ditulis ke printer.";
+        qWarning() << "Partial write:" << written << "/" << data.size();
+    }
+    
+    // Flush the OS write buffer to the device
+    if (!m_serialPort.waitForBytesWritten(5000)) {
+        m_errorCategory = PrinterError::WriteTimeout;
+        m_lastError = errorCategoryToString(m_errorCategory);
+        qWarning() << "waitForBytesWritten timed out after 5000ms";
+        return -1;
+    }
+    
+    return written;
 }
 
 void PosPrinter::onPrintSerialReceiptRequested(const Receipt& receipt) {

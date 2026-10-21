@@ -1,4 +1,4 @@
-// src/utils/posprinter.cpp
+// src/printer/posprinter.cpp
 #include "posprinter.h"
 
 #include <QPrinterInfo>
@@ -221,10 +221,6 @@ QStringList PosPrinter::availableSerialPorts() const {
 }
 
 // ==================== ESC/POS Internal Helper ====================
-
-bool PosPrinter::ensureEscPosReady() {
-  return m_serialPort.isOpen();
-}
 
 bool PosPrinter::ensurePrinterReady() {
     if (!m_serialPort.isOpen()) {
@@ -544,183 +540,7 @@ bool PosPrinter::testPrintViaEscPos() {
 
 
 
-// ==================== ESC/POS Builder Sections ====================
-/*****
-void PosPrinter::buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    EscPos::TextStyle namaTokoStyle { 
-        .bold = true,
-        .underline = false,
-        .italic = false,
-        .doubleWidth = true,
-        .doubleHeight = true,
-        .fontSize = EscPos::FontSize::Normal
-          };
-
-    builder.alignCenter();
-    builder.horizontalLine('=', width);
-    builder.textStyled("AKSARAJAYA", namaTokoStyle);
-    builder.alignCenter()
-      .text("Jl. Kapten Naseh No. 40, Tasikmalaya")
-      .newline();
-    builder.text("Telp : 0816171816").newline();
-    builder.text("WA   : 0816171816").newline();
-    builder.horizontalLine('=', width);
-
-    // TODO: tambahkan alamat/telepon toko di sini jika perlu
-    builder.alignLeft();
-    builder.bold(true);
-    builder.text("Nota No : " + receipt.invoiceNo).newline();
-    builder.bold(false);
-    builder.text("Tanggal : " + receipt.date + " " + receipt.time).newline();
-    builder.text("Kasir   : ");
-    builder.bold(true);
-    builder.text(receipt.cashierName).newline();
-    builder.bold(false);
-    builder.horizontalLine('-', width);
-}
-
-void PosPrinter::buildEscPosCustomerInfo(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    if (receipt.customerName.isEmpty()) return;
-
-    builder.horizontalLine('-', width);
-    builder.text("PELANGGAN").newline();
-    builder.horizontalLine('-', width);
-    builder.text(receipt.customerName).newline();
-
-    if (!receipt.customerPhone.isEmpty()) {
-        builder.text(receipt.customerPhone).newline();
-    }
-
-    if (!receipt.customerAddress.isEmpty()) {
-        // Potong jika terlalu panjang untuk lebar printer
-        // TODO: tambahkan word-wrap jika alamat panjang
-        builder.text(receipt.customerAddress.left(width)).newline();
-    }
-}
-
-void PosPrinter::buildEscPosItems(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    builder.horizontalLine('-', width);
-    builder.column("ITEM", "HARGA", width);
-    builder.horizontalLine('-', width);
-
-    for (const auto& item : receipt.items) {
-        // Baris pertama: nama item (potong jika terlalu panjang)
-        builder.text(item.description.left(width)).newline();
-
-        // Baris kedua: qty x harga satuan = total
-        QString qty = QString::number(item.quantity, 'f', 0)
-                      + "x" + QString::number(item.unitPrice, 'f', 0);
-        QString total = QString::number(item.totalPrice, 'f', 0);
-        builder.column(qty, total, width);
-    }
-
-    // Biaya finishing jika ada
-    if (!receipt.finishings.isEmpty()) {
-        builder.newline();
-        builder.text("Biaya Finishing:").newline();
-        for (const auto& finishing : receipt.finishings) {
-            builder.column("- " + finishing.name,
-                           QString::number(finishing.cost, 'f', 0),
-                           width);
-        }
-    }
-}
-
-void PosPrinter::buildEscPosTotals(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    builder.horizontalLine('-', width);
-    builder.column("SUBTOTAL", QString::number(receipt.subtotal, 'f', 0), width);
-
-    if (receipt.discount > 0) {
-        builder.column("DISKON", "-" + QString::number(receipt.discount, 'f', 0), width);
-    }
-
-    if (receipt.tax > 0) {
-        QString taxLabel = QString("PPN %1%").arg(receipt.taxRate * 100, 0, 'f', 0);
-        builder.column(taxLabel, QString::number(receipt.tax, 'f', 0), width);
-    }
-
-    builder.horizontalLine('=', width);
-    builder.bold(true);
-    builder.column("TOTAL", QString::number(receipt.grandTotal, 'f', 0), width);
-    builder.bold(false);
-}
-
-void PosPrinter::buildEscPosPaymentInfo(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    builder.horizontalLine('-', width);
-
-    if (receipt.payments.size() > 1) {
-        // Multi-payment: rincikan per termin beserta nama akun
-        builder.text("RIWAYAT PEMBAYARAN:").newline();
-        int idx = 1;
-        for (const auto& pay : receipt.payments) {
-            // Label: "T1 Kas Admin" — singkat agar muat di 40 char
-            QString label = QString("  T%1 %2").arg(idx++).arg(pay.akunNama);
-            builder.column(label, QString::number(pay.amount, 'f', 0), width);
-        }
-        builder.horizontalLine('-', width);
-        builder.column("TOTAL BAYAR", QString::number(receipt.paidAmount, 'f', 0), width);
-
-        if (receipt.remaining > 0) {
-            builder.column("SISA TAGIHAN", QString::number(receipt.remaining, 'f', 0), width);
-        }
-    } else if (receipt.payments.size() == 1) {
-        const auto& pay = receipt.payments.first();
-
-        // Nama akun sebagai metode pembayaran (e.g. "Kas Admin", "Bank BRI")
-        if (!pay.akunNama.isEmpty()) {
-            builder.column("METODE", pay.akunNama, width);
-        }
-
-        if (pay.akunTipe == "cash") {
-            // Tunai: tampilkan uang diterima dan kembalian jika ada
-            if (pay.cashReceived > 0) {
-                builder.column("TUNAI", QString::number(pay.cashReceived, 'f', 0), width);
-            }
-            if (pay.cashChange > 0) {
-                builder.column("KEMBALI", QString::number(pay.cashChange, 'f', 0), width);
-            }
-        } else {
-            // Transfer / ewallet / lainnya: cukup jumlah yang dibayar
-            builder.column("DIBAYAR", QString::number(pay.amount, 'f', 0), width);
-        }
-    } else {
-        // Belum ada payment (unpaid)
-        builder.column("DIBAYAR", "0", width);
-        if (receipt.remaining > 0) {
-            builder.column("SISA TAGIHAN", QString::number(receipt.remaining, 'f', 0), width);
-        }
-    }
-
-    QString statusLabel;
-    if      (receipt.status == "paid")     statusLabel = "LUNAS";
-    else if (receipt.status == "partial")  statusLabel = "CICILAN";
-    else if (receipt.status == "unpaid")   statusLabel = "BELUM BAYAR";
-    else if (receipt.status == "refunded") statusLabel = "REFUND";
-    else                                   statusLabel = receipt.status.toUpper();
-
-    builder.text("STATUS: " + statusLabel).newline();
-}
-
-void PosPrinter::buildEscPosFooter(EscPosBuilder& builder, const Receipt& receipt, int width) {
-    builder.horizontalLine('=', width);
-    builder.alignCenter();
-    builder.text("Terima kasih atas pesanan Anda!").newline();
-
-    if (!receipt.pickupDate.isEmpty()) {
-        builder.text("Ambil: " + receipt.pickupDate).newline();
-    }
-
-    // TODO: tambahkan QR code di sini jika printer mendukung dan ada URL yang perlu ditampilkan
-    // if (m_config.supportsQR) { builder.qrCode(...); }
-
-    builder.text("Percetakan Maju Jaya (c) 2026").newline();
-    builder.alignLeft();
-
-    // Feed beberapa baris sebelum cut agar teks tidak terpotong
-    builder.lineFeed(6);
-}
-  ***************/
-
+// ==================== QPrinter Receipt Printing ====================
 // ==================== QPrinter Receipt Printing ====================
 
 bool PosPrinter::printReceipt(const Receipt& receipt) {
@@ -746,22 +566,6 @@ bool PosPrinter::printReceipt(const Receipt& receipt) {
     drawReceipt(painter, receipt, printer.pageLayout().pageSize());
     painter.end();
     m_lastError.clear();
-    return true;
-}
-
-bool PosPrinter::printReceiptPreview(const Receipt& receipt) {
-    QPrinter printer;
-    printer.setOutputFormat(QPrinter::NativeFormat);
-    printer.setPageSize(QPageSize(QSizeF(m_config.paperWidth, 200), QPageSize::Millimeter));
-
-    QPainter painter;
-    if (!painter.begin(&printer)) {
-        m_lastError = "Gagal membuat preview";
-        return false;
-    }
-
-    drawReceipt(painter, receipt, printer.pageLayout().pageSize());
-    painter.end();
     return true;
 }
 
@@ -898,19 +702,6 @@ void PosPrinter::drawItems(QPainter& painter, const Receipt& receipt, int maxCha
         painter.drawText(10, y, leftAlignText(qty, total, maxCharsPerLine));
         y += 12;
     }
-
-    // if (!receipt.finishings.isEmpty()) {
-        // y += 5;
-        // painter.drawText(10, y, "Biaya Finishing:");
-        // y += 12;
-
-        // for (const auto& finishing : receipt.finishings) {
-            // painter.drawText(10, y, leftAlignText("- " + finishing.name,
-                                                  // QString::number(finishing.cost, 'f', 0),
-                                                  // maxCharsPerLine));
-            // y += 12;
-        // }
-    // }
 
     y += 5;
 }
@@ -1077,12 +868,7 @@ void PosPrinter::drawLine(QPainter& painter, const QString& ch, int width, int x
 }
 
 int PosPrinter::calculateMaxCharsPerLine() const {
-    
-    return m_config.maxCharsPerLine; // Hard Code 
-    // return static_cast<int>(
-        // (m_config.paperWidth - m_config.marginLeft - m_config.marginRight) /
-        // (m_config.characterWidth / 10.0)
-    // );
+    return m_config.maxCharsPerLine;
 }
 
 void PosPrinter::onSerialPortError(QSerialPort::SerialPortError error) {
@@ -1093,7 +879,6 @@ void PosPrinter::onSerialPortError(QSerialPort::SerialPortError error) {
   m_errorCategory = mapSerialPortError(error, m_serialPortName);
   m_lastError = errorCategoryToString(m_errorCategory);
   
-  m_errorPorts << m_serialPortName;
   disconnectSerialPort();
   emit serialPortError(m_lastError);
 }
@@ -1138,43 +923,6 @@ QString PosPrinter::errorCategoryToString(PrinterError err) const {
     default:
         return "Terjadi kesalahan yang tidak diketahui pada modul printer.";
     }
-}
-
-qint64 PosPrinter::writeSerialData(const QByteArray& data) {
-    if (!m_serialPort.isOpen()) {
-        m_errorCategory = PrinterError::NotConnected;
-        m_lastError = errorCategoryToString(m_errorCategory);
-        return -1;
-    }
-    
-    qint64 written = m_serialPort.write(data);
-    if (written < 0) {
-        m_errorCategory = mapSerialPortError(m_serialPort.error(), m_serialPortName);
-        m_lastError = errorCategoryToString(m_errorCategory);
-        qWarning() << "writeSerialData failed:" << m_serialPort.error()
-                   << "category:" << static_cast<int>(m_errorCategory);
-        return -1;
-    }
-    
-    if (written < data.size()) {
-        // Partial write — this can happen on serial ports when the OS buffer
-        // fills up, but combined with no flush it indicates a problem.
-        m_errorCategory = PrinterError::WriteFailed;
-        m_lastError = "Hanya " + QString::number(written) + " dari "
-                      + QString::number(data.size())
-                      + " byte berhasil ditulis ke printer.";
-        qWarning() << "Partial write:" << written << "/" << data.size();
-    }
-    
-    // Flush the OS write buffer to the device
-    if (!m_serialPort.waitForBytesWritten(5000)) {
-        m_errorCategory = PrinterError::WriteTimeout;
-        m_lastError = errorCategoryToString(m_errorCategory);
-        qWarning() << "waitForBytesWritten timed out after 5000ms";
-        return -1;
-    }
-    
-    return written;
 }
 
 void PosPrinter::onPrintSerialReceiptRequested(const Receipt& receipt) {

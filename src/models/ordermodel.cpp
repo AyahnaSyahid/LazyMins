@@ -15,7 +15,9 @@ bool OrderModel::setItem(int row, OrderItem item)
 {
     if (row > -1 && row < m_items.count()) {
         m_items.replace(row, item);
-        emit dataChanged(index(row), index(row));
+        m_dirtyRows.insert(row);
+        emit dataChanged(index(row), index(row),
+                         {Qt::UserRole + 16, Qt::UserRole + 17, Qt::UserRole + 18});
         return true;
     }
     return false;
@@ -644,13 +646,13 @@ int OrderItem::total() const
 
 OrderItem &OrderItem::loadFromId(int id)
 {
-    OrderManager oman;
-    auto opt_ord = oman.getById(id);
-    if (!opt_ord.has_value()) {
+    OrderItemManager oim;
+    auto opt_item = oim.getById(id);
+    if (!opt_item.has_value()) {
       return *this;
     }
     
-    auto q = *opt_ord;
+    auto q = *opt_item;
 
     this->id            = q.value("id").toInt();
     order_id            = q.value("order_id").toInt();

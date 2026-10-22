@@ -5,8 +5,6 @@
 
 #include <QString>
 #include <QList>
-#include <QMap>
-#include <QRect>
 #include <QPrinter>
 #include <QPainter>
 #include <QSerialPort>
@@ -62,6 +60,28 @@ inline PrinterConfig defaultTMU220DConfig() {
     return cfg;
 }
 
+// ==================== Printer Error Categories ====================
+// Used for structured error detection so callers can present specific
+// guidance (reconnect, reconfigure, etc.) rather than a generic message.
+enum class PrinterError {
+    NoError = 0,
+    // Connection-level errors
+    NotConnected,
+    PortNotFound,
+    PortOpenFailed,
+    PortBusy,
+    PermissionDenied,
+    UnknownPortError,
+    // I/O-level errors during printing
+    WriteFailed,
+    WriteTimeout,
+    DeviceDisconnected,  // unplugged mid-session
+    // Configuration / state errors
+    NotConfigured,
+    // Catch-all
+    UnknownError
+};
+
 // ==================== POS Printer Manager ====================
 
 class PosPrinter : public QObject
@@ -71,7 +91,6 @@ class PosPrinter : public QObject
 public:
     // Singleton instance
     static PosPrinter& instance();
-    QSet<QString> portErrors() const { return m_errorPorts; }
     // Printer Discovery & Management (QPrinter / system printer)
     QStringList availablePrinters() const;
     bool selectPrinter(const QString& printerName);
@@ -85,7 +104,6 @@ public:
 
     // ---- QPrinter (system/driver) methods ----
     bool printReceipt(const Receipt& receipt);
-    bool printReceiptPreview(const Receipt& receipt);
     bool testPrint();
 
     // ---- ESC/POS Serial methods ----
@@ -98,9 +116,6 @@ public:
     bool isSerialConnected() const;
     QStringList availableSerialPorts() const;
 
-    // Kirim perintah ESC/POS langsung (untuk custom command dari luar)
-    // bool sendRawEscPosCommand(const EscPosBuilder& builder);
-
     // Cetak struk via serial ESC/POS
     // Format sama dengan printReceipt(), tapi output ke port serial
     // TODO: sesuaikan layout jika printer memiliki lebar berbeda
@@ -112,6 +127,15 @@ public:
     // ---- Error Handling ----
     QString lastError() const;
     void clearError();
+    
+    // Structured error category for programmatic handling
+    PrinterError errorCategory() const;
+    QString errorCategoryToString(PrinterError err) const;
+    
+    // Verify printer is physically connected and ready before printing.
+    // Attempts a write-and-flush cycle on the serial port to detect a
+    // device that was unplugged after open().
+    bool ensurePrinterReady();
 
 public slots:
     void onPrintSerialReceiptRequested(const Receipt& receipt);
@@ -121,7 +145,6 @@ private slots:
 
 signals:
     void serialPortError(const QString& message);
-    void unconfiguredSerialPort();
     void printFinished(const Receipt& r);
 
 private:
@@ -134,8 +157,9 @@ private:
 
     QSerialPort m_serialPort;
     
-    // Internal helper: pastikan ESC/POS printer siap dipakai
-    bool ensureEscPosReady();
+    // Internal helper: map QSerialPort::SerialPortError to PrinterError
+    static PrinterError mapSerialPortError(QSerialPort::SerialPortError err,
+                                           const QString& portName = {});
 
     // Internal QPrinter drawing methods
     void drawReceipt(QPainter& painter, const Receipt& receipt, const QPageSize& pageSize);
@@ -146,15 +170,6 @@ private:
     void drawPaymentInfo(QPainter& painter, const Receipt& receipt, int maxCharsPerLine, int& y);
     void drawFooter(QPainter& painter, const Receipt& receipt, int maxCharsPerLine, int& y);
 
-    // Internal ESC/POS builder methods
-    // TODO: jika layout perlu diubah per-section, pisahkan ke method masing-masing
-    // void buildEscPosHeader(EscPosBuilder& builder, const Receipt& receipt, int width);
-    // void buildEscPosCustomerInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
-    // void buildEscPosItems(EscPosBuilder& builder, const Receipt& receipt, int width);
-    // void buildEscPosTotals(EscPosBuilder& builder, const Receipt& receipt, int width);
-    // void buildEscPosPaymentInfo(EscPosBuilder& builder, const Receipt& receipt, int width);
-    // void buildEscPosFooter(EscPosBuilder& builder, const Receipt& receipt, int width);
-
     // Helper methods
     QString centerText(const QString& text, int width) const;
     QString leftAlignText(const QString& left, const QString& right, int width) const;
@@ -163,9 +178,8 @@ private:
 
     // Member variables
     QString m_serialPortName    = "";
-    qint32 m_serialPortBaudRate = 0;
     QString m_currentPrinter;
     PrinterConfig m_config;
     QString m_lastError;
-    QSet<QString> m_errorPorts;
+    PrinterError m_errorCategory = PrinterError::NoError;
 };

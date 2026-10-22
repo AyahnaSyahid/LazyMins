@@ -68,7 +68,17 @@ void PrintService::printToSerialRequested(const Receipt &rcp)
     auto &inst = PosPrinter::instance();
     if (inst.serialPortName() != m_portName) {
         if (!inst.connectSerialPort(m_portName, m_baudRate)) {
-            emit unableToPrint("Gagal menghubungkan printer pada port: " + m_portName);
+            auto cat = inst.errorCategory();
+            if (cat == PrinterError::PortNotFound || cat == PrinterError::DeviceDisconnected) {
+                emit unableToPrint(
+                    "Printer tidak terhubung atau dicabut dari port USB.\n\n"
+                    "Pastikan printer sudah dicolokkan dan menyala.\n\n"
+                    "Port yang dikonfigurasi: " + m_portName + "\n" + inst.errorCategoryToString(cat) + "\n\n"
+                    "Buka Pengaturan → Printer untuk mengkonfigurasi ulang."
+                );
+            } else {
+                emit unableToPrint("Gagal menghubungkan printer pada port: " + m_portName + "\n\n" + inst.errorCategoryToString(cat));
+            }
             return;
         }
     }
@@ -87,9 +97,62 @@ void PrintService::printQueuedReceipts()
         if(inst.printReceiptViaEscPos(rcp)) {
             emit receiptPrinted(rcp);
         } else {
-            // Jika gagal cetak di tengah jalan, masukkan kembali ke depan antrean (opsional)
-            // m_printQueue.prepend(rcp);
-            emit unableToPrint("Gagal mengirim data ke printer.");
+            // If the printer was disconnected, try to reconnect and retry once
+            auto cat = inst.errorCategory();
+            QString errMsg = inst.lastError();
+            
+            if (cat == PrinterError::DeviceDisconnected ||
+                cat == PrinterError::NotConnected ||
+                cat == PrinterError::WriteTimeout ||
+                cat == PrinterError::WriteFailed) {
+                
+                qWarning() << "Print failed with category" << static_cast<int>(cat)
+                           << "— attempting reconnect to" << m_portName;
+                
+                // Reconnect and retry once
+                inst.clearError();
+                if (inst.connectSerialPort(m_portName, m_baudRate)) {
+                    if (inst.printReceiptViaEscPos(rcp)) {
+                        emit receiptPrinted(rcp);
+                        continue;  // success on retry — proceed to next
+                    }
+                    // Retry also failed — fall through to error
+                    errMsg = inst.lastError();
+                    cat = inst.errorCategory();
+                }
+            }
+            
+            // Build a context-aware error message based on the category
+            QString detail = errMsg.isEmpty() ? inst.errorCategoryToString(cat) : errMsg;
+            
+            if (cat == PrinterError::PortNotFound || cat == PrinterError::DeviceDisconnected) {
+                emit unableToPrint(
+                    "Printer tidak terhubung atau dicabut dari port USB.\n\n"
+                    "Pastikan printer sudah dicolokkan, menyala, dan "
+                    "kabel USB terpasang dengan benar.\n\n"
+                    "Detail: " + detail + "\n\n"
+                    "Buka Pengaturan → Printer untuk mengkonfigurasi ulang."
+                );
+            } else if (cat == PrinterError::NotConnected) {
+                emit unableToPrint(
+                    "Koneksi printer belum dibuka.\n\n" + detail + "\n\n"
+                    "Buka Pengaturan → Printer untuk mengonfigurasi port serial."
+                );
+            } else if (cat == PrinterError::PortBusy || cat == PrinterError::PermissionDenied) {
+                emit unableToPrint(
+                    "Port serial tidak dapat dibuka.\n\n" + detail
+                );
+            } else if (cat == PrinterError::WriteTimeout || cat == PrinterError::WriteFailed) {
+                emit unableToPrint(
+                    "Gagal mengirim data ke printer.\n\n" + detail + "\n\n"
+                    "Cek kabel USB dan pastikan printer dalam keadaan menyala. "
+                    "Jika masalah berlanjut, cabut dan colok kembali kabel USB printer."
+                );
+            } else {
+                emit unableToPrint(
+                    "Gagal mencetak struk.\n\n" + detail
+                );
+            }
             break;
         }
     }

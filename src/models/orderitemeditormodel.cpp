@@ -24,13 +24,6 @@ namespace {
         {17,          "created_at"},
         {18,          "updated_at"},
     };
-    
-    struct ItemCalc {
-      double sizeWidth, sizeHeight;
-      int qty, salePrice, discountAmount;
-      int subtotal() { return qRound(sizeWidth * sizeHeight * qty * salePrice / 100) * 100; }
-      int total() { return subtotal() - discountAmount; }
-    };
 }
 
 QString OrderItemEditorModel::columnKey(int column)
@@ -448,7 +441,7 @@ double OrderItemEditorModel::calculateSubtotal() const
 }
 
 int OrderItemEditorModel::orderItemIdForRow(int row) const {
-  if (row < 0 && row >= rowCount()) return -1;
+  if (row < 0 || row >= rowCount()) return -1;
   auto ix = index(row, 0);
   return ix.data(Qt::EditRole).toInt();
 }

@@ -2,7 +2,6 @@
 
 #include <QMenu>
 #include <QMessageBox>
-#include <QStyledItemDelegate>
 #include <QTimer>
 #include <cmath>
 #include <memory>
@@ -14,8 +13,6 @@
 #include "src/models/finishinglistmodel.h"
 #include "src/models/ordermodel.h"
 #include "ui_orderitemdialog.h"
-
-void debugMap(const QVariantMap &);
 
 namespace
 {
@@ -171,7 +168,8 @@ void OrderItemDialog::on_simpanButton_clicked()
   }
   else
   {
-    emit editFinished();
+  m_itemEdit = oi;
+  emit editFinished();
   }
   accept();
 }

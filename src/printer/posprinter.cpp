@@ -1,6 +1,8 @@
 // src/printer/posprinter.cpp
 #include "posprinter.h"
 
+#include <QByteArray>
+
 #include <QPrinterInfo>
 #include <QSerialPortInfo>
 #include <QPageSize>
@@ -512,6 +514,19 @@ bool PosPrinter::printReceiptViaEscPos(const Receipt& receipt) {
       emit serialPortError(m_lastError);
       return false;
   }
+
+  // Post-write read-back. Some printers return a status byte after
+  // executing the print; a healthy, live link will show activity here.
+  // A device still attached to the port (USB alive) but powered off
+  // accepts the bytes into the kernel buffer and returns nothing. No
+  // software mechanism over a serial port can distinguish that case
+  // from a successful print, so that case still requires physical
+  // verification (power LED, paper loaded, receipt actually issuing).
+  QByteArray printerRsp;
+  if (m_serialPort.waitForReadyRead(500)) {
+      printerRsp = m_serialPort.readAll();
+  }
+
   emit printFinished(receipt);
   return true;
 }

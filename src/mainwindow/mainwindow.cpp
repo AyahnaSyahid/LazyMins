@@ -255,6 +255,16 @@ void MainWindow::continueSetup()
           &PrintService::onPaymentCreated);
   connect(&p_svc, &PrintService::unableToPrint, [this](const QString &m)
           { QMessageBox::warning(this, "Tidak dapat mencetak", m); });
+
+  // Confirmation feedback on the status bar when the printer hands the
+  // receipt over for printing. A serial port only proves the bytes were
+  // accepted into the kernel buffer, not that paper actually left the
+  // slot — the powered-off-but-present case still needs physical check.
+  connect(&p_svc, &PrintService::receiptPrinted, [this](const Receipt &r) {
+      QTimer::singleShot(0, this, [this, r]() {
+          ui->statusbar->showMessage("Struk " + r.invoiceNo + " -> terima kasih", 5000);
+      });
+  });
   setupAutoPrintStuctAction();
   // pengamanan
   auto app = qApp;

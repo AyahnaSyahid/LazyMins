@@ -8,52 +8,63 @@
 #include <QMessageBox>
 #include <QStyledItemDelegate>
 
+#include "konsumenrankviewer.h"
 #include "src/dialogs/konsumendialog.h"
-#include "src/managers/konsumenmanager.h"
 #include "src/display/konsumenorderbrowser.h"
+#include "src/managers/konsumenmanager.h"
 
-namespace {
-class KonsumenDelegate : public QStyledItemDelegate {
- public:
-  using QStyledItemDelegate::QStyledItemDelegate;
+namespace
+{
+  class KonsumenDelegate : public QStyledItemDelegate
+  {
+  public:
+    using QStyledItemDelegate::QStyledItemDelegate;
 
- protected:
-  void initStyleOption(QStyleOptionViewItem* option,
-                       const QModelIndex& ix) const override {
-    QStyledItemDelegate::initStyleOption(option, ix);
-    switch (ix.column()) {
-      case 0: {
+  protected:
+    void initStyleOption(QStyleOptionViewItem *option,
+                         const QModelIndex &ix) const override
+    {
+      QStyledItemDelegate::initStyleOption(option, ix);
+      switch (ix.column())
+      {
+      case 0:
+      {
         // ID - rata kanan
         option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
         break;
       }
       case 1:
-      case 3: {
+      case 3:
+      {
         // customer_code, customer_type - tengah
         option->displayAlignment = Qt::AlignCenter;
         break;
       }
-      case 12: {
+      case 12:
+      {
         // is_active - tampilkan Aktif/Non-aktif
         option->displayAlignment = Qt::AlignCenter;
         option->text = ix.data().toInt() == 1 ? "Aktif" : "Non-aktif";
         break;
       }
-      case 13: {
+      case 13:
+      {
         // last_seen - format tanggal
         option->displayAlignment = Qt::AlignCenter;
         QDateTime dt = ix.data().toDateTime();
-        if (dt.isValid()) option->text = dt.toString("dd MMMM yyyy");
+        if (dt.isValid())
+          option->text = dt.toString("dd MMMM yyyy");
         break;
       }
       default:
         break;
+      }
     }
-  }
-};
-}  // namespace
+  };
+} // namespace
 
-KonsumenDataViewer::KonsumenDataViewer(QWidget* parent) : DataViewer(parent) {
+KonsumenDataViewer::KonsumenDataViewer(QWidget *parent) : DataViewer(parent)
+{
   ui = Ui();
   auto m = &model();
 
@@ -105,13 +116,15 @@ KonsumenDataViewer::KonsumenDataViewer(QWidget* parent) : DataViewer(parent) {
   connect(ui->dataView, &QTableView::customContextMenuRequested, this,
           &KonsumenDataViewer::on_dataView_customContextMenuRequested);
 
-  addKonsumenAction();  // inisiasi action
+  addKonsumenAction(); // inisiasi action
 }
 
 KonsumenDataViewer::~KonsumenDataViewer() {}
 
-QAction* KonsumenDataViewer::addKonsumenAction() {
-  if (m_addKonsumenAction == nullptr) {
+QAction *KonsumenDataViewer::addKonsumenAction()
+{
+  if (m_addKonsumenAction == nullptr)
+  {
     m_addKonsumenAction = new QAction("Konsumen Baru", this);
     m_addKonsumenAction->setObjectName("addKonsumenAction");
     m_addKonsumenAction->setToolTip("Tambah data konsumen baru");
@@ -121,28 +134,32 @@ QAction* KonsumenDataViewer::addKonsumenAction() {
   return m_addKonsumenAction;
 }
 
-void KonsumenDataViewer::onAddKonsumenActionTriggered() {
+void KonsumenDataViewer::onAddKonsumenActionTriggered()
+{
   openCreateKonsumenDialog();
 }
 
-void KonsumenDataViewer::openCreateKonsumenDialog() {
+void KonsumenDataViewer::openCreateKonsumenDialog()
+{
   KonsumenDialog dlg(this);
   dlg.prepareCreate();
   connect(&dlg, &QDialog::accepted, this, &DataViewer::refresh);
-  connect(&dlg, &QDialog::accepted, [this]() {
+  connect(&dlg, &QDialog::accepted, [this]()
+          {
     auto resp = QMessageBox::question(this, "Notifikasi",
                                       "Data konsumen telah disimpan\nmasih ada "
                                       "data konsumen yang perlu ditambahkan ?");
-    if (resp == QMessageBox::Yes) openCreateKonsumenDialog();
-  });
+    if (resp == QMessageBox::Yes) openCreateKonsumenDialog(); });
   dlg.setWindowTitle("Form Konsumen Baru");
   dlg.exec();
 }
 
-void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId) {
+void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId)
+{
   KonsumenManager konsumenManager;
   auto optKon = konsumenManager.getById(konsumenId);
-  if (!optKon.has_value()) {
+  if (!optKon.has_value())
+  {
     QMessageBox::warning(this, "Kesalahan", "Data Konsumen tidak ditemukan");
     return;
   }
@@ -159,7 +176,8 @@ void KonsumenDataViewer::openEditKonsumenDialog(int konsumenId) {
 void KonsumenDataViewer::openOrderHistory(int konsumenId)
 {
   KonsumenOrderBrowser kod(this);
-  if (! kod.setCustomerId(konsumenId)) {
+  if (!kod.setCustomerId(konsumenId))
+  {
     QMessageBox::warning(this, "Kesalahan", "Riwayat tidak dapat ditemukan");
     return;
   }
@@ -167,33 +185,35 @@ void KonsumenDataViewer::openOrderHistory(int konsumenId)
 }
 
 void KonsumenDataViewer::on_dataView_customContextMenuRequested(
-    const QPoint& pt) {
+    const QPoint &pt)
+{
   QMenu menu;
   menu.setToolTipsVisible(true);
 
   auto clickedIndex = ui->dataView->indexAt(pt);
   const bool hasSelection = clickedIndex.isValid();
-  
+
   auto historyAction = menu.addAction("Riwayat Order");
   historyAction->setToolTip("Lihat riwayat pesanan terkait");
   historyAction->setEnabled(hasSelection);
 
-  connect(historyAction, &QAction::triggered, [this, clickedIndex] {
+  connect(historyAction, &QAction::triggered, [this, clickedIndex]
+          {
     if (clickedIndex.isValid()) {
       openOrderHistory(clickedIndex.siblingAtColumn(0).data().toInt());
-    }
-  });
+    } });
 
   auto editAction = menu.addAction("Edit");
   editAction->setToolTip("Edit data konsumen");
   editAction->setEnabled(hasSelection);
-  
+
   auto deleteAction = menu.addAction("Hapus");
   deleteAction->setEnabled(hasSelection);
   deleteAction->setObjectName("delete");
   deleteAction->setToolTip("Hapus");
   menu.setStyleSheet(".delete { color: red; }");
-  connect(deleteAction, &QAction::triggered,[this, clickedIndex] {
+  connect(deleteAction, &QAction::triggered, [this, clickedIndex]
+          {
     if (clickedIndex.isValid())
     {
       KonsumenManager konsumenManager;
@@ -205,19 +225,29 @@ void KonsumenDataViewer::on_dataView_customContextMenuRequested(
       if (QMessageBox::Yes != QMessageBox::question(this, "Konfirmasi", "Yakin menghapus data konsumen ini ?")) return ;
       model().removeRow(clickedIndex.row());
       model().submitAll();
-    }
-  });
-  
+    } });
+
+  menu.addSeparator();
+
+  auto rankAction = menu.addAction("Lihat Rank");
+  connect(rankAction, &QAction::triggered, [this]()
+          {
+    QDialog dl(this);
+    KonsumenRankViewer rv(&dl);
+    QHBoxLayout ly;
+    ly.addWidget(&rv);
+    dl.setLayout(&ly);
+    dl.exec(); });
   menu.addSeparator();
 
   auto submenu = menu.addMenu("Data baru");
   submenu->setToolTipsVisible(true);
   submenu->addAction(addKonsumenAction());
 
-  connect(editAction, &QAction::triggered, [this, clickedIndex]() {
+  connect(editAction, &QAction::triggered, [this, clickedIndex]()
+          {
     if (clickedIndex.isValid())
-      openEditKonsumenDialog(clickedIndex.siblingAtColumn(0).data().toInt());
-  });
+      openEditKonsumenDialog(clickedIndex.siblingAtColumn(0).data().toInt()); });
 
   menu.exec(ui->dataView->viewport()->mapToGlobal(pt));
 }

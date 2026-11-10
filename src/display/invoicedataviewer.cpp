@@ -201,9 +201,14 @@ void InvoiceDataViewer::onPaymentGranted(const QVariantMap& vm)
 }
 
 void InvoiceDataViewer::onBrowseInvoices() {
-  auto ib = new InvoiceBrowser();
+  auto dlg = QDialog(this);
+  auto l = QHBoxLayout();
+  auto ib = new InvoiceBrowser(&dlg);
   ib->setWindowTitle("Data Invoice");
   ib->setAttribute(Qt::WA_DeleteOnClose);
   connect(ib, &InvoiceBrowser::serialPrintRequested, this, &InvoiceDataViewer::printInvoiceToSerial);
-  ib->show();
+  l.addWidget(ib);
+  dlg.setLayout(&l);
+  dlg.resize(640, 320);
+  dlg.exec();
 }
